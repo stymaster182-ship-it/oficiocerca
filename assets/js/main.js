@@ -24,6 +24,22 @@
     });
   }
 
+  // Aparición suave de secciones (solo si html.js-motion; ver <head>)
+  window.__ocReveal = true;
+  if (document.documentElement.classList.contains("js-motion")) {
+    var els = document.querySelectorAll("[data-reveal]");
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (en.isIntersecting) { en.target.classList.add("is-in"); io.unobserve(en.target); }
+      });
+    }, { rootMargin: "0px 0px -8% 0px", threshold: 0.08 });
+    els.forEach(function (el, i) {
+      var sib = el.parentElement ? Array.prototype.indexOf.call(el.parentElement.children, el) : 0;
+      el.style.transitionDelay = Math.min(sib, 5) * 60 + "ms";
+      io.observe(el);
+    });
+  }
+
   // Año
   document.querySelectorAll("[data-year]").forEach(function (n) { n.textContent = new Date().getFullYear(); });
 

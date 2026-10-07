@@ -139,7 +139,7 @@
 
   // ------------------------------------------------------------ helpers
   function setSelect(sel, v) {
-    if (!sel || !v) return;
+    if (!sel || !v || !sel.options) return;
     for (var i = 0; i < sel.options.length; i++) if (sel.options[i].value === v && !sel.options[i].disabled) { sel.value = v; return; }
   }
   function getValue(form, name) {
