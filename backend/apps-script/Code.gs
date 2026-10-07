@@ -108,6 +108,29 @@ function prepareSheet_(ss, name, cols, estados) {
   return sh;
 }
 
+/**
+ * Reinicia SEQ_OC y SEQ_PRO a 0 para que el próximo registro real sea OC-0001 / PRO-0001.
+ * Seguridad: solo actúa si las pestañas Solicitudes y Profesionales NO tienen filas de datos.
+ * No toca SPREADSHEET_ID ni PHOTOS_FOLDER_ID. Ejecutar a mano desde el editor.
+ */
+function reiniciarContadoresPiloto() {
+  var sol = sheet_('Solicitudes').getLastRow();
+  var pro = sheet_('Profesionales').getLastRow();
+  if (sol > 1 || pro > 1) throw new Error('Hay registros en la hoja (Solicitudes: ' + (sol - 1) + ', Profesionales: ' + (pro - 1) + '). No se reinicia.');
+  var props = PropertiesService.getScriptProperties();
+  props.setProperty('SEQ_OC', '0');
+  props.setProperty('SEQ_PRO', '0');
+  Logger.log('SEQ_OC=' + props.getProperty('SEQ_OC') + ' · SEQ_PRO=' + props.getProperty('SEQ_PRO'));
+}
+
+/** Muestra en el registro el estado actual (contadores, IDs y destinatario de avisos). */
+function estadoPiloto() {
+  var props = PropertiesService.getScriptProperties();
+  Logger.log('SEQ_OC=' + props.getProperty('SEQ_OC') + ' · SEQ_PRO=' + props.getProperty('SEQ_PRO'));
+  Logger.log('SPREADSHEET_ID=' + props.getProperty('SPREADSHEET_ID') + ' · PHOTOS_FOLDER_ID=' + props.getProperty('PHOTOS_FOLDER_ID'));
+  Logger.log('Avisos a: ' + Session.getEffectiveUser().getEmail());
+}
+
 /* ------------------------------------------------------------------ web */
 function doGet() {
   return json_({ ok: true, service: 'OficioCerca', status: 'online' });
@@ -128,8 +151,16 @@ function doPost(e) {
 }
 
 function saveSolicitud_(d) {
-  req_(d, ['nombre', 'whatsapp', 'ciudad', 'codigoPostal', 'zona', 'oficio', 'tipoTrabajo', 'descripcion', 'prioridad', 'contactoPreferido', 'tipoSolicitante']);
+  // Reglas del piloto (deben coincidir con el formulario web):
+  // obligatorios: tipo de solicitante, nombre, WhatsApp, zona, servicio, descripción y 3 consentimientos;
+  // si el servicio es «Otro servicio», también qué servicio/profesional necesita.
+  req_(d, ['tipoSolicitante', 'nombre', 'whatsapp', 'zona', 'oficio', 'descripcion']);
+  if (esOtro_(d.oficio) && !String(d.oficioOtro || '').trim()) throw new Error('falta oficioOtro');
   if (d.consentContacto !== 'si' || d.consentCompartir !== 'si' || d.consentPrivacidad !== 'si') throw new Error('faltan consentimientos');
+  // Valores por defecto del piloto
+  d.ciudad = 'Córdoba';
+  if (!d.prioridad) d.prioridad = 'Normal';
+  if (!d.contactoPreferido) d.contactoPreferido = 'WhatsApp';
 
   var code = nextCode_('SEQ_OC', 'OC-');
   var fotos = (d.fotos || []).slice(0, CONFIG.MAX_PHOTOS);
@@ -194,6 +225,11 @@ function savePhotos_(code, fotos) {
     folder.createFile(Utilities.newBlob(bytes, 'image/jpeg', code + '-foto-' + (i + 1) + '.jpg'));
   });
   return folder.getUrl();
+}
+
+function esOtro_(v) {
+  v = String(v || '').toLowerCase();
+  return v === 'otro' || v === 'otro servicio';
 }
 
 function sheet_(name) {
