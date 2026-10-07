@@ -175,6 +175,8 @@ function doPost(e) {
     if (d.web) return json_({ ok: false, error: 'rechazado' }); // trampa anti-spam
     if (d.tipo === 'solicitud') return json_(guardarSolicitud_(d));
     if (d.tipo === 'profesional') return json_(guardarProfesional_(d));
+    if (d.tipo === 'pagina') return json_(paginaJson_(d.t));
+    if (d.tipo === 'accion') return json_(accion(String(d.t || ''), d.p || {}));
     return json_({ ok: false, error: 'tipo desconocido' });
   } catch (err) {
     var msg = String(err && err.message || err);

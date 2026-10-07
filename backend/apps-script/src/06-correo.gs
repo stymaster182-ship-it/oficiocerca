@@ -74,7 +74,8 @@ function urlToken_(spec, oc, pro) {
   var dias = spec.dias || cfgNum_('DIAS_VALIDEZ_ENLACES', 30);
   var exp = spec.expira || (Date.now() + dias * 86400000);
   var t = crearToken_(spec.tipo, oc, pro, spec.ref || '', exp);
-  return urlApp_() + '?t=' + t;
+  // Enlace a la web propia: el token va tras «#» (no se envía a ningún servidor ni queda en registros)
+  return String(cfg_('URL_WEB') || 'https://oficiocerca.pages.dev/').replace(/\/?$/, '/') + 'gestion/#' + t;
 }
 /** Devuelve el registro del token si es válido (no caducado). */
 function leerToken_(t) {
