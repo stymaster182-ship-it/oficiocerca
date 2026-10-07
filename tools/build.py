@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parent.parent
 CAT = json.loads((ROOT / "assets/data/catalogo.json").read_text(encoding="utf-8"))
 OFICIOS, CIUDADES, TIPOS = CAT["oficios"], CAT["ciudades"], CAT["tiposTrabajo"]
 SITE = "https://stymaster182-ship-it.github.io/oficiocerca/"
-VERSION = "1"
+VERSION = "2"
 e = html.escape
 
 ICONS = {}
