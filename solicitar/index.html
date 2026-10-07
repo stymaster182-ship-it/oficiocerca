@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Solicitar un profesional · OficioCerca</title>
 <meta name="description" content="Formulario para solicitar electricista, fontanero, marmolista u otro profesional en Córdoba. Gratis, con seguimiento y hasta 5 fotos.">
-<link rel="canonical" href="https://stymaster182-ship-it.github.io/oficiocerca/solicitar/">
+<link rel="canonical" href="https://oficiocerca.pages.dev/solicitar/">
 
 <meta name="theme-color" content="#13253D">
 <meta property="og:type" content="website">
@@ -13,15 +13,16 @@
 <meta property="og:site_name" content="OficioCerca">
 <meta property="og:title" content="Solicitar un profesional · OficioCerca">
 <meta property="og:description" content="Formulario para solicitar electricista, fontanero, marmolista u otro profesional en Córdoba. Gratis, con seguimiento y hasta 5 fotos.">
-<meta property="og:url" content="https://stymaster182-ship-it.github.io/oficiocerca/solicitar/">
-<meta property="og:image" content="https://stymaster182-ship-it.github.io/oficiocerca/assets/img/og-image.png">
+<meta property="og:url" content="https://oficiocerca.pages.dev/solicitar/">
+<meta property="og:image" content="https://oficiocerca.pages.dev/assets/img/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="../favicon.svg" type="image/svg+xml">
 <link rel="icon" href="../assets/img/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="../assets/img/apple-touch-icon.png">
-<link rel="stylesheet" href="../assets/css/styles.css?v=2">
+<link rel="stylesheet" href="../assets/css/styles.css?v=3">
+<script>(function(d){try{if(window.matchMedia&&!matchMedia('(prefers-reduced-motion: reduce)').matches&&'IntersectionObserver' in window){d.classList.add('js-motion');setTimeout(function(){if(!window.__ocReveal){d.classList.remove('js-motion')}},2500)}}catch(e){}})(document.documentElement)</script>
 
 </head>
 <body>
@@ -41,7 +42,8 @@
 <section class="page-hero"><div class="wrap">
   <div class="crumbs"><a href="../">Inicio</a> / Solicitar profesional</div>
   <h1>Solicitar un profesional</h1>
-  <p>Cuéntanos qué necesitas. Revisamos la solicitud y buscamos un profesional disponible en tu zona. Es gratuito y sin compromiso.</p>
+  <p>Cuéntanos qué necesitas. Revisamos tu solicitud, buscamos profesionales disponibles en Córdoba y te contactamos para continuar. Es gratuito y sin compromiso.</p>
+  <p class="req-legend"><span class="req">*</span> Obligatorio. El resto es opcional.</p>
 </div></section>
 <div class="wrap form-layout">
   <div class="form-card">
@@ -63,38 +65,36 @@
           <div class="field" data-show-if="tipoSolicitante=Empresa / Contratista"><label for="s-empresa">Empresa <span class="opt">(si aplica)</span></label><input id="s-empresa" name="empresa" type="text" autocomplete="organization" maxlength="120"></div>
         </div>
         <div class="grid2">
-          <div class="field"><label for="s-wa">WhatsApp <span class="req">*</span></label><input id="s-wa" name="whatsapp" type="tel" inputmode="tel" autocomplete="tel" required placeholder="600 000 000" data-phone><span class="hint">Móvil español o con prefijo internacional.</span><span class="err-msg">Revisa el número (9 dígitos o con prefijo +).</span></div>
+          <div class="field"><label for="s-wa">WhatsApp <span class="req">*</span></label><input id="s-wa" name="whatsapp" type="tel" inputmode="tel" autocomplete="tel" required placeholder="600 000 000" data-phone><span class="hint">Te escribiremos por aquí para continuar.</span><span class="err-msg">Revisa el número (9 dígitos o con prefijo +).</span></div>
           <div class="field"><label for="s-tel2">Teléfono alternativo <span class="opt">(opcional)</span></label><input id="s-tel2" name="telefonoAlt" type="tel" inputmode="tel" data-phone-optional><span class="err-msg">Revisa el número.</span></div>
         </div>
         <div class="field"><label for="s-email">Correo electrónico <span class="opt">(opcional)</span></label><input id="s-email" name="email" type="email" autocomplete="email" maxlength="160"><span class="err-msg">Revisa el correo.</span></div>
       </fieldset>
 
       <fieldset>
-        <legend><span class="n">2</span>Dónde es el trabajo</legend>
-        <div class="grid2">
-          <div class="field"><label for="s-ciudad">Ciudad <span class="req">*</span></label><select id="s-ciudad" name="ciudad" required><option value="cordoba" selected>Córdoba</option><option value="sevilla" disabled>Sevilla (próximamente)</option><option value="malaga" disabled>Málaga (próximamente)</option><option value="granada" disabled>Granada (próximamente)</option><option value="madrid" disabled>Madrid (próximamente)</option></select></div>
-          <div class="field"><label for="s-cp">Código postal <span class="req">*</span></label><input id="s-cp" name="codigoPostal" type="text" inputmode="numeric" autocomplete="postal-code" required maxlength="5" pattern="[0-9]{5}" placeholder="14000"><span class="err-msg">Escribe un código postal de 5 cifras.</span></div>
-        </div>
-        <div class="field"><label for="s-zona">Zona o barrio <span class="req">*</span></label><input id="s-zona" name="zona" type="text" required maxlength="120" placeholder="Ej.: Centro, Ciudad Jardín, polígono…"><span class="err-msg">Indica la zona o el barrio.</span></div>
-      </fieldset>
-
-      <fieldset>
-        <legend><span class="n">3</span>Qué necesitas</legend>
-        <div class="grid2">
-          <div class="field"><label for="s-oficio">Tipo de profesional <span class="req">*</span></label><select id="s-oficio" name="oficio" required><option value="">Selecciona un oficio</option><option value="electricidad">Electricidad</option><option value="fontaneria">Fontanería</option><option value="albanileria">Albañilería</option><option value="carpinteria">Carpintería</option><option value="ebanisteria">Ebanistería</option><option value="marmol-piedra">Mármol y piedra</option><option value="pintura">Pintura</option><option value="cerrajeria">Cerrajería</option><option value="reformas">Reformas</option><option value="pladur">Pladur / yeso laminado</option><option value="climatizacion">Climatización</option><option value="suelos">Suelos y revestimientos</option><option value="cubiertas">Cubiertas y tejados</option><option value="instalaciones">Instalaciones</option><option value="mantenimiento">Mantenimiento</option><option value="otro">Otro servicio</option></select><span class="err-msg">Elige un oficio (o «Otro servicio»).</span></div>
-          <div class="field"><label for="s-tipo">Tipo de trabajo <span class="req">*</span></label><select id="s-tipo" name="tipoTrabajo" required><option value="">Selecciona</option><option value="Reparación o avería">Reparación o avería</option><option value="Instalación nueva">Instalación nueva</option><option value="Reforma">Reforma</option><option value="Mantenimiento">Mantenimiento</option><option value="Obra o proyecto (subcontratación)">Obra o proyecto (subcontratación)</option><option value="Presupuesto para valorar">Presupuesto para valorar</option><option value="Otro">Otro</option></select><span class="err-msg">Elige el tipo de trabajo.</span></div>
-        </div>
-        <div class="field" data-show-if="oficio=otro"><label for="s-otro">¿Qué oficio necesitas? <span class="req">*</span></label><input id="s-otro" name="oficioOtro" type="text" maxlength="120" data-required-if="oficio=otro"><span class="err-msg">Cuéntanos qué oficio buscas.</span></div>
-        <div class="field"><label for="s-desc">Descripción detallada <span class="req">*</span></label><textarea id="s-desc" name="descripcion" required minlength="20" maxlength="3000" placeholder="Qué ha pasado o qué quieres hacer, medidas aproximadas, materiales, plazos, acceso…"></textarea><span class="hint"><span data-count="s-desc">0</span>/3000 · mínimo 20 caracteres</span><span class="err-msg">Describe el trabajo con al menos 20 caracteres.</span></div>
-        <fieldset class="choice-group" data-required-group="prioridad">
-          <legend class="label">Prioridad <span class="req">*</span></legend>
+        <legend><span class="n">2</span>Qué necesitas</legend>
+        <div class="field"><label for="s-oficio">Servicio que necesitas <span class="req">*</span></label><select id="s-oficio" name="oficio" required><option value="">Selecciona un servicio</option><option value="electricidad">Electricidad</option><option value="fontaneria">Fontanería</option><option value="albanileria">Albañilería y pequeñas reformas</option><option value="pintura">Pintura</option><option value="carpinteria">Carpintería y ebanistería</option><option value="otro">Otro servicio</option></select><span class="err-msg">Elige un servicio (o «Otro servicio»).</span></div>
+        <div class="field otro-box" data-show-if="oficio=otro"><label for="s-otro">¿Qué servicio o profesional necesitas? <span class="req">*</span></label><input id="s-otro" name="oficioOtro" type="text" maxlength="120" data-required-if="oficio=otro" placeholder="Ej.: marmolista, cerrajero…"><span class="hint">Revisaremos si hay profesionales disponibles en Córdoba y te contactaremos para informarte.</span><span class="err-msg">Indica qué servicio o profesional necesitas.</span></div>
+        <div class="field"><label for="s-desc">Describe el trabajo <span class="req">*</span></label><textarea id="s-desc" name="descripcion" required minlength="10" maxlength="3000" placeholder="Qué ha pasado o qué quieres hacer. Si puedes: medidas, materiales o plazos."></textarea><span class="hint"><span data-count="s-desc">0</span>/3000</span><span class="err-msg">Describe brevemente el trabajo (mínimo 10 caracteres).</span></div>
+        <div class="field"><label for="s-tipo">Tipo de trabajo <span class="opt">(opcional)</span></label><select id="s-tipo" name="tipoTrabajo"><option value="">Sin especificar</option><option value="Reparación o avería">Reparación o avería</option><option value="Instalación nueva">Instalación nueva</option><option value="Reforma">Reforma</option><option value="Mantenimiento">Mantenimiento</option><option value="Obra o proyecto (subcontratación)">Obra o proyecto (subcontratación)</option><option value="Presupuesto para valorar">Presupuesto para valorar</option><option value="Otro">Otro</option></select></div>
+        <fieldset class="choice-group">
+          <legend class="label">Prioridad <span class="opt">(opcional)</span></legend>
           <div class="choices c2">
-            <label class="choice"><input type="radio" name="prioridad" value="Normal" required checked><span>Normal<small>En los próximos días o semanas</small></span></label>
+            <label class="choice"><input type="radio" name="prioridad" value="Normal" checked><span>Normal<small>En los próximos días o semanas</small></span></label>
             <label class="choice"><input type="radio" name="prioridad" value="Prioritaria"><span>Prioritaria<small>Lo antes posible</small></span></label>
           </div>
           <span class="hint">En el piloto no ofrecemos servicio de urgencias inmediatas.</span>
-          <span class="err-msg">Elige la prioridad.</span>
         </fieldset>
+      </fieldset>
+
+      <fieldset>
+        <legend><span class="n">3</span>Dónde es el trabajo</legend>
+        <p class="fs-help">Zona piloto: Córdoba capital. La dirección exacta te la pediremos por WhatsApp si hace falta.</p>
+        <input type="hidden" name="ciudad" value="Córdoba">
+        <div class="grid2">
+          <div class="field"><label for="s-zona">Zona o barrio <span class="req">*</span></label><input id="s-zona" name="zona" type="text" required maxlength="120" placeholder="Ej.: Centro, Ciudad Jardín…"><span class="err-msg">Indica la zona o el barrio.</span></div>
+          <div class="field"><label for="s-cp">Código postal <span class="opt">(opcional)</span></label><input id="s-cp" name="codigoPostal" type="text" inputmode="numeric" autocomplete="postal-code" maxlength="5" pattern="[0-9]{5}" placeholder="14000"><span class="err-msg">Si lo indicas, deben ser 5 cifras.</span></div>
+        </div>
       </fieldset>
 
       <fieldset>
@@ -111,14 +111,13 @@
 
       <fieldset>
         <legend><span class="n">5</span>Contacto y autorizaciones</legend>
-        <fieldset class="choice-group" data-required-group="contactoPreferido">
-          <legend class="label">¿Cómo prefieres que te contactemos? <span class="req">*</span></legend>
+        <fieldset class="choice-group">
+          <legend class="label">¿Cómo prefieres que te contactemos? <span class="opt">(opcional)</span></legend>
           <div class="choices c3">
-            <label class="choice"><input type="radio" name="contactoPreferido" value="WhatsApp" required checked><span>WhatsApp</span></label>
+            <label class="choice"><input type="radio" name="contactoPreferido" value="WhatsApp" checked><span>WhatsApp</span></label>
             <label class="choice"><input type="radio" name="contactoPreferido" value="Llamada"><span>Llamada</span></label>
             <label class="choice"><input type="radio" name="contactoPreferido" value="Correo"><span>Correo</span></label>
           </div>
-          <span class="err-msg">Elige una opción.</span>
         </fieldset>
         <div class="consent" data-consent>
   <input type="checkbox" id="s-consentContacto" name="consentContacto" value="si" required>
@@ -148,7 +147,7 @@
       <p>Estamos revisando tu solicitud y buscando un profesional disponible para tu zona.</p>
       <div class="ticket"><small>Tu código de solicitud</small><strong data-code>—</strong></div>
       <p>OficioCerca te mantendrá informado sobre el proceso. Guarda este código para cualquier consulta.</p>
-      <div class="next"><strong>Próximos pasos</strong><ol><li>Revisamos los datos y, si falta algo, te escribimos.</li><li>Buscamos un profesional compatible con tu zona y trabajo.</li><li>Te avisamos cuando un profesional acepte la solicitud.</li></ol></div>
+      <div class="next"><strong>Próximos pasos</strong><ol><li>Revisamos los datos y, si falta algo, te escribimos.</li><li>Revisamos la disponibilidad de profesionales para tu zona y trabajo.</li><li>Te contactamos para informarte y continuar el proceso.</li></ol></div>
       <a class="btn btn-ghost" href="../">Volver al inicio</a>
     </div>
   </div>
@@ -181,7 +180,7 @@
       <div>
         <h2>Profesionales</h2>
         <ul>
-          <li><a href="../profesionales/">Únete a la red</a></li>
+          <li><a href="../profesionales/">Registro de profesionales</a></li>
           <li><a href="../#como-funciona">Cómo funciona</a></li>
         </ul>
       </div>
@@ -201,9 +200,9 @@
     </div>
   </div>
 </footer>
-<script src="../assets/js/config.js?v=2"></script>
-<script src="../assets/js/icons.js?v=2"></script>
-<script src="../assets/js/main.js?v=2" defer></script>
-<script src="../assets/js/forms.js?v=2" defer></script>
+<script src="../assets/js/config.js?v=3"></script>
+<script src="../assets/js/icons.js?v=3"></script>
+<script src="../assets/js/main.js?v=3" defer></script>
+<script src="../assets/js/forms.js?v=3" defer></script>
 </body>
 </html>
