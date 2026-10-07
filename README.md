@@ -2,7 +2,8 @@
 
 - **URL pública del piloto:** https://oficiocerca.pages.dev (Cloudflare Pages, despliegue automático desde la rama `main`)
 - **GitHub Pages:** https://stymaster182-ship-it.github.io/oficiocerca/ redirige automáticamente a oficiocerca.pages.dev (script en el `<head>`)
-- **Backend:** Google Apps Script (ver `backend/README.md`)
+- **Backend:** Google Apps Script V1.4 en la cuenta oficiocerca@gmail.com (ver `backend/README.md`)
+- **Correo oficial:** oficiocerca@gmail.com
 
 Profesionales para obras, reformas y reparaciones. Sitio estático para GitHub Pages, coste 0 €.
 
@@ -13,12 +14,14 @@ index.html                 Inicio
 solicitar/                 Formulario de clientes (particular / empresa) + fotos + código OC
 profesionales/             Registro de profesionales + código PRO
 cordoba/                   Página de ciudad (zona piloto)
-privacidad/ condiciones/   BORRADORES legales (pendientes de revisión, noindex)
+privacidad/ condiciones/ condiciones-profesionales/   BORRADORES legales (noindex)
+gestion/                   Página de los botones de los correos (token tras «#»)
 404.html  robots.txt  sitemap.xml  favicon.svg
 assets/css/styles.css
 assets/js/config.js        ENDPOINT del backend, WhatsApp (vacío hasta tener número español)
 assets/js/forms.js         Validación, compresión de fotos y envío
-assets/data/catalogo.json  Servicios del piloto (5 + «Otro servicio»), ciudades y tipos de trabajo
+assets/data/catalogo.json  Servicios del piloto (6 + «Otro servicio»), ciudades y tipos de trabajo
+assets/img/                Imágenes (ver CREDITOS.md)
 backend/apps-script/       Backend gratuito (Google Apps Script) — ver backend/README.md
 tools/build.py             Genera los HTML desde catalogo.json
 ```
