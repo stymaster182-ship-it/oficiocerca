@@ -43,10 +43,13 @@
   // Año
   document.querySelectorAll("[data-year]").forEach(function (n) { n.textContent = new Date().getFullYear(); });
 
-  // WhatsApp: solo aparece cuando hay un número configurado en config.js
+  // WhatsApp: no se muestra ningún enlace hasta que exista un número real en config.js
   if (cfg.WHATSAPP && /^\d{8,15}$/.test(cfg.WHATSAPP)) {
     var href = "https://wa.me/" + cfg.WHATSAPP + "?text=" + encodeURIComponent("Hola OficioCerca, quiero hacer una consulta.");
-    document.querySelectorAll("[data-oc-wa]").forEach(function (a) { a.href = href; a.target = "_blank"; a.rel = "noopener"; });
-    document.querySelectorAll("[data-oc-wa-footer]").forEach(function (li) { li.hidden = false; });
+    document.querySelectorAll("[data-oc-contact]").forEach(function (ul) {
+      var li = document.createElement("li"), a = document.createElement("a");
+      a.href = href; a.target = "_blank"; a.rel = "noopener"; a.textContent = "WhatsApp";
+      li.appendChild(a); ul.insertBefore(li, ul.children[1] || null);
+    });
   }
 })();
