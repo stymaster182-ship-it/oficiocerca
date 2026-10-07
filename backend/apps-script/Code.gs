@@ -64,6 +64,7 @@ function setup() {
     ss = SpreadsheetApp.create(CONFIG.SPREADSHEET_NAME);
     props.setProperty('SPREADSHEET_ID', ss.getId());
   }
+  ss.setSpreadsheetTimeZone('Europe/Madrid');
   prepareSheet_(ss, 'Solicitudes', COLS_SOLICITUDES, ESTADOS_SOLICITUD);
   prepareSheet_(ss, 'Profesionales', COLS_PROFESIONALES, ESTADOS_PROFESIONAL);
 
