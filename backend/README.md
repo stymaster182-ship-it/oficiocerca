@@ -48,25 +48,25 @@ Finalizado → Comisión pagada → Valoración recibida · (salida: Cancelado /
 Se simplificaron los 14 estados propuestos a 9: «Contacto realizado», «En ejecución» o «Comisión pendiente»
 son hechos que se anotan en columnas (fechas, importe, comisión), no pasos distintos.
 
-## V1.2 — Asignar una solicitud y enviar la ficha al profesional
+## V1.3 — Flujo operativo (asignar, enviar ficha, respuesta, contacto)
 
-Preparación (una vez): en el editor de Apps Script ejecuta `prepararAsignacionV12` (añade columnas y el
-activador `alEditarPanel`; Google pedirá autorizar «gestionar activadores»).
+Preparación (una vez): ejecuta `prepararV13` (columnas, desplegable de respuesta, casillas, pestaña
+«Historial envíos» y activador `alEditarPanel`). Diagnóstico: `estadoPiloto` (cuota real de correo
+`MailApp.getRemainingDailyQuota`, contadores, filas, activador). Reinicio: `reiniciarContadoresPiloto`
+(se niega si quedan filas en Solicitudes, Profesionales o Historial).
 
-Uso diario en la hoja **Solicitudes**:
+Uso diario en **Solicitudes** (nada se envía al cambiar una celda salvo que marques una casilla):
 
-1. En **Profesionales**, el profesional debe estar en estado **Activo** y tener **Email**.
-2. En la solicitud, escribe su código en **Profesional asignado (PRO)** → se rellenan *Nombre profesional*,
-   *Correo profesional*, *Fecha asignación* y *Estado envío ficha* = «Listo para enviar».
-3. Revisa nombre y correo y marca **Enviar ficha** → se envía 1 correo con la ficha y las fotos adjuntas
-   (copia oculta a la cuenta propietaria), se rellena *Ficha enviada (fecha)* y la casilla se desmarca.
+1. Escribe el código en **Profesional asignado (PRO)** → se rellenan nombre y correo (profesional «Activo»).
+2. Marca **Enviar ficha** → 1 correo SIN datos de contacto del cliente, con las fotos adjuntas.
+   Respuesta profesional = «Pendiente». Queda una fila en «Historial envíos».
+3. Anota la **Respuesta profesional**: Pendiente / Aceptó / Rechazó / Sin respuesta.
+4. Solo con «Aceptó» (en la fila y en el historial), marca **Enviar contacto** → correo con los datos
+   de contacto del cliente a ese profesional. Estado = «Profesional asignado».
+5. Reasignar: escribe otro PRO. El historial no se borra. Reenviar a la misma pareja OC+PRO exige
+   marcar **Reenviar ficha**.
 
-La ficha NO incluye nombre, teléfono, correo, empresa ni código postal del cliente. El contacto se comparte
-a mano solo cuando el profesional confirma (respondiendo al correo).
+Bloqueos: duplicado OC+PRO, contacto sin «Aceptó», contacto ya enviado, profesional no activo,
+correo inválido o cambiado, sin consentimiento, cuota insuficiente (cada envío usa 2: destinatario + copia oculta).
 
-Protecciones: no reenvía si ya hay *Ficha enviada (fecha)*; no cambia de profesional tras el envío
-(para reasignar, borra a mano *Ficha enviada (fecha)*); exige profesional «Activo», correo válido y
-consentimiento de compartir; si el correo del profesional cambió entre asignar y enviar, pide revisar.
-
-Fotos: se adjuntan al correo desde la carpeta de ESA solicitud. No se cambian permisos de Drive y
-ninguna carpeta se comparte (ni por enlace ni por correo).
+Fotos: se adjuntan desde la carpeta de ESA solicitud. No se cambian permisos de Drive; ninguna carpeta se comparte.
