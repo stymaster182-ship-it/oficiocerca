@@ -22,7 +22,7 @@
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="icon" href="assets/img/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png">
-<link rel="stylesheet" href="assets/css/styles.css?v=4">
+<link rel="stylesheet" href="assets/css/styles.css?v=5">
 <script>(function(d){try{if(window.matchMedia&&!matchMedia('(prefers-reduced-motion: reduce)').matches&&'IntersectionObserver' in window){d.classList.add('js-motion');setTimeout(function(){if(!window.__ocReveal){d.classList.remove('js-motion')}},2500)}}catch(e){}})(document.documentElement)</script>
 <script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "Organization", "@id": "https://oficiocerca.pages.dev/#org", "name": "OficioCerca", "url": "https://oficiocerca.pages.dev/", "logo": "https://oficiocerca.pages.dev/assets/img/apple-touch-icon.png", "description": "Servicio de intermediación que conecta a clientes y empresas con profesionales de obras, reformas y reparaciones.", "areaServed": {"@type": "City", "name": "Córdoba", "containedInPlace": {"@type": "Country", "name": "España"}}}, {"@type": "WebSite", "@id": "https://oficiocerca.pages.dev/#web", "name": "OficioCerca", "url": "https://oficiocerca.pages.dev/", "inLanguage": "es-ES", "publisher": {"@id": "https://oficiocerca.pages.dev/#org"}}]}</script>
 </head>
@@ -31,13 +31,13 @@
 <header class="hdr" id="top">
   <div class="wrap">
     <a class="brand" href="" aria-label="OficioCerca, inicio"><svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="10" fill="#13253D"/><path d="M9 21.5 20 12.5l11 9" stroke="#DD6326" stroke-width="3.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="20" cy="25.5" r="4.2" fill="#fff"/></svg><span class="brand-name">OFICIO<b>CERCA</b></span></a>
-    <nav class="nav" aria-label="Principal"><a href="">Inicio</a><a href="#como-funciona">Cómo funciona</a><a href="#servicios">Servicios</a><a href="#empresas">Empresas</a><a href="profesionales/">Para profesionales</a><a href="#contacto">Contacto</a></nav>
+    <nav class="nav" aria-label="Principal"><a href="">Inicio</a><a href="#como-funciona">Cómo funciona</a><a href="#servicios">Servicios</a><a href="solicitar/?tipo=empresa">Empresas</a><a href="profesionales/">Para profesionales</a><a href="#contacto">Contacto</a></nav>
     <a class="btn btn-primary btn-sm hdr-cta" href="solicitar/">Solicitar profesional</a>
     <button class="menu-btn" type="button" aria-expanded="false" aria-controls="mnav" aria-label="Abrir menú">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
     </button>
   </div>
-  <nav class="mobile-nav" id="mnav" aria-label="Menú móvil"><a href="">Inicio</a><a href="#como-funciona">Cómo funciona</a><a href="#servicios">Servicios</a><a href="#empresas">Empresas</a><a href="profesionales/">Para profesionales</a><a href="#contacto">Contacto</a><a class="btn btn-primary" href="solicitar/">Solicitar profesional</a></nav>
+  <nav class="mobile-nav" id="mnav" aria-label="Menú móvil"><a href="">Inicio</a><a href="#como-funciona">Cómo funciona</a><a href="#servicios">Servicios</a><a href="solicitar/?tipo=empresa">Empresas</a><a href="profesionales/">Para profesionales</a><a href="#contacto">Contacto</a><a class="btn btn-primary" href="solicitar/">Solicitar profesional</a></nav>
 </header>
 <main id="main">
 <section class="hero">
@@ -57,7 +57,7 @@
     <div class="hero-copy">
       <span class="pill"><span class="dot" aria-hidden="true"></span>Disponible inicialmente en Córdoba</span>
       <h1>Encuentra al profesional que <em>necesita tu proyecto</em></h1>
-      <p class="lead">Cuéntanos qué trabajo necesitas en Córdoba. Revisamos tu solicitud, buscamos profesionales disponibles y te acompañamos hasta saber cómo terminó.</p>
+      <p class="lead">Cuéntanos qué trabajo necesitas. Buscamos un profesional disponible en tu zona y te acompañamos hasta el final.</p>
       <div class="hero-ctas">
         <a class="btn btn-primary btn-lg" href="solicitar/?tipo=particular">Solicitar profesional <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
         <a class="btn btn-ghost btn-lg" href="profesionales/">Soy profesional</a>
@@ -83,23 +83,23 @@
   <div class="wrap">
     <h2 id="quien" class="sr-only">¿Quién eres?</h2>
     <div class="aud">
-      <a class="aud-card featured" data-reveal href="solicitar/?tipo=empresa">
-        <span class="k">Empresa / contratista</span>
-        <h3>Soy empresa o contratista</h3>
-        <p>Encuentra profesionales para completar tus obras y proyectos.</p>
-        <span class="go">Solicitar profesional <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
-      </a>
       <a class="aud-card" data-reveal href="solicitar/?tipo=particular">
         <span class="k">Particular</span>
-        <h3>Soy particular</h3>
-        <p>Cuéntanos qué necesitas y buscamos un profesional disponible para tu zona.</p>
-        <span class="go">Necesito un profesional <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+        <h3>Necesito un arreglo o una reforma</h3>
+        <p>Cuéntanos el trabajo y buscamos un profesional disponible en tu zona.</p>
+        <span class="go">Solicitar profesional <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+      </a>
+      <a class="aud-card featured" data-reveal href="solicitar/?tipo=empresa">
+        <span class="k">Empresa / contratista</span>
+        <h3>Me falta un oficio en una obra</h3>
+        <p>Para contratistas, reformistas y administradores de fincas.</p>
+        <span class="go">Solicitar profesional <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
       </a>
       <a class="aud-card" data-reveal href="profesionales/">
         <span class="k">Profesional</span>
-        <h3>Soy profesional</h3>
-        <p>Regístrate y recibe oportunidades compatibles con tu oficio y zona.</p>
-        <span class="go">Quiero recibir trabajos <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+        <h3>Quiero recibir trabajos</h3>
+        <p>Regístrate y recibe oportunidades de tu oficio y zona.</p>
+        <span class="go">Registrarme <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
       </a>
     </div>
   </div>
@@ -110,7 +110,7 @@
     <div class="sec-head" data-reveal>
       <span class="eyebrow">Servicios del piloto</span>
       <h2 id="h-serv">¿Qué necesitas?</h2>
-      <p>Empezamos con estos servicios en Córdoba. Si buscas otro, cuéntanoslo y revisaremos disponibilidad.</p>
+      <p>Empezamos con estos servicios. Si buscas otro, cuéntanoslo: revisaremos disponibilidad, sin garantizar que haya profesional.</p>
     </div>
     <div class="trades"><a class="trade" data-reveal href="solicitar/?oficio=electricidad"><span class="trade-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 4.5 13.5H11L10 22l8.5-11.5H12z"/></svg></span><span class="trade-txt"><strong>Electricidad</strong><span>Averías, enchufes, puntos de luz, cuadros e instalaciones</span></span><span class="trade-go" aria-hidden="true"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a><a class="trade" data-reveal href="solicitar/?oficio=fontaneria"><span class="trade-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.5c3.6 4.3 6 7.7 6 11a6 6 0 0 1-12 0c0-3.3 2.4-6.7 6-11z"/><path d="M9 14.5a3 3 0 0 0 3 3"/></svg></span><span class="trade-txt"><strong>Fontanería</strong><span>Fugas, grifos, sanitarios, tuberías y calentadores</span></span><span class="trade-go" aria-hidden="true"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a><a class="trade" data-reveal href="solicitar/?oficio=albanileria"><span class="trade-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="1.5"/><path d="M3 9.7h18M3 14.3h18M9 5v4.7M15 9.7v4.6M9 14.3V19"/></svg></span><span class="trade-txt"><strong>Albañilería y pequeñas reformas</strong><span>Arreglos de obra, alicatados, tabiques y reformas pequeñas</span></span><span class="trade-go" aria-hidden="true"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a><a class="trade" data-reveal href="solicitar/?oficio=pintura"><span class="trade-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="15" height="6" rx="1.5"/><path d="M18 6h2.5v5H11v3"/><rect x="9.5" y="14" width="3" height="7" rx="1"/></svg></span><span class="trade-txt"><strong>Pintura</strong><span>Paredes, techos, interiores y acabados</span></span><span class="trade-go" aria-hidden="true"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a><a class="trade" data-reveal href="solicitar/?oficio=carpinteria"><span class="trade-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 15 15 3l3 3L6 18z"/><path d="M6 18l-1.5 1.5M8 13l1.5 1.5M11 10l1.5 1.5"/><path d="M15 3l6 6-3 3"/></svg></span><span class="trade-txt"><strong>Carpintería y ebanistería</strong><span>Puertas, armarios, muebles a medida y ajustes</span></span><span class="trade-go" aria-hidden="true"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a><a class="trade trade-other" data-reveal href="solicitar/?oficio=otro"><span class="trade-ico"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg></span><span class="trade-txt"><strong>¿Necesitas otro servicio?</strong><span>Cuéntanos qué trabajo necesitas y revisaremos si hay profesionales disponibles en Córdoba. Te contactaremos para informarte.</span></span><span class="trade-go" aria-hidden="true"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a></div>
   </div>
@@ -120,85 +120,10 @@
   <div class="wrap">
     <div class="sec-head" data-reveal>
       <span class="eyebrow">Cómo funciona</span>
-      <h2 id="h-como">De tu solicitud a un trabajo terminado</h2>
-      <p>No solo te damos un contacto. Acompañamos la solicitud hasta saber si encontraste el profesional adecuado.</p>
+      <h2 id="h-como">Cuatro pasos, con seguimiento</h2>
     </div>
-    <ol class="steps"><li class="step" data-reveal><div><h3>Cuéntanos qué necesitas</h3><p>Rellena la solicitud. Las fotos ayudan, pero son opcionales.</p></div></li><li class="step" data-reveal><div><h3>Revisamos tu solicitud</h3><p>Comprobamos los datos y, si falta algo, te escribimos.</p></div></li><li class="step" data-reveal><div><h3>Buscamos profesional</h3><p>Revisamos disponibilidad según oficio y zona.</p></div></li><li class="step" data-reveal><div><h3>Contacto y presupuesto</h3><p>El profesional te contacta y prepara su presupuesto.</p></div></li><li class="step" data-reveal><div><h3>Tú decides</h3><p>Aceptas o no. Sin compromiso.</p></div></li><li class="step hl" data-reveal><div><h3>Seguimiento</h3><p>Te preguntamos cómo va hasta que el trabajo termine.</p></div></li><li class="step" data-reveal><div><h3>Valoras el servicio</h3><p>Tu opinión queda ligada a una solicitud real.</p></div></li></ol>
-    <div class="notice" data-reveal><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg><p><strong>El presupuesto y el pago se acuerdan directamente con el profesional.</strong> OficioCerca no cobra ni procesa pagos de los trabajos. Para ti, la solicitud es gratuita.</p></div>
-  </div>
-</section>
-
-<section class="sec sec-dark" id="empresas" aria-labelledby="h-emp">
-  <div class="wrap split">
-    <div data-reveal>
-      <span class="eyebrow">Para empresas y contratistas</span>
-      <h2 id="h-emp">¿Tienes una obra parada porque te falta un oficio?</h2>
-      <p>OficioCerca te ayuda a localizar profesionales disponibles para completar tus proyectos: el electricista para la cocina que montas, el fontanero para el baño, el pintor para entregar a tiempo.</p>
-      <ul class="checks">
-        <li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg><span>Pensado para contratistas, reformistas, constructoras y administradores de fincas.</span></li>
-        <li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg><span>Indica zona, plazos y alcance; revisamos disponibilidad y te informamos.</span></li>
-        <li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg><span>Un único punto de contacto para pedir distintos oficios.</span></li>
-        <li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg><span>Seguimiento hasta confirmar si el profesional encajó en tu obra.</span></li>
-      </ul>
-      <a class="btn btn-primary" href="solicitar/?tipo=empresa">Solicitar profesional <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
-    </div>
-    <div class="panel" data-reveal>
-      <h3>Servicios con los que empezamos</h3>
-      <ul class="mini-list">
-        <li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2 4.5 13.5H11L10 22l8.5-11.5H12z"/></svg>Electricidad</li><li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.5c3.6 4.3 6 7.7 6 11a6 6 0 0 1-12 0c0-3.3 2.4-6.7 6-11z"/><path d="M9 14.5a3 3 0 0 0 3 3"/></svg>Fontanería</li><li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="1.5"/><path d="M3 9.7h18M3 14.3h18M9 5v4.7M15 9.7v4.6M9 14.3V19"/></svg>Albañilería y pequeñas reformas</li><li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="15" height="6" rx="1.5"/><path d="M18 6h2.5v5H11v3"/><rect x="9.5" y="14" width="3" height="7" rx="1"/></svg>Pintura</li><li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 15 15 3l3 3L6 18z"/><path d="M6 18l-1.5 1.5M8 13l1.5 1.5M11 10l1.5 1.5"/><path d="M15 3l6 6-3 3"/></svg>Carpintería y ebanistería</li>
-        <li class="muted"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>¿Otro oficio? Lo revisamos contigo</li>
-      </ul>
-    </div>
-  </div>
-</section>
-
-<section class="sec" id="particulares" aria-labelledby="h-part">
-  <div class="wrap split">
-    <div data-reveal>
-      <span class="eyebrow">Para particulares</span>
-      <h2 id="h-part">Una solicitud, y nosotros buscamos por ti</h2>
-      <p>Describe el trabajo, añade fotos si las tienes y te mantenemos informado de cada paso.</p>
-      <ul class="checks">
-        <li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg><span>Solicitud gratuita y sin compromiso.</span></li>
-        <li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg><span>Un código de solicitud para seguir el proceso.</span></li>
-        <li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg><span>Tú decides si aceptas el presupuesto.</span></li>
-      </ul>
-      <a class="btn btn-dark" href="solicitar/?tipo=particular">Necesito un profesional <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
-    </div>
-    <div class="panel" data-reveal>
-      <h3>Qué conviene contarnos</h3>
-      <ul class="mini-list">
-        <li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg>Qué ha pasado o qué quieres hacer</li>
-        <li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11 12 4l9 7"/><path d="M5.5 9.5V20h13V9.5"/><path d="M10 20v-5h4v5"/></svg>Zona o barrio</li>
-        <li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7.5h3.5L9 5h6l1.5 2.5H20V19H4z"/><circle cx="12" cy="13" r="3.5"/></svg>Fotos, si las tienes</li>
-        <li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>Los demás detalles los vemos por WhatsApp</li>
-      </ul>
-    </div>
-  </div>
-</section>
-
-<section class="sec sec-white" id="profesionales" aria-labelledby="h-pro">
-  <div class="wrap split">
-    <div data-reveal>
-      <span class="eyebrow">Para profesionales</span>
-      <h2 id="h-pro">Recibe oportunidades compatibles con tu oficio y zona</h2>
-      <p>Cuando haya un trabajo compatible, te enviamos por correo una ficha con zona, descripción y fotos. Tú nos confirmas si puedes atenderlo.</p>
-      <ul class="checks">
-        <li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg><span>Solicitudes revisadas antes de enviártelas.</span></li>
-        <li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg><span>Puedes rechazar las que no te encajen.</span></li>
-        <li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg><span>En el piloto inicial solo existe coste cuando un trabajo gestionado por OficioCerca se concreta.</span></li>
-        <li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg><span>Las condiciones económicas se informan y aceptan antes de recibir trabajos.</span></li>
-      </ul>
-      <a class="btn btn-primary" href="profesionales/">Quiero recibir trabajos <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
-    </div>
-    <div class="panel" data-reveal>
-      <h3>Así llega una oportunidad</h3>
-      <ul class="mini-list">
-        <li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>Te llega por correo una ficha con servicio, zona, descripción y fotos</li>
-        <li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>Nos respondes si puedes atenderlo</li>
-        <li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11 12 4l9 7"/><path d="M5.5 9.5V20h13V9.5"/><path d="M10 20v-5h4v5"/></svg>Si confirmas, te pasamos el contacto del cliente</li>
-      </ul>
-    </div>
+    <ol class="steps"><li class="step" data-reveal><div><h3>Cuéntanos qué necesitas</h3><p>Describe el trabajo y añade fotos si quieres. Es gratis.</p></div></li><li class="step" data-reveal><div><h3>Revisamos y buscamos</h3><p>Enviamos la información del trabajo a profesionales compatibles, sin tus datos de contacto.</p></div></li><li class="step" data-reveal><div><h3>Un profesional lo valora</h3><p>Si confirma que puede atenderlo, le facilitamos tu contacto y te escribe.</p></div></li><li class="step hl" data-reveal><div><h3>Presupuesto y seguimiento</h3><p>Acordáis visita y presupuesto; tú decides. Hacemos seguimiento hasta el final.</p></div></li></ol>
+    <div class="notice" data-reveal><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg><p><strong>La solicitud es gratuita.</strong> El presupuesto y el pago se acuerdan directamente con el profesional; OficioCerca no cobra ni procesa pagos de los trabajos.</p></div>
   </div>
 </section>
 
@@ -208,51 +133,22 @@
       <span class="eyebrow">¿Por qué OficioCerca?</span>
       <h2 id="h-why">Un proceso ordenado, no una lista de teléfonos</h2>
     </div>
-    <div class="why">
-      <div class="why-item big" data-reveal><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg><h3>Proceso acompañado</h3><p>Seguimos cada solicitud: si el profesional contactó, si hubo presupuesto y si el trabajo terminó bien.</p></div>
+    <div class="why why-3">
       <div class="why-item" data-reveal><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg><h3>Solicitudes revisadas</h3><p>Revisamos cada solicitud antes de enviarla a un profesional.</p></div>
-      <div class="why-item" data-reveal><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11 12 4l9 7"/><path d="M5.5 9.5V20h13V9.5"/><path d="M10 20v-5h4v5"/></svg><h3>Según zona y oficio</h3><p>Buscamos profesionales que trabajen en tu zona y en tu tipo de trabajo.</p></div>
-      <div class="why-item" data-reveal><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 3.5a5 5 0 0 0-5.6 6.7L3 16.1V21h4.9l5.9-5.9a5 5 0 0 0 6.7-5.6l-3.2 3.2-3.3-.8-.8-3.3z"/></svg><h3>Todo con un código</h3><p>Un código de solicitud ordena el proceso de principio a fin.</p></div>
-      <div class="why-item" data-reveal><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="15" r="4.5"/><path d="M11.2 11.8 20 3M16.5 6.5l2.5 2.5M14 9l2 2"/></svg><h3>Valoraciones verificadas</h3><p>Las opiniones solo podrán venir de solicitudes reales gestionadas aquí.</p></div>
+      <div class="why-item" data-reveal><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11 12 4l9 7"/><path d="M5.5 9.5V20h13V9.5"/><path d="M10 20v-5h4v5"/></svg><h3>Según oficio y zona</h3><p>Buscamos profesionales compatibles con tu trabajo y tu barrio.</p></div>
+      <div class="why-item" data-reveal><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg><h3>Seguimiento con código</h3><p>Cada solicitud tiene su código. Las futuras valoraciones estarán ligadas a trabajos reales.</p></div>
     </div>
   </div>
 </section>
 
-<section class="sec sec-white" id="valoraciones" aria-labelledby="h-val">
-  <div class="wrap">
-    <div class="sec-head" data-reveal>
-      <span class="eyebrow">Valoraciones verificadas</span>
-      <h2 id="h-val">Opiniones que solo puede dejar quien contrató</h2>
-      <p>Las valoraciones de OficioCerca estarán vinculadas a solicitudes gestionadas realmente a través de la plataforma. Todavía no publicamos valoraciones: llegarán con los primeros trabajos del piloto.</p>
-    </div>
-    <div class="verify">
-      <div class="verify-card" data-reveal><div class="vline"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>Ligada a un código</div><p>Cada valoración corresponde a una solicitud con su código OC.</p></div>
-      <div class="verify-card" data-reveal><div class="vline"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>Solo tras el trabajo</div><p>Se pide cuando el trabajo ha terminado, nunca antes.</p></div>
-      <div class="verify-card" data-reveal><div class="vline"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>Perfiles con historial</div><p>Más adelante: trabajos completados, puntuación, fotos, especialidades y zonas.</p></div>
-    </div>
-  </div>
-</section>
-
-<section class="sec sec-dark" id="cobertura" aria-labelledby="h-cob">
-  <div class="wrap">
-    <div class="sec-head" data-reveal>
-      <span class="eyebrow">Cobertura</span>
-      <h2 id="h-cob">Piloto inicial: Córdoba capital</h2>
-      <p>Estamos comenzando en Córdoba capital. Ampliaremos a nuevas zonas cuando el servicio esté consolidado.</p>
-    </div>
-    <ul class="cities" data-reveal>
-      <li class="city on"><span class="dot" aria-hidden="true"></span>Córdoba capital · zona piloto</li>
-    </ul>
-  </div>
-</section>
-
-<section class="sec">
+<section class="sec sec-tight">
   <div class="wrap">
     <div class="cta-band" data-reveal>
-      <div><h2>Cuéntanos qué necesitas</h2><p>Solicitud gratuita. Te enviamos tu código y te contactamos para continuar el proceso.</p></div>
+      <div><h2>Cuéntanos qué necesitas</h2><p>Piloto en Córdoba capital. Solicitud gratuita y sin compromiso.</p></div>
       <div class="row">
+        <a class="btn btn-light" href="solicitar/?tipo=particular">Soy particular</a>
         <a class="btn btn-light" href="solicitar/?tipo=empresa">Soy empresa</a>
-        <a class="btn btn-dark-on" href="solicitar/?tipo=particular">Necesito un profesional</a>
+        <a class="btn btn-dark-on" href="profesionales/">Soy profesional</a>
       </div>
     </div>
   </div>
@@ -296,9 +192,9 @@
     </div>
   </div>
 </footer>
-<script src="assets/js/config.js?v=4"></script>
-<script src="assets/js/icons.js?v=4"></script>
-<script src="assets/js/main.js?v=4" defer></script>
+<script src="assets/js/config.js?v=5"></script>
+<script src="assets/js/icons.js?v=5"></script>
+<script src="assets/js/main.js?v=5" defer></script>
 
 </body>
 </html>
