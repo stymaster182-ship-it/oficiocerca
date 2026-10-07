@@ -5,6 +5,7 @@ function cicloAutomatico() {
   try {
     conLock_(function () {
       procesarCola_();
+      altasPendientes_();
       revisarOfertas_();
       recordatoriosFinalizacion_();
       recalcularMetricas_();
@@ -12,6 +13,18 @@ function cicloAutomatico() {
     });
   } catch (err) { errorSistema_('cicloAutomatico', err); }
   try { actualizarPanel(); } catch (e) { console.error(e); }
+}
+
+/**
+ * Red de seguridad: si una edición rápida en la hoja no disparó «alEditar», el profesional queda Activo pero sin
+ * correo de alta. Aquí se envía (una sola vez: la clave pro-alta-PRO-xxxx lo hace idempotente).
+ */
+function altasPendientes_() {
+  tabla_('Profesionales').todas().forEach(function (p) {
+    if (p['Estado'] !== 'Activo' || !p['Condiciones (versión)'] || !p['Condiciones aceptadas (fecha)'] || !emailOk_(p['Email'])) return;
+    var est = encolarCorreo_('pro-alta-' + p['Código'], 'alta_activada', 'Profesional', p['Email'], '', p['Código'], {}, true);
+    if (est === 'En cola') registrar_('Sistema', 'Alta activada (comprobación automática)', '', p['Código'], '', 'sistema');
+  });
 }
 
 function estadisticasCorreo_() {
