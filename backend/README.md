@@ -47,3 +47,26 @@ Finalizado → Comisión pagada → Valoración recibida · (salida: Cancelado /
 
 Se simplificaron los 14 estados propuestos a 9: «Contacto realizado», «En ejecución» o «Comisión pendiente»
 son hechos que se anotan en columnas (fechas, importe, comisión), no pasos distintos.
+
+## V1.2 — Asignar una solicitud y enviar la ficha al profesional
+
+Preparación (una vez): en el editor de Apps Script ejecuta `prepararAsignacionV12` (añade columnas y el
+activador `alEditarPanel`; Google pedirá autorizar «gestionar activadores»).
+
+Uso diario en la hoja **Solicitudes**:
+
+1. En **Profesionales**, el profesional debe estar en estado **Activo** y tener **Email**.
+2. En la solicitud, escribe su código en **Profesional asignado (PRO)** → se rellenan *Nombre profesional*,
+   *Correo profesional*, *Fecha asignación* y *Estado envío ficha* = «Listo para enviar».
+3. Revisa nombre y correo y marca **Enviar ficha** → se envía 1 correo con la ficha y las fotos adjuntas
+   (copia oculta a la cuenta propietaria), se rellena *Ficha enviada (fecha)* y la casilla se desmarca.
+
+La ficha NO incluye nombre, teléfono, correo, empresa ni código postal del cliente. El contacto se comparte
+a mano solo cuando el profesional confirma (respondiendo al correo).
+
+Protecciones: no reenvía si ya hay *Ficha enviada (fecha)*; no cambia de profesional tras el envío
+(para reasignar, borra a mano *Ficha enviada (fecha)*); exige profesional «Activo», correo válido y
+consentimiento de compartir; si el correo del profesional cambió entre asignar y enviar, pide revisar.
+
+Fotos: se adjuntan al correo desde la carpeta de ESA solicitud. No se cambian permisos de Drive y
+ninguna carpeta se comparte (ni por enlace ni por correo).
