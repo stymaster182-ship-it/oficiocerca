@@ -2,7 +2,7 @@
 
 - **URL pública del piloto:** https://oficiocerca.pages.dev (Cloudflare Pages, despliegue automático desde la rama `main`)
 - **GitHub Pages:** https://stymaster182-ship-it.github.io/oficiocerca/ redirige automáticamente a oficiocerca.pages.dev (script en el `<head>`)
-- **Backend:** Google Apps Script V1.4 en la cuenta oficiocerca@gmail.com (ver `backend/README.md`)
+- **Backend:** Google Apps Script V1.5 en la cuenta oficiocerca@gmail.com (ver `backend/README.md`)
 - **Correo oficial:** oficiocerca@gmail.com
 
 Profesionales para obras, reformas y reparaciones. Sitio estático para GitHub Pages, coste 0 €.
