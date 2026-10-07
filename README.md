@@ -1,5 +1,9 @@
 # OficioCerca — web V1 (piloto Córdoba)
 
+- **URL pública del piloto:** https://oficiocerca.pages.dev (Cloudflare Pages, despliegue automático desde la rama `main`)
+- **Respaldo técnico:** https://stymaster182-ship-it.github.io/oficiocerca/ (GitHub Pages)
+- **Backend:** Google Apps Script (ver `backend/README.md`)
+
 Profesionales para obras, reformas y reparaciones. Sitio estático para GitHub Pages, coste 0 €.
 
 ## Estructura
@@ -14,7 +18,7 @@ privacidad/ condiciones/   BORRADORES legales (pendientes de revisión, noindex)
 assets/css/styles.css
 assets/js/config.js        ENDPOINT del backend, WhatsApp (vacío hasta tener número español)
 assets/js/forms.js         Validación, compresión de fotos y envío
-assets/data/catalogo.json  Oficios, ciudades y tipos de trabajo (fuente única)
+assets/data/catalogo.json  Servicios del piloto (5 + «Otro servicio»), ciudades y tipos de trabajo
 backend/apps-script/       Backend gratuito (Google Apps Script) — ver backend/README.md
 tools/build.py             Genera los HTML desde catalogo.json
 ```
