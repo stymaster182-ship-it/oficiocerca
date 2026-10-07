@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /backend/
+Disallow: /tools/
+
+Sitemap: https://stymaster182-ship-it.github.io/oficiocerca/sitemap.xml
