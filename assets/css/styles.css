@@ -187,7 +187,7 @@ p{margin:0 0 1em}
 .step p{margin:0;color:var(--muted);font-size:.96rem}
 .step.hl::before{background:var(--accent-2);box-shadow:0 4px 14px rgba(184,74,23,.3)}
 @media(min-width:960px){
-  .steps{grid-template-columns:repeat(7,1fr);gap:14px}
+  .steps{grid-template-columns:repeat(4,1fr);gap:18px}
   .step{grid-template-columns:1fr;gap:12px;padding-bottom:0}
   .step::after{left:52px;right:-14px;top:21px;bottom:auto;width:auto;height:2px}
   .step h3{font-size:.98rem;margin:0 0 4px}
@@ -367,3 +367,10 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--navy-2);
 .choice span:hover{border-color:var(--line-2)}
 .page-hero h1{font-size:clamp(1.75rem,3vw + 1rem,2.7rem)}
 @media(max-width:599px){.req-card{display:none}}
+
+/* V1.3 — home compacta */
+.why-3{grid-template-columns:1fr}
+@media(min-width:760px){.why.why-3{grid-template-columns:repeat(3,1fr)}}
+.sec-tight{padding-top:8px}
+@media(min-width:960px){.step h3{font-size:1.05rem}.step p{font-size:.93rem}}
+@media(min-width:760px){.cta-band{grid-template-columns:1fr auto}}
