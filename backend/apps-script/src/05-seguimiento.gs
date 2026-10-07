@@ -108,11 +108,11 @@ function procesarFinCliente_(oc, decision, texto, grave) {
     if (decision === 'aun_no') {
       actualizarSol_(sol, { 'Estado': 'Cliente aceptó' });
       if (p) encolarCorreo_('pro-aun-no-' + oc + '-' + Date.now(), 'aun_no_pro', 'Profesional', p['Email'], oc, pro, { token: { tipo: 'gestion', dias: 180 } });
-      registrar_('Sistema', 'Cliente indica que aún no ha terminado', oc, pro, '');
+      registrar_('Sistema', 'Cliente indica que aún no ha terminado', oc, pro, 'Discrepancia con la finalización declarada por el profesional');
       return { ok: true, msg: 'Entendido. Avisamos al profesional. Cuando termine, te volveremos a preguntar.' };
     }
     if (decision === 'problema') {
-      actualizarSol_(sol, { 'Estado': 'Cliente aceptó' });
+      // Terminó, pero hay un problema: NO se da por finalizado satisfactoriamente; queda pendiente y se revisa
       crearIncidencia_({ tipo: 'Incidencia', oc: oc, pro: pro, origen: 'Cliente (finalización)', categoria: 'Problema con el trabajo', grave: !!grave, texto: texto });
       return { ok: true, msg: 'Lo sentimos. Hemos registrado el problema y una persona de OficioCerca lo revisará y te escribirá.' };
     }

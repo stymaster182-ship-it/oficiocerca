@@ -30,7 +30,8 @@ function html_(titulo, cuerpo, token, script) {
     'textarea{min-height:110px}.opc{border:2px solid #DED6C8;border-radius:12px;padding:6px 16px 10px;margin:14px 0}.nota{color:#586374;font-size:15px}' +
     '.ok{background:#E8F5EC;border-left:5px solid #2E7D4F;padding:14px;border-radius:8px}.err{background:#FDECEC;border-left:5px solid #A3262A;padding:14px;border-radius:8px}' +
     '.stars{display:flex;gap:6px;flex-wrap:wrap}.stars label{margin:0;flex:1;min-width:52px}.stars input{display:none}.stars span{display:block;text-align:center;border:2px solid #8B95A3;border-radius:10px;padding:12px 0;font-size:22px;cursor:pointer}' +
-    '.stars input:checked+span{background:#13253D;color:#F2A65A;border-color:#13253D}.hide{display:none}';
+    '.stars input:checked+span{background:#13253D;color:#F2A65A;border-color:#13253D}.hide{display:none}' +
+    '.prog{list-style:none;padding:0;margin:14px 0}.prog li{padding:8px 10px;border-left:4px solid #DED6C8;margin:4px 0}.prog .hecho{border-color:#2E7D4F}.prog .ahora{border-color:#F2A65A;font-weight:bold;background:#FFF4E5}.prog .pend{color:#8B95A3}a.btn{text-decoration:none}';
   var js = '<script>var T=' + JSON.stringify(token || '') + ';' +
     'function enviar(p,btn){var bs=document.querySelectorAll("button");bs.forEach(function(b){b.disabled=true});' +
     'var m=document.getElementById("msg");m.className="";m.textContent="Enviando…";' +
@@ -63,7 +64,7 @@ function pagina_(t) {
     var of = tabla_('Ofertas').buscar('ID', tok['Referencia']);
     if (!of || of['Estado'] !== 'Enviada') return html_('Oportunidad cerrada', '<p>Esta oportunidad ya no está abierta. ¡Gracias!</p>');
     var opts = Object.keys(DISP_PRO).filter(function (k) { return k !== 'OTRA_FECHA'; }).map(function (k) { return '<option value="' + k + '">' + esc_(DISP_PRO[k].t) + '</option>'; }).join('');
-    return html_('Oportunidad ' + oc, filas_([['Servicio', servicioTxt_(sol)], ['Zona / barrio', sol['Zona'] + ' (Córdoba)'], ['Tipo de trabajo', sol['Tipo de trabajo'] || 'Sin especificar'],
+    return html_('Oportunidad ' + oc, filas_([['Servicio', servicioTxt_(sol)], ['Zona / barrio', sol['Zona'] + ' (Córdoba)'],
       ['Plazo que pide el cliente', plazoTxt_(sol)], ['Descripción', sol['Descripción']], ['Responde antes de', fecha_(of['Expira'])]]) +
       '<p class="nota">Aceptar significa: «Estoy interesado y tengo disponibilidad para contactar al cliente y valorar/presupuestar el trabajo». No te compromete todavía a ejecutar la obra.</p>' +
       '<button class="btn" onclick="ver(\'pa\')">✔ PUEDO ATENDERLO</button>' +
@@ -97,15 +98,10 @@ function pagina_(t) {
       '<p class="nota">Aceptar es libre y gratuito para ti. El pago del trabajo se hace directamente al profesional.</p>', t);
   }
   if (tipo === 'fin') {
-    if (sol['Estado'] !== 'Finalización por confirmar') return html_('Solicitud ' + oc, '<p>Estado actual: <b>' + esc_(sol['Estado']) + '</b>.</p>');
-    return html_('¿Ha terminado el trabajo? · ' + oc, '<p>El profesional ha indicado que el trabajo finalizó.</p>' +
-      '<button class="btn" onclick="enviar({a:\'si\'})">✔ Sí, el trabajo terminó</button>' +
-      '<button class="btn sec" onclick="enviar({a:\'aun_no\'})">Aún no ha terminado</button>' +
-      '<button class="btn rojo" onclick="ver(\'pp\')">Tengo un problema</button>' +
-      '<div id="pp" class="panel opc hide"><label for="txt">Cuéntanos qué ha pasado</label><textarea id="txt" maxlength="1500"></textarea>' +
-      '<label><input type="checkbox" id="grave" style="width:auto"> Es grave (seguridad, fraude, acoso o uso indebido de mis datos)</label>' +
-      '<button class="btn rojo" onclick="if(!val(\'txt\').trim()){alert(\'Describe el problema\');return}enviar({a:\'problema\',texto:val(\'txt\'),grave:document.getElementById(\'grave\').checked})">Enviar problema</button></div>', t);
+    if (sol['Estado'] !== 'Finalización por confirmar') return html_('Solicitud ' + oc, '<p>Estado actual: <b>' + esc_(ESTADO_HUMANO[sol['Estado']] || sol['Estado']) + '</b>.</p>');
+    return html_('¿Ha terminado el trabajo? · ' + oc, bloqueFin_(''), t);
   }
+  if (tipo === 'seguimiento') return paginaSeguimiento_(t, oc);
   if (tipo === 'valorar') {
     var ya = tabla_('Valoraciones').todas().some(function (v) { return v['Código OC'] === oc; });
     var estrellas = [1, 2, 3, 4, 5].map(function (n) { return '<label><input type="radio" name="st" value="' + n + '"><span>' + n + '★</span></label>'; }).join('');
@@ -179,6 +175,7 @@ function accion(t, p) {
         if (p.a === 'presupuesto') r = registrarPresupuesto_(oc, pro, p.mo, p.mat, p.obs);
         else if (p.a === 'finalizado') r = marcarFinalizado_(oc, pro);
         break;
+      case 'seguimiento': r = accionSeguimiento_(oc, p); break;
       case 'cliente':
         if (p.a === 'ayuda') r = procesarComentarioCliente_(oc, 'ayuda', 'Otro', p.texto, p.grave === true);
         else if (p.a === 'cancelar') r = conLock_(function () {

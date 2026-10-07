@@ -6,6 +6,9 @@
  */
 var NOMBRE_HOJA = 'OficioCerca — Operación';
 
+/** V1.5: misma instalación idempotente (no borra datos). */
+function instalarV15() { instalarV14(); }
+
 function instalarV14() {
   var props = PropertiesService.getScriptProperties();
   var ss = null;
@@ -52,6 +55,9 @@ function instalarV14() {
   });
   _cfg = null;
   cfgPoner_('Versión backend', VERSION_BACKEND);
+  // Las versiones vigentes de consentimiento/condiciones siguen al código
+  cfgPoner_('CONSENT_VERSION', CONFIG_DEFECTO.filter(function (r) { return r[0] === 'CONSENT_VERSION'; })[0][1]);
+  cfgPoner_('PRO_COND_VERSION', CONFIG_DEFECTO.filter(function (r) { return r[0] === 'PRO_COND_VERSION'; })[0][1]);
 
   // Carpetas privadas dentro de OFICIOCERCA
   if (!props.getProperty('PHOTOS_FOLDER_ID')) props.setProperty('PHOTOS_FOLDER_ID', carpetaPorNombre_('02 - Fotos de solicitudes').getId());
@@ -64,12 +70,13 @@ function instalarV14() {
   var hay = function (f) { return ScriptApp.getProjectTriggers().some(function (t) { return t.getHandlerFunction() === f; }); };
   if (!hay('alEditar')) ScriptApp.newTrigger('alEditar').forSpreadsheet(ss).onEdit().create();
   if (!hay('alAbrir')) ScriptApp.newTrigger('alAbrir').forSpreadsheet(ss).onOpen().create();
+  if (!hay('procesarPendientes')) ScriptApp.newTrigger('procesarPendientes').timeBased().everyMinutes(1).create();
   if (!hay('cicloAutomatico')) ScriptApp.newTrigger('cicloAutomatico').timeBased().everyMinutes(10).create();
   if (!hay('resumenDiario')) ScriptApp.newTrigger('resumenDiario').timeBased().atHour(8).nearMinute(5).everyDays(1).inTimezone(ZONA_HORARIA).create();
 
   actualizarPanel();
   ss.setActiveSheet(ss.getSheetByName('PANEL'));
-  Logger.log('V1.4 instalada. Hoja: ' + ss.getUrl());
+  Logger.log(VERSION_BACKEND + ' instalada. Hoja: ' + ss.getUrl());
   Logger.log('Fotos: ' + props.getProperty('PHOTOS_FOLDER_ID') + ' · Respaldos: ' + props.getProperty('BACKUP_FOLDER_ID'));
   Logger.log('Activadores: ' + ScriptApp.getProjectTriggers().map(function (t) { return t.getHandlerFunction(); }).join(', '));
 }
@@ -198,7 +205,11 @@ function guardarSolicitud_(d) {
   if (servicio === 'otro' && !String(d.oficioOtro || '').trim()) invalido_('falta oficioOtro');
   if (!PLAZOS_CLIENTE[d.plazo]) invalido_('plazo no válido');
   if (d.plazo === 'OTRA_FECHA' && diasHasta_(d.fechaDeseada) === null) invalido_('fecha deseada no válida');
-  if (d.consentContacto !== 'si' || d.consentCompartir !== 'si' || d.consentPrivacidad !== 'si') invalido_('faltan consentimientos');
+  // V1.5: una única casilla operativa (no premarcada). Compatibilidad: acepta las 3 casillas de V1.4.
+  var consOk = d.consentOperativo === 'si' || (d.consentContacto === 'si' && d.consentCompartir === 'si' && d.consentPrivacidad === 'si');
+  if (!consOk) invalido_('falta el consentimiento');
+  var tipoSol = TIPOS_SOLICITANTE.filter(function (t) { return sinAcentos_(t) === sinAcentos_(d.tipoSolicitante); })[0] ||
+    (/contratista/i.test(d.tipoSolicitante) ? 'Contratista' : /empresa/i.test(d.tipoSolicitante) ? 'Empresa' : 'Particular');
   var fotos = validarFotos_(d.fotos);
 
   return conLock_(function () {
@@ -212,23 +223,25 @@ function guardarSolicitud_(d) {
 
     var code = siguienteCodigo_('SEQ_OC', 'OC-');
     var carpetaId = fotos.length ? guardarFotos_(code, fotos) : '';
-    var manual = servicio === 'otro';
+    var manual = SERVICIOS_ACTIVOS.indexOf(servicio) < 0; // «Otro» o servicio legacy → revisión manual
     ts.agregar({
       'Código': code, 'Fecha': new Date(), 'Estado': manual ? 'Revisión manual' : 'Nueva',
-      'Requiere intervención': manual ? 'Otro servicio: revisar demanda' : '',
-      'Tipo solicitante': /empresa/i.test(d.tipoSolicitante) ? 'Empresa / Contratista' : 'Particular',
-      'Nombre': s_(d.nombre, 120), 'Empresa': s_(d.empresa, 120), 'WhatsApp': t_(d.whatsapp), 'Teléfono alt.': t_(d.telefonoAlt),
+      'Requiere intervención': manual ? (servicio === 'otro' ? 'Otro servicio: revisar demanda' : 'Servicio no activo en el piloto: revisar') : '',
+      'Tipo solicitante': tipoSol,
+      'Nombre': s_(d.nombre, 120), 'Empresa': tipoSol === 'Particular' ? '' : s_(d.empresa, 120), 'WhatsApp': t_(d.whatsapp), 'Teléfono alt.': t_(d.telefonoAlt),
       'Email': s_(d.email, 160).toLowerCase(), 'Ciudad': 'Córdoba', 'Código postal': t_(d.codigoPostal), 'Zona': s_(d.zona, 120),
       'Servicio (código)': servicio, 'Servicio': SERVICIOS[servicio], 'Servicio (otro)': s_(d.oficioOtro, 120),
-      'Tipo de trabajo': s_(d.tipoTrabajo, 80), 'Descripción': s_(d.descripcion, 3000), 'Plazo (código)': d.plazo,
+      'Descripción': s_(d.descripcion, 3000), 'Plazo (código)': d.plazo,
       'Plazo': PLAZOS_CLIENTE[d.plazo].t, 'Fecha deseada': d.plazo === 'OTRA_FECHA' ? "'" + String(d.fechaDeseada).slice(0, 10) : '',
       'Contacto preferido (para el profesional)': ['WhatsApp', 'Llamada', 'Correo'].indexOf(d.contactoPreferido) >= 0 ? d.contactoPreferido : 'WhatsApp',
-      'Nº fotos': fotos.length, 'Carpeta fotos (ID)': carpetaId, 'Consent. contacto': 'Sí', 'Consent. compartir': 'Sí', 'Consent. privacidad': 'Sí',
+      'Nº fotos': fotos.length, 'Carpeta fotos (ID)': carpetaId,
+      'Consentimiento operativo': 'Sí', 'Consentimiento (fecha)': new Date(),
       'Versión consentimiento': s_(d.consentVersion || cfg_('CONSENT_VERSION'), 40), 'Origen': origen_(d), 'Última actualización': new Date()
     });
     registrar_('Sistema', 'Solicitud recibida', code, '', SERVICIOS[servicio] + ' · ' + PLAZOS_CLIENTE[d.plazo].t + ' · ' + fotos.length + ' foto(s)');
-    encolarCorreo_('cli-confirmacion-' + code, 'confirmacion_cliente', 'Cliente', s_(d.email, 160).toLowerCase(), code, '', { token: { tipo: 'cliente', dias: 180 } });
-    if (!manual) { try { motor_(code); } catch (err) { errorSistema_('motor ' + code, err); } }
+    // V1.5: respuesta rápida. Confirmación y matching los hace el procesador de cola (cada minuto).
+    encolarCorreo_('cli-confirmacion-' + code, 'confirmacion_cliente', 'Cliente', s_(d.email, 160).toLowerCase(), code, '', {}, true);
+    marcarPendiente_();
     return { ok: true, code: code };
   });
 }
@@ -263,10 +276,12 @@ function guardarFotos_(code, fotos) {
 function guardarProfesional_(d) {
   req_(d, ['nombre', 'whatsapp', 'email', 'experiencia', 'ciudad', 'codigoPostal', 'zonas', 'distancia', 'disponibilidad', 'conParticulares', 'conEmpresas']);
   if (!emailOk_(d.email)) invalido_('email no válido');
-  var servicios = listaServicios_(d.servicios);
+  var servicios = listaServicios_(d.servicios).filter(function (c) { return SERVICIOS_ACTIVOS.indexOf(c) >= 0 || c === 'otro'; });
   if (!servicios.length) invalido_('elige al menos un servicio');
   if (servicios.indexOf('otro') >= 0 && !String(d.servicioOtro || '').trim()) invalido_('falta servicioOtro');
-  if (d.consentContacto !== 'si' || d.consentPrivacidad !== 'si' || d.consentCondiciones !== 'si') invalido_('faltan consentimientos');
+  // V1.5: una única casilla (condiciones para profesionales + política de privacidad), no premarcada
+  if (d.consentCondiciones !== 'si') invalido_('faltan las condiciones');
+  var tipoProv = TIPOS_PROVEEDOR.indexOf(d.tipoProveedor) >= 0 ? d.tipoProveedor : 'Profesional independiente / autónomo';
   var version = s_(d.condVersion || cfg_('PRO_COND_VERSION'), 40);
   return conLock_(function () {
     var tp = tabla_('Profesionales');
@@ -280,12 +295,13 @@ function guardarProfesional_(d) {
       'Servicio otro': s_(d.servicioOtro, 120), 'Especialidades': s_(d.especialidades, 300), 'WhatsApp': t_(d.whatsapp), 'Teléfono': t_(d.telefono),
       'Email': email, 'Ciudad': s_(d.ciudad, 80), 'Código postal': t_(d.codigoPostal), 'Zonas': s_(d.zonas, 300), 'Distancia': s_(d.distancia, 40),
       'Experiencia': s_(d.experiencia, 40), 'Disponibilidad habitual': s_(d.disponibilidad, 60), 'Con particulares': d.conParticulares === 'Sí' ? 'Sí' : 'No',
-      'Con empresas': d.conEmpresas === 'Sí' ? 'Sí' : 'No', 'Descripción': s_(d.descripcion, 1500), 'Consent. contacto': 'Sí', 'Consent. privacidad': 'Sí',
+      'Con empresas': d.conEmpresas === 'Sí' ? 'Sí' : 'No', 'Descripción': s_(d.descripcion, 1500), 'Tipo de proveedor': tipoProv,
       'Condiciones (versión)': version, 'Condiciones aceptadas (fecha)': new Date(), 'Origen': origen_(d), 'Prioridad': 'Normal',
       'Ofertas recibidas': 0, 'Respuestas': 0, 'Aceptadas': 0, 'Asignaciones': 0, 'Completados': 0, 'Incidencias verificadas': 0
     });
     registrar_('Sistema', 'Profesional registrado (pendiente de revisar)', '', code, servicios.join(', ') + ' · condiciones ' + version);
-    encolarCorreo_('pro-registro-' + code, 'registro_profesional', 'Profesional', email, '', code, {});
+    encolarCorreo_('pro-registro-' + code, 'registro_profesional', 'Profesional', email, '', code, {}, true);
+    marcarPendiente_();
     return { ok: true, code: code };
   });
 }

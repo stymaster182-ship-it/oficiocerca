@@ -35,7 +35,10 @@ function motor_(oc) {
   return conLock_(function () {
     var sol = solicitud_(oc);
     if (ESTADOS_BUSQUEDA.indexOf(sol['Estado']) < 0) return 'sin búsqueda (' + sol['Estado'] + ')';
-    if (sol['Servicio (código)'] === 'otro') { actualizarSol_(sol, { 'Estado': 'Revisión manual', 'Requiere intervención': 'Otro servicio: revisar demanda' }); return 'manual'; }
+    if (SERVICIOS_ACTIVOS.indexOf(sol['Servicio (código)']) < 0) {
+      actualizarSol_(sol, { 'Estado': 'Revisión manual', 'Requiere intervención': sol['Servicio (código)'] === 'otro' ? 'Otro servicio: revisar demanda' : 'Servicio no activo en el piloto: revisar' });
+      return 'manual';
+    }
     var ofertas = tabla_('Ofertas').todas().filter(function (o) { return o['Código OC'] === oc; });
     var activa = ofertas.filter(function (o) { return o['Estado'] === 'Enviada'; })[0];
     if (activa) return 'esperando ' + activa['Código PRO'];
@@ -67,7 +70,7 @@ function motor_(oc) {
 function candidatos_(sol, ofertasOC) {
   var servicio = sol['Servicio (código)'];
   var yaOfrecidos = ofertasOC.map(function (o) { return String(o['Código PRO']); });
-  var empresa = /empresa/i.test(sol['Tipo solicitante']);
+  var empresa = /empresa|contratista/i.test(sol['Tipo solicitante']); // Empresa y Contratista = cliente B2B
   var dCli = diasCliente_(sol);
   var hace30 = Date.now() - 30 * 86400000;
   var todasOfertas = tabla_('Ofertas').todas();

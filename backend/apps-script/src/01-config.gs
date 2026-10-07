@@ -13,7 +13,7 @@
  * El código no contiene secretos: los IDs se guardan en Propiedades del script.
  */
 
-var VERSION_BACKEND = 'V1.4';
+var VERSION_BACKEND = 'V1.5';
 var ZONA_HORARIA = 'Europe/Madrid';
 
 /** Valores por defecto de la pestaña «Configuración» (editables allí, salvo los de solo lectura). */
@@ -29,8 +29,8 @@ var CONFIG_DEFECTO = [
   ['HORAS_RESPUESTA_NORMAL', '24', 'Horas para responder a una oportunidad en el resto de casos.'],
   ['DIAS_VALIDEZ_ENLACES', '30', 'Días de validez de los enlaces enviados a clientes (presupuesto, finalización…).'],
   ['CUOTA_RESERVA', '3', 'Correos que se reservan para alertas al administrador.'],
-  ['PRO_COND_VERSION', 'PRO-COND-2026-10-V1', 'Versión vigente de las condiciones para profesionales.'],
-  ['CONSENT_VERSION', 'C3-2026-10', 'Versión vigente del consentimiento de clientes.'],
+  ['PRO_COND_VERSION', 'PRO-COND-2026-10-V2', 'Versión vigente de las condiciones para profesionales.'],
+  ['CONSENT_VERSION', 'C4-2026-10', 'Versión vigente del consentimiento de clientes.'],
   ['Cuota correo disponible', '', 'Solo lectura: MailApp.getRemainingDailyQuota() en la última comprobación.'],
   ['Última comprobación', '', 'Solo lectura.'],
   ['Correos pendientes', '', 'Solo lectura: en cola por cuota.'],
@@ -42,12 +42,17 @@ var CONFIG_DEFECTO = [
 var SERVICIOS = {
   electricidad: 'Electricidad',
   fontaneria: 'Fontanería',
-  albanileria: 'Albañilería y pequeñas reformas',
+  albanileria: 'Albañilería y pequeñas reformas', // LEGACY: inactiva en el piloto (no pública, sin matching)
   pintura: 'Pintura',
   carpinteria: 'Carpintería y ebanistería',
   marmoleria: 'Marmolería',
   otro: 'Otro servicio'
 };
+
+/** Servicios ACTIVOS del piloto (matching automático). «otro» y los legacy van a revisión manual. */
+var SERVICIOS_ACTIVOS = ['electricidad', 'fontaneria', 'marmoleria', 'carpinteria', 'pintura'];
+var TIPOS_SOLICITANTE = ['Particular', 'Empresa', 'Contratista'];
+var TIPOS_PROVEEDOR = ['Profesional independiente / autónomo', 'Contratista', 'Empresa'];
 
 /** Plazo pedido por el cliente → días máximos (null = flexible). */
 var PLAZOS_CLIENTE = {
@@ -84,18 +89,18 @@ var CATEGORIAS_INCIDENCIA = ['Problema con el profesional', 'Problema con el tra
 var ESQUEMA = {
   'Solicitudes': ['Código', 'Fecha', 'Estado', 'Requiere intervención', 'Tipo solicitante', 'Nombre', 'Empresa', 'WhatsApp',
     'Teléfono alt.', 'Email', 'Ciudad', 'Código postal', 'Zona', 'Servicio (código)', 'Servicio', 'Servicio (otro)',
-    'Tipo de trabajo', 'Descripción', 'Plazo (código)', 'Plazo', 'Fecha deseada', 'Contacto preferido (para el profesional)',
-    'Nº fotos', 'Carpeta fotos (ID)', 'Consent. contacto', 'Consent. compartir', 'Consent. privacidad', 'Versión consentimiento',
+    'Tipo de trabajo (legacy)', 'Descripción', 'Plazo (código)', 'Plazo', 'Fecha deseada', 'Contacto preferido (para el profesional)',
+    'Nº fotos', 'Carpeta fotos (ID)', 'Consent. contacto (legacy)', 'Consent. compartir (legacy)', 'Consent. privacidad (legacy)', 'Versión consentimiento',
     'Origen', 'Ofrecer a (PRO manual)', 'Profesional asignado (PRO)', 'Fecha asignación', 'Disponibilidad profesional',
     'Respaldo (PRO)', 'Respaldo disponibilidad', 'Decisión cliente', 'Contacto enviado (fecha)', 'Presupuesto vigente',
     'Mano de obra aceptada (€)', 'Total aceptado (€)', 'Comisión (€)', 'Fecha aceptación', 'Finalizado (fecha)',
-    'Valoración (1-5)', 'Motivo cierre', 'Última actualización', 'Notas internas'],
+    'Valoración (1-5)', 'Motivo cierre', 'Última actualización', 'Notas internas', 'Consentimiento operativo', 'Consentimiento (fecha)'],
   'Profesionales': ['Código', 'Fecha', 'Estado', 'Nombre', 'Empresa / autónomo', 'Servicios (códigos)', 'Servicios',
     'Servicio otro', 'Especialidades', 'WhatsApp', 'Teléfono', 'Email', 'Ciudad', 'Código postal', 'Zonas', 'Distancia',
-    'Experiencia', 'Disponibilidad habitual', 'Con particulares', 'Con empresas', 'Descripción', 'Consent. contacto',
-    'Consent. privacidad', 'Condiciones (versión)', 'Condiciones aceptadas (fecha)', 'Origen', 'Prioridad',
+    'Experiencia', 'Disponibilidad habitual', 'Con particulares', 'Con empresas', 'Descripción', 'Consent. contacto (legacy)',
+    'Consent. privacidad (legacy)', 'Condiciones (versión)', 'Condiciones aceptadas (fecha)', 'Origen', 'Prioridad',
     'Ofertas recibidas', 'Respuestas', 'Aceptadas', 'Asignaciones', 'Completados', 'Tiempo medio respuesta (h)',
-    'Valoración media', 'Nº valoraciones', 'Incidencias verificadas', 'Comisiones pendientes', 'Última oferta', 'Notas internas'],
+    'Valoración media', 'Nº valoraciones', 'Incidencias verificadas', 'Comisiones pendientes', 'Última oferta', 'Notas internas', 'Tipo de proveedor'],
   'Ofertas': ['ID', 'Fecha envío', 'Código OC', 'Código PRO', 'Profesional', 'Servicio', 'Puntuación', 'Motivo ranking',
     'Estado', 'Respuesta', 'Disponibilidad (código)', 'Disponibilidad', 'Días hasta disponibilidad', 'Fecha respuesta',
     'Expira', 'Notas'],
@@ -119,7 +124,7 @@ var ORDEN_PESTANAS = ['PANEL', 'Solicitudes', 'Profesionales', 'Ofertas', 'Presu
 
 var DESPLEGABLES = {
   'Solicitudes': { 'Estado': ESTADOS_SOLICITUD },
-  'Profesionales': { 'Estado': ESTADOS_PROFESIONAL, 'Prioridad': ['Normal', 'Baja'] },
+  'Profesionales': { 'Estado': ESTADOS_PROFESIONAL, 'Prioridad': ['Normal', 'Baja'], 'Tipo de proveedor': TIPOS_PROVEEDOR },
   'Ofertas': { 'Estado': ESTADOS_OFERTA },
   'Presupuestos': { 'Estado': ESTADOS_PRESUPUESTO },
   'Comisiones': { 'Estado': ESTADOS_COMISION },

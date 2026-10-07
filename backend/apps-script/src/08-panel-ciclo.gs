@@ -6,6 +6,7 @@ function cicloAutomatico() {
     conLock_(function () {
       procesarCola_();
       revisarOfertas_();
+      recordatoriosFinalizacion_();
       recalcularMetricas_();
       estadisticasCorreo_();
     });
@@ -17,7 +18,7 @@ function estadisticasCorreo_() {
   var h = tabla_('Historial envíos').todas();
   cfgPoner_('Cuota correo disponible', MailApp.getRemainingDailyQuota());
   cfgPoner_('Última comprobación', fecha_(new Date()));
-  cfgPoner_('Correos pendientes', h.filter(function (r) { return r['Estado'] === 'Pendiente por cuota'; }).length);
+  cfgPoner_('Correos pendientes', h.filter(function (r) { return r['Estado'] === 'Pendiente por cuota' || r['Estado'] === 'En cola'; }).length);
   cfgPoner_('Envíos fallidos', h.filter(function (r) { return r['Estado'] === 'Fallido'; }).length);
 }
 
@@ -61,6 +62,7 @@ function actualizarPanel() {
     ['Esperando respuesta profesional', cuenta(['Esperando respuesta profesional'])],
     ['Con candidato de respaldo', conRespaldo],
     ['Esperando respuesta cliente', cuenta(['Esperando decisión cliente', 'Finalización por confirmar'])],
+    ['Finalización declarada · pendiente del cliente', cuenta(['Finalización por confirmar'])],
     ['Profesional asignado', cuenta(['Profesional asignado'])],
     ['Presupuestos enviados', cuenta(['Presupuesto enviado'])],
     ['Presupuestos aceptados (en curso)', cuenta(['Cliente aceptó', 'Finalización por confirmar'])],
@@ -70,7 +72,7 @@ function actualizarPanel() {
     ['Incidencias abiertas', incs.filter(function (i) { return i['Tipo'] === 'Incidencia' && (i['Estado'] === 'Abierta' || i['Estado'] === 'En revisión'); }).length],
     ['Comisiones pendientes (' + (cfgBool_('COMMISSION_COLLECTION_ENABLED') ? 'cobro activo' : 'cobro NO habilitado') + ')', comPend.length + ' · ' + euros_(sumaCom)],
     ['Errores del sistema (7 días)', registro.filter(function (r) { return r['Tipo'] === 'Error' && new Date(r['Fecha']).getTime() > hace7; }).length],
-    ['Correos en cola (por cuota)', correos.filter(function (c) { return c['Estado'] === 'Pendiente por cuota'; }).length],
+    ['Correos en cola', correos.filter(function (c) { return c['Estado'] === 'Pendiente por cuota' || c['Estado'] === 'En cola'; }).length],
     ['Correos fallidos', correos.filter(function (c) { return c['Estado'] === 'Fallido'; }).length]
   ];
 
