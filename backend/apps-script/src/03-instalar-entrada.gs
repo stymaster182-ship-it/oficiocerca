@@ -4,12 +4,21 @@
  * Prepara (o actualiza sin borrar datos) la hoja operativa a la que está vinculado este script:
  * pestañas, cabeceras, desplegables, configuración, carpeta de fotos y activadores.
  */
+var NOMBRE_HOJA = 'OficioCerca — Operación';
+
 function instalarV14() {
   var props = PropertiesService.getScriptProperties();
   var ss = null;
   try { ss = SpreadsheetApp.getActiveSpreadsheet(); } catch (e) { }
   if (!ss && props.getProperty('SPREADSHEET_ID')) ss = SpreadsheetApp.openById(props.getProperty('SPREADSHEET_ID'));
-  if (!ss) throw new Error('Abre este script desde la hoja operativa (Extensiones → Apps Script).');
+  var operacion = carpetaPorNombre_('01 - Operación');
+  if (!ss) { // proyecto independiente: usa la hoja «OficioCerca — Operación» de la carpeta 01 - Operación
+    var fs = operacion.getFilesByName(NOMBRE_HOJA);
+    if (!fs.hasNext()) throw new Error('No encuentro la hoja «' + NOMBRE_HOJA + '» en «01 - Operación».');
+    ss = SpreadsheetApp.openById(fs.next().getId());
+  }
+  // El proyecto de Apps Script se guarda junto a la hoja, en «01 - Operación»
+  try { DriveApp.getFileById(ScriptApp.getScriptId()).moveTo(operacion); } catch (e) { }
   props.setProperty('SPREADSHEET_ID', ss.getId());
   _ss = ss;
   ss.setSpreadsheetTimeZone(ZONA_HORARIA);
@@ -54,6 +63,7 @@ function instalarV14() {
   // Activadores (sin duplicar)
   var hay = function (f) { return ScriptApp.getProjectTriggers().some(function (t) { return t.getHandlerFunction() === f; }); };
   if (!hay('alEditar')) ScriptApp.newTrigger('alEditar').forSpreadsheet(ss).onEdit().create();
+  if (!hay('alAbrir')) ScriptApp.newTrigger('alAbrir').forSpreadsheet(ss).onOpen().create();
   if (!hay('cicloAutomatico')) ScriptApp.newTrigger('cicloAutomatico').timeBased().everyMinutes(10).create();
   if (!hay('resumenDiario')) ScriptApp.newTrigger('resumenDiario').timeBased().atHour(8).nearMinute(5).everyDays(1).inTimezone(ZONA_HORARIA).create();
 
@@ -70,7 +80,8 @@ function carpetaPorNombre_(nombre) {
   return it.next();
 }
 
-/** Menú en la hoja. */
+/** Menú en la hoja (activador instalable al abrir). */
+function alAbrir() { onOpen(); }
 function onOpen() {
   SpreadsheetApp.getUi().createMenu('OficioCerca')
     .addItem('Actualizar panel ahora', 'actualizarPanel')
