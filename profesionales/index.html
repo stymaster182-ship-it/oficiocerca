@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
+<script>if(/\.github\.io$/.test(location.hostname)){location.replace("https://oficiocerca.pages.dev"+location.pathname.replace(/^\/oficiocerca/,"")+location.search+location.hash)}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Profesionales: recibe trabajos de tu oficio · OficioCerca</title>
 <meta name="description" content="Únete a la red de OficioCerca y recibe oportunidades de trabajo compatibles con tu oficio y zona. Registro gratuito. Piloto en Córdoba.">
@@ -21,7 +22,7 @@
 <link rel="icon" href="../favicon.svg" type="image/svg+xml">
 <link rel="icon" href="../assets/img/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="../assets/img/apple-touch-icon.png">
-<link rel="stylesheet" href="../assets/css/styles.css?v=3">
+<link rel="stylesheet" href="../assets/css/styles.css?v=4">
 <script>(function(d){try{if(window.matchMedia&&!matchMedia('(prefers-reduced-motion: reduce)').matches&&'IntersectionObserver' in window){d.classList.add('js-motion');setTimeout(function(){if(!window.__ocReveal){d.classList.remove('js-motion')}},2500)}}catch(e){}})(document.documentElement)</script>
 
 </head>
@@ -58,7 +59,7 @@
           <div class="field"><label for="p-wa">WhatsApp <span class="req">*</span></label><input id="p-wa" name="whatsapp" type="tel" inputmode="tel" autocomplete="tel" required data-phone><span class="err-msg">Revisa el número.</span></div>
           <div class="field"><label for="p-tel">Teléfono <span class="opt">(si es distinto)</span></label><input id="p-tel" name="telefono" type="tel" inputmode="tel" data-phone-optional><span class="err-msg">Revisa el número.</span></div>
         </div>
-        <div class="field"><label for="p-email">Correo electrónico <span class="opt">(opcional)</span></label><input id="p-email" name="email" type="email" autocomplete="email" maxlength="160"><span class="err-msg">Revisa el correo.</span></div>
+        <div class="field"><label for="p-email">Correo electrónico <span class="req">*</span></label><input id="p-email" name="email" type="email" autocomplete="email" maxlength="160" required><span class="hint">Aquí recibirás las fichas de trabajo con sus fotos.</span><span class="err-msg">Escribe un correo válido: lo usamos para enviarte las fichas.</span></div>
       </fieldset>
       <fieldset>
         <legend><span class="n">2</span>Tu oficio</legend>
@@ -117,7 +118,7 @@
   <aside class="aside-sticky">
     <div class="aside-card">
       <h2>Cómo funciona para ti</h2>
-      <ol><li>Te damos de alta tras una breve llamada.</li><li>Recibes una ficha: oficio, zona, prioridad, descripción y fotos.</li><li>Respondes «Aceptar solicitud» o «No puedo atenderla».</li><li>Si aceptas, te pasamos el contacto del cliente.</li><li>Tú presupuestas y cobras directamente al cliente.</li></ol>
+      <ol><li>Te damos de alta tras una breve llamada.</li><li>Recibes por correo una ficha: servicio, zona, prioridad, descripción y fotos.</li><li>Respondes al correo indicando si puedes atenderlo.</li><li>Si confirmas, te pasamos el contacto del cliente.</li><li>Tú presupuestas y cobras directamente al cliente.</li></ol>
       <p>En el piloto inicial solo existe coste cuando un trabajo gestionado por OficioCerca se concreta. Las condiciones económicas se informan y aceptan antes de recibir trabajos.</p>
     </div>
   </aside>
@@ -148,9 +149,8 @@
       </div>
       <div>
         <h2>Contacto</h2>
-        <ul>
+        <ul data-oc-contact>
           <li><a href="../solicitar/">Formulario de solicitud</a></li>
-          <li data-oc-wa-footer hidden><a href="#" data-oc-wa>WhatsApp</a></li>
           <li><a href="../privacidad/">Política de privacidad</a></li>
           <li><a href="../condiciones/">Condiciones de uso</a></li>
         </ul>
@@ -162,9 +162,9 @@
     </div>
   </div>
 </footer>
-<script src="../assets/js/config.js?v=3"></script>
-<script src="../assets/js/icons.js?v=3"></script>
-<script src="../assets/js/main.js?v=3" defer></script>
-<script src="../assets/js/forms.js?v=3" defer></script>
+<script src="../assets/js/config.js?v=4"></script>
+<script src="../assets/js/icons.js?v=4"></script>
+<script src="../assets/js/main.js?v=4" defer></script>
+<script src="../assets/js/forms.js?v=4" defer></script>
 </body>
 </html>
