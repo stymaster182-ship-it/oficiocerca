@@ -22,7 +22,7 @@
 <link rel="icon" href="../favicon.svg" type="image/svg+xml">
 <link rel="icon" href="../assets/img/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="../assets/img/apple-touch-icon.png">
-<link rel="stylesheet" href="../assets/css/styles.css?v=4">
+<link rel="stylesheet" href="../assets/css/styles.css?v=5">
 <script>(function(d){try{if(window.matchMedia&&!matchMedia('(prefers-reduced-motion: reduce)').matches&&'IntersectionObserver' in window){d.classList.add('js-motion');setTimeout(function(){if(!window.__ocReveal){d.classList.remove('js-motion')}},2500)}}catch(e){}})(document.documentElement)</script>
 
 </head>
@@ -92,6 +92,7 @@
         <legend><span class="n">3</span>Dónde es el trabajo</legend>
         <p class="fs-help">Zona piloto: Córdoba capital. La dirección exacta te la pediremos por WhatsApp si hace falta.</p>
         <input type="hidden" name="ciudad" value="Córdoba">
+        <input type="hidden" name="consentVersion" value="C2-2026-10">
         <div class="grid2">
           <div class="field"><label for="s-zona">Zona o barrio <span class="req">*</span></label><input id="s-zona" name="zona" type="text" required maxlength="120" placeholder="Ej.: Centro, Ciudad Jardín…"><span class="err-msg">Indica la zona o el barrio.</span></div>
           <div class="field"><label for="s-cp">Código postal <span class="opt">(opcional)</span></label><input id="s-cp" name="codigoPostal" type="text" inputmode="numeric" autocomplete="postal-code" maxlength="5" pattern="[0-9]{5}" placeholder="14000"><span class="err-msg">Si lo indicas, deben ser 5 cifras.</span></div>
@@ -126,7 +127,7 @@
   <span class="err-msg">Necesitamos esta autorización para continuar.</span>
 </div><div class="consent" data-consent>
   <input type="checkbox" id="s-consentCompartir" name="consentCompartir" value="si" required>
-  <label for="s-consentCompartir">Autorizo a OficioCerca a compartir los datos necesarios de esta solicitud con un profesional que pueda atender el trabajo. <span class="req">*</span></label>
+  <label for="s-consentCompartir">Autorizo a OficioCerca a compartir con uno o más profesionales seleccionados la información necesaria para valorar mi solicitud: servicio, zona o barrio, descripción del trabajo y las fotos que adjunte. Mis datos de contacto no se compartirán hasta que un profesional confirme que puede atender la solicitud. <span class="req">*</span></label>
   <span class="err-msg">Necesitamos esta autorización para continuar.</span>
 </div><div class="consent" data-consent>
   <input type="checkbox" id="s-consentPrivacidad" name="consentPrivacidad" value="si" required>
@@ -137,7 +138,7 @@
 
       <div class="submit-row">
         <button class="btn btn-primary btn-block" type="submit"><span class="spinner" aria-hidden="true"></span><span data-btn-label>Enviar solicitud</span></button>
-        <span class="hint">Gratis y sin compromiso. No compartimos tus datos hasta que un profesional pueda atender el trabajo.</span>
+        <span class="hint">Gratis y sin compromiso. Para valorar el trabajo solo enviamos la información del trabajo; tus datos de contacto, únicamente al profesional que confirme que puede atenderlo.</span>
       </div>
       <div class="form-status" role="alert" data-status></div>
     </form>
@@ -200,9 +201,9 @@
     </div>
   </div>
 </footer>
-<script src="../assets/js/config.js?v=4"></script>
-<script src="../assets/js/icons.js?v=4"></script>
-<script src="../assets/js/main.js?v=4" defer></script>
-<script src="../assets/js/forms.js?v=4" defer></script>
+<script src="../assets/js/config.js?v=5"></script>
+<script src="../assets/js/icons.js?v=5"></script>
+<script src="../assets/js/main.js?v=5" defer></script>
+<script src="../assets/js/forms.js?v=5" defer></script>
 </body>
 </html>
