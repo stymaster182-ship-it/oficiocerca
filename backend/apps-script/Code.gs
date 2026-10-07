@@ -474,6 +474,8 @@ function doPost(e) {
     if (d.web) return json_({ ok: false, error: 'rechazado' }); // trampa anti-spam
     if (d.tipo === 'solicitud') return json_(guardarSolicitud_(d));
     if (d.tipo === 'profesional') return json_(guardarProfesional_(d));
+    if (d.tipo === 'pagina') return json_(paginaJson_(d.t));
+    if (d.tipo === 'accion') return json_(accion(String(d.t || ''), d.p || {}));
     return json_({ ok: false, error: 'tipo desconocido' });
   } catch (err) {
     var msg = String(err && err.message || err);
@@ -1170,7 +1172,8 @@ function urlToken_(spec, oc, pro) {
   var dias = spec.dias || cfgNum_('DIAS_VALIDEZ_ENLACES', 30);
   var exp = spec.expira || (Date.now() + dias * 86400000);
   var t = crearToken_(spec.tipo, oc, pro, spec.ref || '', exp);
-  return urlApp_() + '?t=' + t;
+  // Enlace a la web propia: el token va tras «#» (no se envía a ningún servidor ni queda en registros)
+  return String(cfg_('URL_WEB') || 'https://oficiocerca.pages.dev/').replace(/\/?$/, '/') + 'gestion/#' + t;
 }
 /** Devuelve el registro del token si es válido (no caducado). */
 function leerToken_(t) {
@@ -1374,7 +1377,18 @@ function doGet(e) {
   catch (err) { errorSistema_('doGet', err); return html_('Algo ha fallado', '<p>No hemos podido abrir esta página. Inténtalo de nuevo en unos minutos o escríbenos a <a href="mailto:oficiocerca@gmail.com">oficiocerca@gmail.com</a>.</p>'); }
 }
 
+var _modoJson = false;
+
+/** Versión JSON de una página (la usa la página estática /gestion/ de la web). */
+function paginaJson_(t) {
+  _modoJson = true;
+  try { var r = pagina_(String(t || '')); return { ok: true, titulo: r.titulo, cuerpo: r.cuerpo, script: r.script || '' }; }
+  catch (err) { errorSistema_('paginaJson', err); return { ok: false, titulo: 'Algo ha fallado', cuerpo: '<p>No hemos podido abrir esta página. Inténtalo de nuevo en unos minutos.</p>' }; }
+  finally { _modoJson = false; }
+}
+
 function html_(titulo, cuerpo, token, script) {
+  if (_modoJson) return { titulo: titulo, cuerpo: cuerpo, script: script || '' };
   var css = 'body{margin:0;background:#F6F2EB;font-family:Arial,Helvetica,sans-serif;color:#0E1A2B;font-size:18px;line-height:1.5}' +
     '.top{background:#13253D;color:#fff;padding:16px 20px;font-weight:bold;font-size:21px;letter-spacing:.5px}.top b{color:#F2A65A}' +
     '.box{max-width:640px;margin:18px auto;background:#fff;border-radius:14px;padding:22px 20px;box-shadow:0 2px 10px rgba(0,0,0,.06)}' +
