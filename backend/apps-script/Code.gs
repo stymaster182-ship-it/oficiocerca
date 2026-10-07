@@ -477,6 +477,28 @@ function respaldoV14PostMigracion() {
   Logger.log('Respaldo: ' + c.getUrl());
 }
 
+function respaldoV14PreV15() {
+  var c = crearRespaldo_('OFICIOCERCA-V1.4-PRE-V1.5', 'OFICIOCERCA-V1.4-PRE-V1.5');
+  c.createFile('LEEME.txt', [
+    'OFICIOCERCA-V1.4-PRE-V1.5 — estado del repositorio justo antes de la V1.5 (cierre del piloto).',
+    'Rollback de la web: restaurar los archivos de este zip en GitHub (Cloudflare Pages despliega solo).',
+    'Rollback del backend: Apps Script → Gestionar implementaciones → editar → Versión 3 («V1.4 produccion»).'
+  ].join('\n'));
+  Logger.log('Respaldo: ' + c.getUrl());
+}
+
+function respaldoV15CierrePiloto() {
+  var c = crearRespaldo_('OFICIOCERCA-V1.5-CIERRE-PILOTO', 'OFICIOCERCA-V1.5-CIERRE-PILOTO');
+  DriveApp.getFileById(ss_().getId()).makeCopy('OFICIOCERCA-V1.5-CIERRE-PILOTO — copia de la hoja (estructura y configuración, sin datos)', c);
+  c.createFile('LEEME.txt', [
+    'OFICIOCERCA-V1.5-CIERRE-PILOTO — sistema listo para el piloto real (cuenta oficiocerca@gmail.com).',
+    'Contenido: zip del repositorio (web + backend/apps-script) y copia de la hoja operativa sin datos de prueba.',
+    'Endpoint: ' + cfg_('URL_APP'),
+    'Rollback a V1.4: ver OFICIOCERCA-V1.4-PRE-V1.5/LEEME.txt.'
+  ].join('\n'));
+  Logger.log('Respaldo: ' + c.getUrl());
+}
+
 /* ============================================================ ENTRADA DESDE LA WEB */
 
 function doPost(e) {
