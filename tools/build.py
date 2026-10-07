@@ -15,8 +15,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 CAT = json.loads((ROOT / "assets/data/catalogo.json").read_text(encoding="utf-8"))
 OFICIOS, CIUDADES, TIPOS = CAT["oficios"], CAT["ciudades"], CAT["tiposTrabajo"]
-SITE = "https://stymaster182-ship-it.github.io/oficiocerca/"
-VERSION = "2"
+SITE = "https://oficiocerca.pages.dev/"
+VERSION = "3"
 e = html.escape
 
 ICONS = {}
@@ -38,6 +38,8 @@ def ciudad_activa():
     return next(c for c in CIUDADES if c["activa"])
 
 # ---------------------------------------------------------------- layout
+MOTION_JS = """<script>(function(d){try{if(window.matchMedia&&!matchMedia('(prefers-reduced-motion: reduce)').matches&&'IntersectionObserver' in window){d.classList.add('js-motion');setTimeout(function(){if(!window.__ocReveal){d.classList.remove('js-motion')}},2500)}}catch(e){}})(document.documentElement)</script>"""
+
 def head(title, desc, path, p, noindex=False, jsonld=None):
     url = SITE + path
     robots = '<meta name="robots" content="noindex,follow">' if noindex else ''
@@ -66,6 +68,7 @@ def head(title, desc, path, p, noindex=False, jsonld=None):
 <link rel="icon" href="{p}assets/img/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="{p}assets/img/apple-touch-icon.png">
 <link rel="stylesheet" href="{p}assets/css/styles.css?v={VERSION}">
+{MOTION_JS}
 {ld}
 </head>
 <body>
@@ -110,7 +113,7 @@ def footer(p, extra_js=""):
       <div>
         <h2>Profesionales</h2>
         <ul>
-          <li><a href="{p}profesionales/">Únete a la red</a></li>
+          <li><a href="{p}profesionales/">Registro de profesionales</a></li>
           <li><a href="{p}#como-funciona">Cómo funciona</a></li>
         </ul>
       </div>
@@ -146,17 +149,26 @@ def write(path, content):
 
 # ---------------------------------------------------------------- pieces
 def trades_grid(p, ciudad=None):
+    """Servicios principales del piloto + tarjeta destacada «¿Necesitas otro servicio?»."""
     out = []
     for o in OFICIOS:
-        cls = "trade other" if o["slug"] == "otro" else "trade"
+        if o["slug"] == "otro":
+            continue
         q = f"?oficio={o['slug']}" + (f"&ciudad={ciudad}" if ciudad else "")
-        out.append(f'<a class="{cls}" href="{p}solicitar/{q}">{ico(o["icon"])}<strong>{e(o["nombre"])}</strong><span>{e(o["desc"])}</span></a>')
+        out.append(f'<a class="trade" data-reveal href="{p}solicitar/{q}"><span class="trade-ico">{ico(o["icon"])}</span>'
+                   f'<span class="trade-txt"><strong>{e(o["nombre"])}</strong><span>{e(o["desc"])}</span></span>'
+                   f'<span class="trade-go" aria-hidden="true">{ico("arrow")}</span></a>')
+    q = "?oficio=otro" + (f"&ciudad={ciudad}" if ciudad else "")
+    out.append(f'<a class="trade trade-other" data-reveal href="{p}solicitar/{q}"><span class="trade-ico">{ico("plus")}</span>'
+               f'<span class="trade-txt"><strong>¿Necesitas otro servicio?</strong>'
+               f'<span>Cuéntanos qué trabajo necesitas y revisaremos si hay profesionales disponibles en Córdoba. Te contactaremos para informarte.</span></span>'
+               f'<span class="trade-go" aria-hidden="true">{ico("arrow")}</span></a>')
     return '<div class="trades">' + "".join(out) + "</div>"
 
 STEPS = [
-    ("Cuéntanos qué necesitas", "Rellena la solicitud con fotos si las tienes."),
+    ("Cuéntanos qué necesitas", "Rellena la solicitud. Las fotos ayudan, pero son opcionales."),
     ("Revisamos tu solicitud", "Comprobamos los datos y, si falta algo, te escribimos."),
-    ("Buscamos un profesional", "Según oficio, zona y disponibilidad."),
+    ("Buscamos profesional", "Revisamos disponibilidad según oficio y zona."),
     ("Contacto y presupuesto", "El profesional te contacta y prepara su presupuesto."),
     ("Tú decides", "Aceptas o no. Sin compromiso."),
     ("Seguimiento", "Te preguntamos cómo va hasta que el trabajo termine."),
@@ -167,20 +179,27 @@ def steps_html():
     items = []
     for i, (t, d) in enumerate(STEPS):
         hl = ' hl' if i == 5 else ''
-        items.append(f'<li class="step{hl}"><div><h3>{e(t)}</h3><p>{e(d)}</p></div></li>')
+        items.append(f'<li class="step{hl}" data-reveal><div><h3>{e(t)}</h3><p>{e(d)}</p></div></li>')
     return '<ol class="steps">' + "".join(items) + "</ol>"
 
 def options(items, placeholder):
     return f'<option value="">{e(placeholder)}</option>' + "".join(f'<option value="{e(v)}">{e(t)}</option>' for v, t in items)
 
 def oficio_opts():
-    return options([(o["slug"], o["nombre"]) for o in OFICIOS], "Selecciona un oficio")
+    return options([(o["slug"], o["nombre"]) for o in OFICIOS], "Selecciona un servicio")
 
-def ciudad_opts():
-    return "".join(f'<option value="{c["slug"]}"{" selected" if c["activa"] else ""}{"" if c["activa"] else " disabled"}>'
-                   f'{e(c["nombre"])}{"" if c["activa"] else " (próximamente)"}</option>' for c in CIUDADES)
+HERO_ART = """<svg class="hero-art" viewBox="0 0 640 220" fill="none" aria-hidden="true" preserveAspectRatio="xMidYMax meet">
+  <g stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M0 210h640"/>
+    <path d="M30 210v-78l54-40 54 40v78"/><path d="M62 210v-34h44v34"/><rect x="58" y="128" width="20" height="18" rx="2"/><rect x="92" y="128" width="20" height="18" rx="2"/>
+    <path d="M150 210V96h96v114"/><path d="M150 96l48-30 48 30"/><rect x="166" y="116" width="22" height="22" rx="2"/><rect x="208" y="116" width="22" height="22" rx="2"/><rect x="166" y="154" width="22" height="22" rx="2"/><path d="M208 210v-46h22v46"/>
+    <path d="M262 210v-64h70v64"/><path d="M256 150l41-28 41 28"/><rect x="282" y="164" width="30" height="20" rx="2"/>
+    <path d="M354 210V72h120v138"/><path d="M354 72h120"/><path d="M372 92h20v20h-20zM408 92h20v20h-20zM444 92h14v20h-14zM372 130h20v20h-20zM408 130h20v20h-20zM444 130h14v20h-14z"/><path d="M402 210v-38h28v38"/>
+    <path d="M500 210v-58l40-30 40 30v58"/><rect x="522" y="160" width="36" height="24" rx="2"/>
+    <path d="M598 210v-96M598 114h36M598 114l-18 14M620 114v18"/>
+  </g>
+</svg>"""
 
-# ---------------------------------------------------------------- pages
 def page_home():
     p = ""
     c = ciudad_activa()
@@ -190,23 +209,25 @@ def page_home():
          "description": "Servicio de intermediación que conecta a clientes y empresas con profesionales de obras, reformas y reparaciones.",
          "areaServed": {"@type": "City", "name": "Córdoba", "containedInPlace": {"@type": "Country", "name": "España"}}},
         {"@type": "WebSite", "@id": SITE + "#web", "name": "OficioCerca", "url": SITE, "inLanguage": "es-ES", "publisher": {"@id": SITE + "#org"}}]}
+    principales = [o for o in OFICIOS if o["slug"] != "otro"]
     body = f"""<main id="main">
 <section class="hero">
-  <div class="wrap">
-    <div>
+  <div class="hero-bg" aria-hidden="true"><span class="blob b1"></span><span class="blob b2"></span><span class="blob b3"></span></div>
+  {HERO_ART}
+  <div class="wrap hero-grid">
+    <div class="hero-copy">
       <span class="pill"><span class="dot" aria-hidden="true"></span>Disponible inicialmente en {e(c['nombre'])}</span>
-      <h1>Encuentra al profesional que <em>necesita tu proyecto</em>.</h1>
-      <p class="lead">Cuéntanos qué necesitas en {e(c['nombre'])} y buscamos profesionales disponibles para tu obra, reforma o reparación. Te acompañamos hasta saber si el trabajo salió bien.</p>
+      <h1>Encuentra al profesional que <em>necesita tu proyecto</em></h1>
+      <p class="lead">Cuéntanos qué trabajo necesitas en {e(c['nombre'])}. Revisamos tu solicitud, buscamos profesionales disponibles y te acompañamos hasta saber cómo terminó.</p>
       <div class="hero-ctas">
-        <a class="btn btn-primary" href="solicitar/?tipo=particular">Necesito un profesional {ico('arrow')}</a>
-        <a class="btn btn-ghost" href="profesionales/">Soy profesional</a>
+        <a class="btn btn-primary btn-lg" href="solicitar/?tipo=particular">Solicitar profesional {ico('arrow')}</a>
+        <a class="btn btn-ghost btn-lg" href="profesionales/">Soy profesional</a>
       </div>
-      <p class="hero-b2b">¿Empresa, contratista o administrador de fincas? <a href="solicitar/?tipo=empresa">Solicita un oficio para tu obra</a></p>
+      <a class="hero-b2b" href="solicitar/?tipo=empresa"><span class="hb-k">Empresas y contratistas</span><span class="hb-t">¿Te falta un oficio para terminar una obra? Solicítalo aquí</span>{ico('arrow')}</a>
     </div>
-    <aside class="req-card" aria-label="Ejemplo ilustrativo de cómo se sigue una solicitud">
-      <div class="req-head"><span class="tag">Ejemplo de solicitud</span><span class="req-code">OC-0000</span></div>
-      <div class="req-row">{ico('drop')}<div><strong>Fontanería · Reparación</strong><small>Zona y fotos del trabajo</small></div></div>
-      <div class="req-row">{ico('camera')}<div><strong>Hasta 5 fotos</strong><small>Para entender mejor el trabajo</small></div></div>
+    <aside class="req-card" aria-label="Ilustración de cómo se sigue una solicitud">
+      <div class="req-head"><span class="tag">Así se sigue una solicitud</span><span class="req-code">OC-····</span></div>
+      <div class="req-row">{ico('drop')}<div><strong>Fontanería · Reparación</strong><small>Zona, descripción y fotos opcionales</small></div></div>
       <ul class="req-steps">
         <li class="done"><span class="st">{ico('check')}</span>Solicitud recibida</li>
         <li class="done"><span class="st">{ico('check')}</span>Solicitud revisada</li>
@@ -214,31 +235,31 @@ def page_home():
         <li class="todo"><span class="st"></span>Presupuesto del profesional</li>
         <li class="todo"><span class="st"></span>Seguimiento y valoración</li>
       </ul>
-      <p class="req-note">Ilustración del proceso. No corresponde a una solicitud real.</p>
+      <p class="req-note">Ilustración del proceso. No es una solicitud real.</p>
     </aside>
   </div>
 </section>
 
-<section aria-labelledby="quien">
+<section class="aud-sec" aria-labelledby="quien">
   <div class="wrap">
     <h2 id="quien" class="sr-only">¿Quién eres?</h2>
     <div class="aud">
-      <a class="aud-card featured" href="solicitar/?tipo=empresa">
+      <a class="aud-card featured" data-reveal href="solicitar/?tipo=empresa">
         <span class="k">Empresa / contratista</span>
         <h3>Soy empresa o contratista</h3>
         <p>Encuentra profesionales para completar tus obras y proyectos.</p>
         <span class="go">Solicitar profesional {ico('arrow')}</span>
       </a>
-      <a class="aud-card" href="solicitar/?tipo=particular">
+      <a class="aud-card" data-reveal href="solicitar/?tipo=particular">
         <span class="k">Particular</span>
         <h3>Soy particular</h3>
         <p>Cuéntanos qué necesitas y buscamos un profesional disponible para tu zona.</p>
         <span class="go">Necesito un profesional {ico('arrow')}</span>
       </a>
-      <a class="aud-card" href="profesionales/">
+      <a class="aud-card" data-reveal href="profesionales/">
         <span class="k">Profesional</span>
         <h3>Soy profesional</h3>
-        <p>Únete a la red y recibe oportunidades compatibles con tu oficio y zona.</p>
+        <p>Regístrate y recibe oportunidades compatibles con tu oficio y zona.</p>
         <span class="go">Quiero recibir trabajos {ico('arrow')}</span>
       </a>
     </div>
@@ -247,10 +268,10 @@ def page_home():
 
 <section class="sec" id="servicios" aria-labelledby="h-serv">
   <div class="wrap">
-    <div class="sec-head">
-      <span class="eyebrow">Oficios</span>
+    <div class="sec-head" data-reveal>
+      <span class="eyebrow">Servicios del piloto</span>
       <h2 id="h-serv">¿Qué necesitas?</h2>
-      <p>Elige el oficio y te llevamos directamente al formulario. Si no aparece, usa «Otro servicio».</p>
+      <p>Empezamos con estos servicios en {e(c['nombre'])}. Si buscas otro, cuéntanoslo y revisaremos disponibilidad.</p>
     </div>
     {trades_grid(p)}
   </div>
@@ -258,38 +279,35 @@ def page_home():
 
 <section class="sec sec-white" id="como-funciona" aria-labelledby="h-como">
   <div class="wrap">
-    <div class="sec-head">
+    <div class="sec-head" data-reveal>
       <span class="eyebrow">Cómo funciona</span>
       <h2 id="h-como">De tu solicitud a un trabajo terminado</h2>
       <p>No solo te damos un contacto. Acompañamos la solicitud hasta saber si encontraste el profesional adecuado.</p>
     </div>
     {steps_html()}
-    <div class="notice">{ico('check')}<p><strong>El presupuesto y el pago son directamente con el profesional.</strong> OficioCerca no cobra ni procesa pagos de los trabajos. Para ti, la solicitud es gratuita.</p></div>
+    <div class="notice" data-reveal>{ico('check')}<p><strong>El presupuesto y el pago se acuerdan directamente con el profesional.</strong> OficioCerca no cobra ni procesa pagos de los trabajos. Para ti, la solicitud es gratuita.</p></div>
   </div>
 </section>
 
 <section class="sec sec-dark" id="empresas" aria-labelledby="h-emp">
   <div class="wrap split">
-    <div>
+    <div data-reveal>
       <span class="eyebrow">Para empresas y contratistas</span>
       <h2 id="h-emp">¿Tienes una obra parada porque te falta un oficio?</h2>
-      <p>OficioCerca te ayuda a localizar profesionales disponibles para completar tus proyectos: el electricista para la cocina que montas, el marmolista para la encimera, el fontanero para el baño.</p>
+      <p>OficioCerca te ayuda a localizar profesionales disponibles para completar tus proyectos: el electricista para la cocina que montas, el fontanero para el baño, el pintor para entregar a tiempo.</p>
       <ul class="checks">
         <li>{ico('check')}<span>Pensado para contratistas, reformistas, constructoras y administradores de fincas.</span></li>
-        <li>{ico('check')}<span>Indica plazos, zona y alcance; enviamos la solicitud a profesionales compatibles.</span></li>
+        <li>{ico('check')}<span>Indica zona, plazos y alcance; revisamos disponibilidad y te informamos.</span></li>
         <li>{ico('check')}<span>Un único punto de contacto para pedir distintos oficios.</span></li>
         <li>{ico('check')}<span>Seguimiento hasta confirmar si el profesional encajó en tu obra.</span></li>
       </ul>
       <a class="btn btn-primary" href="solicitar/?tipo=empresa">Solicitar profesional {ico('arrow')}</a>
     </div>
-    <div class="panel">
-      <h3>Oficios que más se piden en obra</h3>
+    <div class="panel" data-reveal>
+      <h3>Servicios con los que empezamos</h3>
       <ul class="mini-list">
-        <li>{ico('bolt')}Electricidad</li>
-        <li>{ico('drop')}Fontanería</li>
-        <li>{ico('slab')}Mármol y piedra</li>
-        <li>{ico('panel')}Pladur / yeso laminado</li>
-        <li>{ico('plus')}Cualquier otro oficio</li>
+        {''.join(f'<li>{ico(o["icon"])}{e(o["nombre"])}</li>' for o in principales)}
+        <li class="muted">{ico('plus')}¿Otro oficio? Lo revisamos contigo</li>
       </ul>
     </div>
   </div>
@@ -297,10 +315,10 @@ def page_home():
 
 <section class="sec" id="particulares" aria-labelledby="h-part">
   <div class="wrap split">
-    <div>
+    <div data-reveal>
       <span class="eyebrow">Para particulares</span>
       <h2 id="h-part">Una solicitud, y nosotros buscamos por ti</h2>
-      <p>Evita llamar a diez números sin respuesta. Describe el trabajo, añade fotos y te mantenemos informado de cada paso.</p>
+      <p>Describe el trabajo, añade fotos si las tienes y te mantenemos informado de cada paso.</p>
       <ul class="checks">
         <li>{ico('check')}<span>Solicitud gratuita y sin compromiso.</span></li>
         <li>{ico('check')}<span>Un código de solicitud para seguir el proceso.</span></li>
@@ -308,13 +326,13 @@ def page_home():
       </ul>
       <a class="btn btn-dark" href="solicitar/?tipo=particular">Necesito un profesional {ico('arrow')}</a>
     </div>
-    <div class="panel">
-      <h3>Qué conviene incluir</h3>
+    <div class="panel" data-reveal>
+      <h3>Qué conviene contarnos</h3>
       <ul class="mini-list">
-        <li>{ico('camera')}Fotos del problema o de la zona</li>
-        <li>{ico('home')}Barrio o código postal</li>
-        <li>{ico('gear')}Qué ha pasado y desde cuándo</li>
-        <li>{ico('check')}Cuándo te viene bien la visita</li>
+        <li>{ico('gear')}Qué ha pasado o qué quieres hacer</li>
+        <li>{ico('home')}Zona o barrio</li>
+        <li>{ico('camera')}Fotos, si las tienes</li>
+        <li>{ico('check')}Los demás detalles los vemos por WhatsApp</li>
       </ul>
     </div>
   </div>
@@ -322,7 +340,7 @@ def page_home():
 
 <section class="sec sec-white" id="profesionales" aria-labelledby="h-pro">
   <div class="wrap split">
-    <div>
+    <div data-reveal>
       <span class="eyebrow">Para profesionales</span>
       <h2 id="h-pro">Recibe oportunidades compatibles con tu oficio y zona</h2>
       <p>Te enviamos un resumen del trabajo con zona, descripción y fotos. Tú decides si lo aceptas o no.</p>
@@ -334,7 +352,7 @@ def page_home():
       </ul>
       <a class="btn btn-primary" href="profesionales/">Quiero recibir trabajos {ico('arrow')}</a>
     </div>
-    <div class="panel">
+    <div class="panel" data-reveal>
       <h3>Así llega una oportunidad</h3>
       <ul class="mini-list">
         <li>{ico('plus')}Ficha: oficio, zona, prioridad y fotos</li>
@@ -347,55 +365,55 @@ def page_home():
 
 <section class="sec" id="por-que" aria-labelledby="h-why">
   <div class="wrap">
-    <div class="sec-head">
+    <div class="sec-head" data-reveal>
       <span class="eyebrow">¿Por qué OficioCerca?</span>
       <h2 id="h-why">Un proceso ordenado, no una lista de teléfonos</h2>
     </div>
     <div class="why">
-      <div class="why-item big">{ico('check')}<h3>Proceso acompañado</h3><p>Seguimos cada solicitud: si el profesional contactó, si hubo presupuesto y si el trabajo terminó bien.</p></div>
-      <div class="why-item">{ico('gear')}<h3>Solicitudes filtradas</h3><p>Revisamos cada solicitud antes de enviarla a un profesional.</p></div>
-      <div class="why-item">{ico('home')}<h3>Según zona y oficio</h3><p>Buscamos profesionales que trabajen en tu zona y en tu tipo de trabajo.</p></div>
-      <div class="why-item">{ico('wrench')}<h3>Seguimiento del trabajo</h3><p>Un código de solicitud ordena todo el proceso de principio a fin.</p></div>
-      <div class="why-item">{ico('key')}<h3>Valoraciones verificadas</h3><p>Las opiniones solo podrán venir de solicitudes reales gestionadas aquí.</p></div>
+      <div class="why-item big" data-reveal>{ico('check')}<h3>Proceso acompañado</h3><p>Seguimos cada solicitud: si el profesional contactó, si hubo presupuesto y si el trabajo terminó bien.</p></div>
+      <div class="why-item" data-reveal>{ico('gear')}<h3>Solicitudes revisadas</h3><p>Revisamos cada solicitud antes de enviarla a un profesional.</p></div>
+      <div class="why-item" data-reveal>{ico('home')}<h3>Según zona y oficio</h3><p>Buscamos profesionales que trabajen en tu zona y en tu tipo de trabajo.</p></div>
+      <div class="why-item" data-reveal>{ico('wrench')}<h3>Todo con un código</h3><p>Un código de solicitud ordena el proceso de principio a fin.</p></div>
+      <div class="why-item" data-reveal>{ico('key')}<h3>Valoraciones verificadas</h3><p>Las opiniones solo podrán venir de solicitudes reales gestionadas aquí.</p></div>
     </div>
   </div>
 </section>
 
 <section class="sec sec-white" id="valoraciones" aria-labelledby="h-val">
   <div class="wrap">
-    <div class="sec-head">
+    <div class="sec-head" data-reveal>
       <span class="eyebrow">Valoraciones verificadas</span>
       <h2 id="h-val">Opiniones que solo puede dejar quien contrató</h2>
-      <p>Las valoraciones de OficioCerca estarán vinculadas a solicitudes gestionadas realmente a través de la plataforma. Todavía no publicamos valoraciones: las primeras llegarán con los primeros trabajos del piloto.</p>
+      <p>Las valoraciones de OficioCerca estarán vinculadas a solicitudes gestionadas realmente a través de la plataforma. Todavía no publicamos valoraciones: llegarán con los primeros trabajos del piloto.</p>
     </div>
     <div class="verify">
-      <div class="verify-card"><div class="vline">{ico('check')}Ligada a un código</div><p>Cada valoración corresponde a una solicitud con su código OC.</p></div>
-      <div class="verify-card"><div class="vline">{ico('check')}Solo tras el trabajo</div><p>Se pide cuando el trabajo ha terminado, nunca antes.</p></div>
-      <div class="verify-card"><div class="vline">{ico('check')}Perfiles con historial</div><p>Más adelante: trabajos completados, puntuación, fotos, especialidades y zonas.</p></div>
+      <div class="verify-card" data-reveal><div class="vline">{ico('check')}Ligada a un código</div><p>Cada valoración corresponde a una solicitud con su código OC.</p></div>
+      <div class="verify-card" data-reveal><div class="vline">{ico('check')}Solo tras el trabajo</div><p>Se pide cuando el trabajo ha terminado, nunca antes.</p></div>
+      <div class="verify-card" data-reveal><div class="vline">{ico('check')}Perfiles con historial</div><p>Más adelante: trabajos completados, puntuación, fotos, especialidades y zonas.</p></div>
     </div>
   </div>
 </section>
 
 <section class="sec sec-dark" id="cobertura" aria-labelledby="h-cob">
   <div class="wrap">
-    <div class="sec-head">
+    <div class="sec-head" data-reveal>
       <span class="eyebrow">Cobertura</span>
       <h2 id="h-cob">Piloto inicial: {e(c['nombre'])} capital</h2>
-      <p>Estamos validando el servicio en {e(c['nombre'])}. Próximamente, nuevas zonas.</p>
+      <p>Estamos comenzando en {e(c['nombre'])} capital. Ampliaremos a nuevas zonas cuando el servicio esté consolidado.</p>
     </div>
-    <ul class="cities">
-      {''.join(f'<li class="city on"><span class="dot" aria-hidden="true"></span>{e(x["nombre"])} · activo</li>' if x['activa'] else f'<li class="city off">{e(x["nombre"])} · próximamente</li>' for x in CIUDADES)}
+    <ul class="cities" data-reveal>
+      <li class="city on"><span class="dot" aria-hidden="true"></span>{e(c['nombre'])} capital · zona piloto</li>
     </ul>
   </div>
 </section>
 
 <section class="sec">
   <div class="wrap">
-    <div class="cta-band">
-      <div><h2>Cuéntanos qué necesitas.</h2><p>Solicitud gratuita. Te respondemos con tu código y los siguientes pasos.</p></div>
+    <div class="cta-band" data-reveal>
+      <div><h2>Cuéntanos qué necesitas</h2><p>Solicitud gratuita. Te enviamos tu código y te contactamos para continuar el proceso.</p></div>
       <div class="row">
         <a class="btn btn-light" href="solicitar/?tipo=empresa">Soy empresa</a>
-        <a class="btn btn-dark" href="solicitar/?tipo=particular">Necesito un profesional</a>
+        <a class="btn btn-dark-on" href="solicitar/?tipo=particular">Necesito un profesional</a>
       </div>
     </div>
   </div>
@@ -403,7 +421,7 @@ def page_home():
 </main>
 """
     write("index.html", head("OficioCerca · Profesionales para obras, reformas y reparaciones",
-                             "Cuéntanos qué necesitas y buscamos profesionales disponibles para tu obra, reforma o reparación. Piloto en Córdoba. Solicitud gratuita y con seguimiento.",
+                             "Cuéntanos qué trabajo necesitas y buscamos profesionales disponibles para tu obra, reforma o reparación. Piloto en Córdoba capital. Solicitud gratuita y con seguimiento.",
                              "", p, jsonld=ld) + header(p) + body + footer(p))
 
 def consent_block(prefix, items):
@@ -424,7 +442,8 @@ def page_solicitar():
 <section class="page-hero"><div class="wrap">
   <div class="crumbs"><a href="../">Inicio</a> / Solicitar profesional</div>
   <h1>Solicitar un profesional</h1>
-  <p>Cuéntanos qué necesitas. Revisamos la solicitud y buscamos un profesional disponible en tu zona. Es gratuito y sin compromiso.</p>
+  <p>Cuéntanos qué necesitas. Revisamos tu solicitud, buscamos profesionales disponibles en {e(c['nombre'])} y te contactamos para continuar. Es gratuito y sin compromiso.</p>
+  <p class="req-legend"><span class="req">*</span> Obligatorio. El resto es opcional.</p>
 </div></section>
 <div class="wrap form-layout">
   <div class="form-card">
@@ -446,38 +465,36 @@ def page_solicitar():
           <div class="field" data-show-if="tipoSolicitante=Empresa / Contratista"><label for="s-empresa">Empresa <span class="opt">(si aplica)</span></label><input id="s-empresa" name="empresa" type="text" autocomplete="organization" maxlength="120"></div>
         </div>
         <div class="grid2">
-          <div class="field"><label for="s-wa">WhatsApp <span class="req">*</span></label><input id="s-wa" name="whatsapp" type="tel" inputmode="tel" autocomplete="tel" required placeholder="600 000 000" data-phone><span class="hint">Móvil español o con prefijo internacional.</span><span class="err-msg">Revisa el número (9 dígitos o con prefijo +).</span></div>
+          <div class="field"><label for="s-wa">WhatsApp <span class="req">*</span></label><input id="s-wa" name="whatsapp" type="tel" inputmode="tel" autocomplete="tel" required placeholder="600 000 000" data-phone><span class="hint">Te escribiremos por aquí para continuar.</span><span class="err-msg">Revisa el número (9 dígitos o con prefijo +).</span></div>
           <div class="field"><label for="s-tel2">Teléfono alternativo <span class="opt">(opcional)</span></label><input id="s-tel2" name="telefonoAlt" type="tel" inputmode="tel" data-phone-optional><span class="err-msg">Revisa el número.</span></div>
         </div>
         <div class="field"><label for="s-email">Correo electrónico <span class="opt">(opcional)</span></label><input id="s-email" name="email" type="email" autocomplete="email" maxlength="160"><span class="err-msg">Revisa el correo.</span></div>
       </fieldset>
 
       <fieldset>
-        <legend><span class="n">2</span>Dónde es el trabajo</legend>
-        <div class="grid2">
-          <div class="field"><label for="s-ciudad">Ciudad <span class="req">*</span></label><select id="s-ciudad" name="ciudad" required>{ciudad_opts()}</select></div>
-          <div class="field"><label for="s-cp">Código postal <span class="req">*</span></label><input id="s-cp" name="codigoPostal" type="text" inputmode="numeric" autocomplete="postal-code" required maxlength="5" pattern="[0-9]{{5}}" placeholder="14000"><span class="err-msg">Escribe un código postal de 5 cifras.</span></div>
-        </div>
-        <div class="field"><label for="s-zona">Zona o barrio <span class="req">*</span></label><input id="s-zona" name="zona" type="text" required maxlength="120" placeholder="Ej.: Centro, Ciudad Jardín, polígono…"><span class="err-msg">Indica la zona o el barrio.</span></div>
-      </fieldset>
-
-      <fieldset>
-        <legend><span class="n">3</span>Qué necesitas</legend>
-        <div class="grid2">
-          <div class="field"><label for="s-oficio">Tipo de profesional <span class="req">*</span></label><select id="s-oficio" name="oficio" required>{oficio_opts()}</select><span class="err-msg">Elige un oficio (o «Otro servicio»).</span></div>
-          <div class="field"><label for="s-tipo">Tipo de trabajo <span class="req">*</span></label><select id="s-tipo" name="tipoTrabajo" required><option value="">Selecciona</option>{tipos}</select><span class="err-msg">Elige el tipo de trabajo.</span></div>
-        </div>
-        <div class="field" data-show-if="oficio=otro"><label for="s-otro">¿Qué oficio necesitas? <span class="req">*</span></label><input id="s-otro" name="oficioOtro" type="text" maxlength="120" data-required-if="oficio=otro"><span class="err-msg">Cuéntanos qué oficio buscas.</span></div>
-        <div class="field"><label for="s-desc">Descripción detallada <span class="req">*</span></label><textarea id="s-desc" name="descripcion" required minlength="20" maxlength="3000" placeholder="Qué ha pasado o qué quieres hacer, medidas aproximadas, materiales, plazos, acceso…"></textarea><span class="hint"><span data-count="s-desc">0</span>/3000 · mínimo 20 caracteres</span><span class="err-msg">Describe el trabajo con al menos 20 caracteres.</span></div>
-        <fieldset class="choice-group" data-required-group="prioridad">
-          <legend class="label">Prioridad <span class="req">*</span></legend>
+        <legend><span class="n">2</span>Qué necesitas</legend>
+        <div class="field"><label for="s-oficio">Servicio que necesitas <span class="req">*</span></label><select id="s-oficio" name="oficio" required>{oficio_opts()}</select><span class="err-msg">Elige un servicio (o «Otro servicio»).</span></div>
+        <div class="field otro-box" data-show-if="oficio=otro"><label for="s-otro">¿Qué servicio o profesional necesitas? <span class="req">*</span></label><input id="s-otro" name="oficioOtro" type="text" maxlength="120" data-required-if="oficio=otro" placeholder="Ej.: marmolista, cerrajero…"><span class="hint">Revisaremos si hay profesionales disponibles en {e(c['nombre'])} y te contactaremos para informarte.</span><span class="err-msg">Indica qué servicio o profesional necesitas.</span></div>
+        <div class="field"><label for="s-desc">Describe el trabajo <span class="req">*</span></label><textarea id="s-desc" name="descripcion" required minlength="10" maxlength="3000" placeholder="Qué ha pasado o qué quieres hacer. Si puedes: medidas, materiales o plazos."></textarea><span class="hint"><span data-count="s-desc">0</span>/3000</span><span class="err-msg">Describe brevemente el trabajo (mínimo 10 caracteres).</span></div>
+        <div class="field"><label for="s-tipo">Tipo de trabajo <span class="opt">(opcional)</span></label><select id="s-tipo" name="tipoTrabajo"><option value="">Sin especificar</option>{tipos}</select></div>
+        <fieldset class="choice-group">
+          <legend class="label">Prioridad <span class="opt">(opcional)</span></legend>
           <div class="choices c2">
-            <label class="choice"><input type="radio" name="prioridad" value="Normal" required checked><span>Normal<small>En los próximos días o semanas</small></span></label>
+            <label class="choice"><input type="radio" name="prioridad" value="Normal" checked><span>Normal<small>En los próximos días o semanas</small></span></label>
             <label class="choice"><input type="radio" name="prioridad" value="Prioritaria"><span>Prioritaria<small>Lo antes posible</small></span></label>
           </div>
           <span class="hint">En el piloto no ofrecemos servicio de urgencias inmediatas.</span>
-          <span class="err-msg">Elige la prioridad.</span>
         </fieldset>
+      </fieldset>
+
+      <fieldset>
+        <legend><span class="n">3</span>Dónde es el trabajo</legend>
+        <p class="fs-help">Zona piloto: {e(c['nombre'])} capital. La dirección exacta te la pediremos por WhatsApp si hace falta.</p>
+        <input type="hidden" name="ciudad" value="{e(c['nombre'])}">
+        <div class="grid2">
+          <div class="field"><label for="s-zona">Zona o barrio <span class="req">*</span></label><input id="s-zona" name="zona" type="text" required maxlength="120" placeholder="Ej.: Centro, Ciudad Jardín…"><span class="err-msg">Indica la zona o el barrio.</span></div>
+          <div class="field"><label for="s-cp">Código postal <span class="opt">(opcional)</span></label><input id="s-cp" name="codigoPostal" type="text" inputmode="numeric" autocomplete="postal-code" maxlength="5" pattern="[0-9]{{5}}" placeholder="14000"><span class="err-msg">Si lo indicas, deben ser 5 cifras.</span></div>
+        </div>
       </fieldset>
 
       <fieldset>
@@ -494,14 +511,13 @@ def page_solicitar():
 
       <fieldset>
         <legend><span class="n">5</span>Contacto y autorizaciones</legend>
-        <fieldset class="choice-group" data-required-group="contactoPreferido">
-          <legend class="label">¿Cómo prefieres que te contactemos? <span class="req">*</span></legend>
+        <fieldset class="choice-group">
+          <legend class="label">¿Cómo prefieres que te contactemos? <span class="opt">(opcional)</span></legend>
           <div class="choices c3">
-            <label class="choice"><input type="radio" name="contactoPreferido" value="WhatsApp" required checked><span>WhatsApp</span></label>
+            <label class="choice"><input type="radio" name="contactoPreferido" value="WhatsApp" checked><span>WhatsApp</span></label>
             <label class="choice"><input type="radio" name="contactoPreferido" value="Llamada"><span>Llamada</span></label>
             <label class="choice"><input type="radio" name="contactoPreferido" value="Correo"><span>Correo</span></label>
           </div>
-          <span class="err-msg">Elige una opción.</span>
         </fieldset>
         {consent_block("s", [
             ("consentContacto", "Autorizo a OficioCerca a ponerse en contacto conmigo para gestionar esta solicitud. <span class=\"req\">*</span>"),
@@ -522,7 +538,7 @@ def page_solicitar():
       <p>Estamos revisando tu solicitud y buscando un profesional disponible para tu zona.</p>
       <div class="ticket"><small>Tu código de solicitud</small><strong data-code>—</strong></div>
       <p>OficioCerca te mantendrá informado sobre el proceso. Guarda este código para cualquier consulta.</p>
-      <div class="next"><strong>Próximos pasos</strong><ol><li>Revisamos los datos y, si falta algo, te escribimos.</li><li>Buscamos un profesional compatible con tu zona y trabajo.</li><li>Te avisamos cuando un profesional acepte la solicitud.</li></ol></div>
+      <div class="next"><strong>Próximos pasos</strong><ol><li>Revisamos los datos y, si falta algo, te escribimos.</li><li>Revisamos la disponibilidad de profesionales para tu zona y trabajo.</li><li>Te contactamos para informarte y continuar el proceso.</li></ol></div>
       <a class="btn btn-ghost" href="../">Volver al inicio</a>
     </div>
   </div>
