@@ -14,11 +14,12 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 CAT = json.loads((ROOT / "assets/data/catalogo.json").read_text(encoding="utf-8"))
-OFICIOS, CIUDADES, TIPOS = CAT["oficios"], CAT["ciudades"], CAT["tiposTrabajo"]
+OFICIOS = [o for o in CAT["oficios"] if o.get("activo", True)]  # solo servicios activos del piloto
+CIUDADES, TIPOS = CAT["ciudades"], CAT["tiposTrabajo"]
 SITE = "https://oficiocerca.pages.dev/"
-VERSION = "6"
-CONSENT_VERSION = "C3-2026-10"  # cambia este código si cambias el texto del consentimiento
-PRO_COND_VERSION = "PRO-COND-2026-10-V1"  # versión de las condiciones para profesionales
+VERSION = "7"
+CONSENT_VERSION = "C4-2026-10"  # cambia este código si cambias el texto del consentimiento
+PRO_COND_VERSION = "PRO-COND-2026-10-V2"  # versión de las condiciones para profesionales
 CONTACT_EMAIL = "oficiocerca@gmail.com"
 e = html.escape
 
@@ -81,18 +82,18 @@ def head(title, desc, path, p, noindex=False, jsonld=None):
 
 def header(p):
     nav = [("Inicio", f"{p}"), ("Cómo funciona", f"{p}#como-funciona"), ("Servicios", f"{p}#servicios"),
-           ("Empresas", f"{p}solicitar/?tipo=empresa"), ("Para profesionales", f"{p}profesionales/"), ("Contacto", f"{p}#contacto")]
+           ("Recibir trabajos", f"{p}profesionales/"), ("Contacto", f"{p}#contacto")]
     links = "".join(f'<a href="{h}">{t}</a>' for t, h in nav)
     return f"""<header class="hdr" id="top">
   <div class="wrap">
     <a class="brand" href="{p}" aria-label="OficioCerca, inicio">{LOGO}<span class="brand-name">OFICIO<b>CERCA</b></span></a>
     <nav class="nav" aria-label="Principal">{links}</nav>
-    <a class="btn btn-primary btn-sm hdr-cta" href="{p}solicitar/">Solicitar profesional</a>
+    <a class="btn btn-primary btn-sm hdr-cta" href="{p}solicitar/">Solicitar un servicio</a>
     <button class="menu-btn" type="button" aria-expanded="false" aria-controls="mnav" aria-label="Abrir menú">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
     </button>
   </div>
-  <nav class="mobile-nav" id="mnav" aria-label="Menú móvil">{links}<a class="btn btn-primary" href="{p}solicitar/">Solicitar profesional</a></nav>
+  <nav class="mobile-nav" id="mnav" aria-label="Menú móvil">{links}<a class="btn btn-primary" href="{p}solicitar/">Solicitar un servicio</a></nav>
 </header>
 """
 
@@ -110,15 +111,14 @@ def footer(p, extra_js=""):
       <div>
         <h2>Solicitar</h2>
         <ul>
-          <li><a href="{p}solicitar/?tipo=empresa">Empresa o contratista</a></li>
-          <li><a href="{p}solicitar/?tipo=particular">Particular</a></li>
+          <li><a href="{p}solicitar/">Solicitar un servicio</a></li>
           <li><a href="{p}{c['slug']}/">Oficios en {e(c['nombre'])}</a></li>
         </ul>
       </div>
       <div>
-        <h2>Profesionales</h2>
+        <h2>Recibir trabajos</h2>
         <ul>
-          <li><a href="{p}profesionales/">Registro de profesionales</a></li>
+          <li><a href="{p}profesionales/">Registrarme para recibir trabajos</a></li>
           <li><a href="{p}condiciones-profesionales/">Condiciones para profesionales</a></li>
           <li><a href="{p}#como-funciona">Cómo funciona</a></li>
         </ul>
@@ -175,7 +175,7 @@ STEPS = [
     ("Cuéntanos qué necesitas", "Describe el trabajo, tu zona y cuándo lo necesitas. Recibes un correo con tu código."),
     ("Buscamos un profesional compatible", "Según oficio, zona, plazo y tipo de cliente. Le enviamos el trabajo sin tus datos de contacto."),
     ("Te ponemos en contacto", "Cuando uno confirma que puede atenderlo en tu plazo, le facilitamos tu contacto y te avisamos."),
-    ("Presupuesto y seguimiento", "Recibes el presupuesto por correo y decides. Confirmas el final y valoras el servicio."),
+    ("Presupuesto y seguimiento", "Recibes el presupuesto por correo y sigues todo en tu página de seguimiento. Confirmas el final y valoras."),
 ]
 
 def steps_html():
@@ -201,9 +201,8 @@ def page_home():
          "areaServed": {"@type": "City", "name": "Córdoba", "containedInPlace": {"@type": "Country", "name": "España"}}},
         {"@type": "WebSite", "@id": SITE + "#web", "name": "OficioCerca", "url": SITE, "inLanguage": "es-ES", "publisher": {"@id": SITE + "#org"}}]}
     opciones = [
-        ("Necesito un profesional", "Tengo una reparación, obra o reforma y quiero encontrar quién la haga.", "Solicitar un profesional", "solicitar/?tipo=particular", "home"),
-        ("Soy empresa o contratista", "Necesito un profesional u oficio para una obra o proyecto.", "Solicitar un profesional para una obra", "solicitar/?tipo=empresa", "brick"),
-        ("Soy profesional", "Quiero registrarme para recibir oportunidades de trabajo.", "Registrarme como profesional", "profesionales/", "wrench"),
+        ("Necesito un profesional", "Soy particular, empresa o contratista y necesito encontrar un profesional para realizar un trabajo.", "Solicitar un servicio", "solicitar/", "home"),
+        ("Quiero recibir trabajos", "Soy profesional independiente, contratista o empresa y quiero registrarme para recibir oportunidades de trabajo.", "Registrarme para recibir trabajos", "profesionales/", "wrench"),
     ]
     opts = "".join(
         f'<a class="hopt" href="{h}"><span class="hopt-ico">{ico(i)}</span><span class="hopt-t">{e(t)}</span>'
@@ -217,7 +216,7 @@ def page_home():
     <h1 id="h-hero">Encuentra al profesional que necesita tu proyecto</h1>
     <p class="lead">Cuéntanos qué trabajo necesitas. Buscamos un profesional compatible con tu trabajo, tu zona y tu plazo, y te informamos por correo de cada paso.</p>
     <p class="hero-pick">Elige una opción:</p>
-    <div class="hero-opts">{opts}</div>
+    <div class="hero-opts hero-opts-2">{opts}</div>
     <p class="hero-note">Gratis y sin compromiso para quien solicita · No ofrecemos servicio de urgencias 24 horas</p>
   </div>
 </section>
@@ -263,9 +262,8 @@ def page_home():
     <div class="cta-band" data-reveal>
       <div><h2>Cuéntanos qué necesitas</h2><p>Piloto en Córdoba capital. Solicitud gratuita y sin compromiso.</p></div>
       <div class="row">
-        <a class="btn btn-light" href="solicitar/?tipo=particular">Solicitar un profesional</a>
-        <a class="btn btn-light" href="solicitar/?tipo=empresa">Profesional para una obra</a>
-        <a class="btn btn-dark-on" href="profesionales/">Registrarme como profesional</a>
+        <a class="btn btn-light" href="solicitar/">Solicitar un servicio</a>
+        <a class="btn btn-dark-on" href="profesionales/">Quiero recibir trabajos</a>
       </div>
     </div>
   </div>
@@ -292,7 +290,6 @@ PLAZOS = [("HOY_MANANA", "Hoy o mañana"), ("DOS_TRES_DIAS", "En 2–3 días"), 
 def page_solicitar():
     p = "../"
     c = ciudad_activa()
-    tipos = "".join(f'<option value="{e(t)}">{e(t)}</option>' for t in TIPOS)
     plazos = "".join(f'<label class="choice"><input type="radio" name="plazo" value="{v}"{" required" if i == 0 else ""}><span>{e(t)}</span></label>' for i, (v, t) in enumerate(PLAZOS))
     body = f"""<main id="main">
 <section class="page-hero"><div class="wrap">
@@ -309,30 +306,27 @@ def page_solicitar():
       <fieldset>
         <legend><span class="n">1</span>Quién lo solicita</legend>
         <fieldset class="choice-group" data-required-group="tipoSolicitante">
-          <legend class="sr-only">Tipo de solicitante</legend>
-          <div class="choices c2">
-            <label class="choice"><input type="radio" name="tipoSolicitante" value="Particular" required><span>Particular<small>Mi casa o local</small></span></label>
-            <label class="choice"><input type="radio" name="tipoSolicitante" value="Empresa / Contratista"><span>Empresa / contratista<small>Obra, proyecto o comunidad</small></span></label>
+          <legend class="label">¿Quién solicita el servicio? <span class="req">*</span></legend>
+          <div class="choices c3">
+            <label class="choice"><input type="radio" name="tipoSolicitante" value="Particular" required><span>Particular</span></label>
+            <label class="choice"><input type="radio" name="tipoSolicitante" value="Empresa"><span>Empresa</span></label>
+            <label class="choice"><input type="radio" name="tipoSolicitante" value="Contratista"><span>Contratista</span></label>
           </div>
           <span class="err-msg">Elige una opción.</span>
         </fieldset>
         <div class="grid2">
           <div class="field"><label for="s-nombre">Nombre y apellidos <span class="req">*</span></label><input id="s-nombre" name="nombre" type="text" autocomplete="name" required maxlength="120"><span class="err-msg">Escribe tu nombre.</span></div>
-          <div class="field" data-show-if="tipoSolicitante=Empresa / Contratista"><label for="s-empresa">Empresa <span class="opt">(si aplica)</span></label><input id="s-empresa" name="empresa" type="text" autocomplete="organization" maxlength="120"></div>
+          <div class="field" data-show-if="tipoSolicitante=Empresa|Contratista"><label for="s-empresa">Nombre de la empresa <span class="opt">(opcional)</span></label><input id="s-empresa" name="empresa" type="text" autocomplete="organization" maxlength="120"></div>
         </div>
         <div class="field"><label for="s-email">Correo para seguimiento <span class="req">*</span></label><input id="s-email" name="email" type="email" autocomplete="email" maxlength="160" required><span class="hint">Te enviaremos aquí el código y las novedades de tu solicitud.</span><span class="err-msg">Escribe un correo válido: por aquí te informaremos.</span></div>
-        <div class="grid2">
-          <div class="field"><label for="s-wa">WhatsApp <span class="req">*</span></label><input id="s-wa" name="whatsapp" type="tel" inputmode="tel" autocomplete="tel" required placeholder="600 000 000" data-phone><span class="hint">Solo se lo daremos al profesional que atienda tu trabajo.</span><span class="err-msg">Revisa el número (9 dígitos o con prefijo +).</span></div>
-          <div class="field"><label for="s-tel2">Teléfono alternativo <span class="opt">(opcional)</span></label><input id="s-tel2" name="telefonoAlt" type="tel" inputmode="tel" data-phone-optional><span class="err-msg">Revisa el número.</span></div>
-        </div>
+        <div class="field"><label for="s-wa">WhatsApp <span class="req">*</span></label><input id="s-wa" name="whatsapp" type="tel" inputmode="tel" autocomplete="tel" required placeholder="600 000 000" data-phone><span class="hint">Solo se lo daremos al profesional que atienda tu trabajo.</span><span class="err-msg">Revisa el número (9 dígitos o con prefijo +).</span></div>
       </fieldset>
 
       <fieldset>
         <legend><span class="n">2</span>Qué necesitas</legend>
         <div class="field"><label for="s-oficio">Servicio que necesitas <span class="req">*</span></label><select id="s-oficio" name="oficio" required data-keep-value>{oficio_opts()}</select><span class="err-msg">Elige un servicio (o «Otro servicio»).</span></div>
         <div class="field otro-box" data-show-if="oficio=otro"><label for="s-otro">¿Qué servicio o profesional necesitas? <span class="req">*</span></label><input id="s-otro" name="oficioOtro" type="text" maxlength="120" data-required-if="oficio=otro" placeholder="Ej.: cerrajero, cristalero…"><span class="hint">Revisaremos si hay profesionales disponibles en {e(c['nombre'])}. No podemos garantizar que los haya.</span><span class="err-msg">Indica qué servicio o profesional necesitas.</span></div>
-        <div class="field"><label for="s-desc">Describe el trabajo <span class="req">*</span></label><textarea id="s-desc" name="descripcion" required minlength="10" maxlength="3000" placeholder="Qué ha pasado o qué quieres hacer. Si puedes: medidas, materiales o detalles."></textarea><span class="hint"><span data-count="s-desc">0</span>/3000</span><span class="err-msg">Describe brevemente el trabajo (mínimo 10 caracteres).</span></div>
-        <div class="field"><label for="s-tipo">Tipo de trabajo <span class="opt">(opcional)</span></label><select id="s-tipo" name="tipoTrabajo"><option value="">Sin especificar</option>{tipos}</select></div>
+        <div class="field"><label for="s-desc">Cuéntanos qué necesitas <span class="req">*</span></label><span class="hint" style="margin:0 0 6px">Describe brevemente el trabajo para que el profesional pueda entenderlo y valorar si puede atenderlo.</span><textarea id="s-desc" name="descripcion" required minlength="10" maxlength="3000" placeholder="Ej.: Tengo una fuga debajo del fregadero y necesito revisarla."></textarea><span class="hint"><span data-count="s-desc">0</span>/3000</span><span class="err-msg">Describe brevemente el trabajo (mínimo 10 caracteres).</span></div>
         <fieldset class="choice-group" data-required-group="plazo">
           <legend class="label">¿Cuándo necesitas que pueda atenderse el trabajo? <span class="req">*</span></legend>
           <div class="choices c2 plazos">{plazos}</div>
@@ -374,12 +368,10 @@ def page_solicitar():
             <label class="choice"><input type="radio" name="contactoPreferido" value="Llamada"><span>Llamada</span></label>
             <label class="choice"><input type="radio" name="contactoPreferido" value="Correo"><span>Correo</span></label>
           </div>
-          <span class="hint">OficioCerca utilizará tu correo electrónico para mantenerte informado sobre el estado de tu solicitud.</span>
+          <span class="hint">Es para el profesional que te asignemos. OficioCerca utilizará tu correo electrónico para informarte sobre el estado de tu solicitud.</span>
         </fieldset>
         {consent_block("s", [
-            ("consentContacto", "Autorizo a OficioCerca a contactarme, principalmente por correo, para gestionar esta solicitud. <span class=\"req\">*</span>"),
-            ("consentCompartir", "Autorizo a OficioCerca a compartir la información necesaria para valorar mi solicitud (servicio, zona o barrio, tipo de trabajo, plazo, descripción y fotos) con profesionales compatibles, de uno en uno. Mis datos de contacto solo se compartirán con el profesional que confirme que puede atenderla en mi plazo, o con el que yo apruebe. <span class=\"req\">*</span>"),
-            ("consentPrivacidad", "He leído la <a href=\"../privacidad/\" target=\"_blank\" rel=\"noopener\">política de privacidad</a> y las <a href=\"../condiciones/\" target=\"_blank\" rel=\"noopener\">condiciones de uso</a>. <span class=\"req\">*</span>")])}
+            ("consentOperativo", "He leído la <a href=\"../privacidad/\" target=\"_blank\" rel=\"noopener\">Política de privacidad</a> y las <a href=\"../condiciones/\" target=\"_blank\" rel=\"noopener\">Condiciones de uso</a> y autorizo a OficioCerca a gestionar mi solicitud y a compartir con profesionales seleccionados la información necesaria para valorarla. Mis datos de contacto solo se compartirán con el profesional finalmente asignado. <span class=\"req\">*</span>")])}
       </fieldset>
 
       <div class="submit-row">
@@ -394,7 +386,7 @@ def page_solicitar():
       <h2>Solicitud recibida</h2>
       <div class="ticket"><small>Tu código de solicitud</small><strong data-code>—</strong></div>
       <p class="mail-alert"><strong>Te hemos enviado un correo de confirmación. Mantente pendiente de tu correo: por ahí te informaremos de los avances de tu solicitud.</strong></p>
-      <p>Si no lo encuentras, revisa también <strong>Spam</strong> o <strong>Promociones</strong>.</p>
+      <p>Si no lo encuentras, revisa también <strong>Spam</strong> o <strong>Promociones</strong>. En ese correo tienes el botón <strong>«Ver seguimiento de mi solicitud»</strong>.</p>
       <div class="next"><strong>Próximos pasos</strong><ol><li>Buscamos un profesional compatible con tu trabajo, zona y plazo.</li><li>Cuando uno confirme que puede atenderlo, te avisamos por correo y te contactará.</li><li>Recibirás su presupuesto por correo y decidirás si lo aceptas.</li></ol></div>
       <a class="btn btn-ghost" href="../">Volver al inicio</a>
     </div>
@@ -416,13 +408,13 @@ def page_solicitar():
 
 def page_profesionales():
     p = "../"
-    servs = "".join(f'<label class="choice"><input type="checkbox" name="servicios" value="{o["slug"]}"{" required" if i == 0 else ""}><span>{e(o["nombre"] if o["slug"] != "otro" else "Otro")}</span></label>'
+    servs = "".join(f'<label class="choice"><input type="checkbox" name="servicios" value="{o["slug"]}"{" required" if i == 0 else ""}><span>{e(o["nombre"])}</span></label>'
                     for i, o in enumerate(OFICIOS))
     body = f"""<main id="main">
 <section class="page-hero"><div class="wrap">
   <div class="crumbs"><a href="../">Inicio</a> / Profesionales</div>
-  <h1>Regístrate como profesional</h1>
-  <p>Recibe por correo oportunidades compatibles con tus servicios y tu zona. Tú decides cuáles atiendes. Registro gratuito.</p>
+  <h1>Regístrate para recibir trabajos</h1>
+  <p>Para profesionales independientes, contratistas y empresas. Recibe por correo oportunidades compatibles con tus servicios y tu zona; tú decides cuáles atiendes. OficioCerca no es un empleador: te pone en contacto con clientes. Registro gratuito.</p>
   <p class="req-legend"><span class="req">*</span> Obligatorio. El resto es opcional.</p>
 </div></section>
 <div class="wrap form-layout">
@@ -432,9 +424,19 @@ def page_profesionales():
       <input type="hidden" name="condVersion" value="{PRO_COND_VERSION}">
       <fieldset>
         <legend><span class="n">1</span>Tus datos</legend>
+        <fieldset class="choice-group" data-required-group="tipoProveedor">
+          <legend class="label">¿Qué tipo de proveedor eres? <span class="req">*</span></legend>
+          <div class="choices c3">
+            <label class="choice"><input type="radio" name="tipoProveedor" value="Profesional independiente / autónomo" required><span>Profesional independiente / autónomo</span></label>
+            <label class="choice"><input type="radio" name="tipoProveedor" value="Contratista"><span>Contratista</span></label>
+            <label class="choice"><input type="radio" name="tipoProveedor" value="Empresa"><span>Empresa</span></label>
+          </div>
+          <span class="hint">Todos reciben oportunidades de la misma forma, según sus servicios y zona.</span>
+          <span class="err-msg">Elige una opción.</span>
+        </fieldset>
         <div class="grid2">
           <div class="field"><label for="p-nombre">Nombre y apellidos <span class="req">*</span></label><input id="p-nombre" name="nombre" type="text" autocomplete="name" required maxlength="120"><span class="err-msg">Escribe tu nombre.</span></div>
-          <div class="field"><label for="p-empresa">Empresa o autónomo <span class="opt">(si aplica)</span></label><input id="p-empresa" name="empresa" type="text" autocomplete="organization" maxlength="120"></div>
+          <div class="field"><label for="p-empresa">Empresa o nombre comercial <span class="opt">(si aplica)</span></label><input id="p-empresa" name="empresa" type="text" autocomplete="organization" maxlength="120"></div>
         </div>
         <div class="field"><label for="p-email">Correo electrónico <span class="req">*</span></label><input id="p-email" name="email" type="email" autocomplete="email" maxlength="160" required><span class="hint">Este correo se utilizará para enviarte oportunidades y gestionar el seguimiento de los trabajos.</span><span class="err-msg">Escribe un correo válido.</span></div>
         <div class="grid2">
@@ -474,15 +476,13 @@ def page_profesionales():
         </div>
       </fieldset>
       <fieldset>
-        <legend><span class="n">4</span>Condiciones y autorizaciones</legend>
-        <p class="fs-help">Resumen: tú decides qué oportunidades atiendes y fijas tu precio; el cliente te paga directamente. La tarifa de OficioCerca solo se calcula si el cliente acepta un presupuesto registrado aquí (10 % de la mano de obra, máximo 200 €) y durante el piloto no se cobra.</p>
+        <legend><span class="n">4</span>Condiciones</legend>
+        <p class="fs-help">Resumen: recibes oportunidades, no un empleo; tú decides cuáles atiendes y fijas tu presupuesto; el cliente te paga directamente. Si se te asigna un trabajo, el cliente verá tu nombre, empresa, WhatsApp y correo para poder comunicarse contigo. La tarifa de OficioCerca solo se calcula si el cliente acepta un presupuesto registrado aquí (10 % de la mano de obra, materiales excluidos, máximo 200 €) y durante el piloto no se cobra.</p>
         {consent_block("p", [
-            ("consentCondiciones", f"He leído y acepto las <a href=\"../condiciones-profesionales/\" target=\"_blank\" rel=\"noopener\">condiciones para profesionales</a> (versión {PRO_COND_VERSION}). <span class=\"req\">*</span>"),
-            ("consentContacto", "Autorizo a OficioCerca a contactarme por correo, WhatsApp o llamada para enviarme oportunidades y gestionar mi alta. <span class=\"req\">*</span>"),
-            ("consentPrivacidad", "He leído la <a href=\"../privacidad/\" target=\"_blank\" rel=\"noopener\">política de privacidad</a> y las <a href=\"../condiciones/\" target=\"_blank\" rel=\"noopener\">condiciones de uso</a>. <span class=\"req\">*</span>")])}
+            ("consentCondiciones", "He leído y acepto las <a href=\"../condiciones-profesionales/\" target=\"_blank\" rel=\"noopener\">Condiciones para profesionales</a> y he leído la <a href=\"../privacidad/\" target=\"_blank\" rel=\"noopener\">Política de privacidad</a>. <span class=\"req\">*</span>")])}
       </fieldset>
       <div class="submit-row">
-        <button class="btn btn-primary btn-block" type="submit"><span class="spinner" aria-hidden="true"></span><span data-btn-label>Registrarme como profesional</span></button>
+        <button class="btn btn-primary btn-block" type="submit"><span class="spinner" aria-hidden="true"></span><span data-btn-label>Registrarme para recibir trabajos</span></button>
         <span class="hint">Registro gratuito. Tu alta queda pendiente de revisión antes de recibir trabajos.</span>
       </div>
       <div class="form-status" role="alert" data-status></div>
@@ -500,7 +500,7 @@ def page_profesionales():
   <aside class="aside-sticky">
     <div class="aside-card">
       <h2>Cómo funciona para ti</h2>
-      <ol><li>Revisamos tu alta y la activamos.</li><li>Recibes por correo una ficha: servicio, zona, plazo, descripción y fotos (sin datos del cliente).</li><li>Respondes con un botón e indicas cuándo puedes.</li><li>Si te asignamos el trabajo, recibes el contacto del cliente.</li><li>Registras tu presupuesto; el cliente lo acepta o no y te paga directamente.</li></ol>
+      <ol><li>Revisamos tu alta y la activamos.</li><li>Recibes por correo una ficha: servicio, zona, plazo, descripción y fotos (sin datos del cliente).</li><li>Respondes con un botón e indicas cuándo puedes.</li><li>Si te asignamos el trabajo, recibes el contacto del cliente y él ve el tuyo.</li><li>Registras tu presupuesto; el cliente lo acepta o no y te paga directamente.</li></ol>
       <p>Aceptar una oportunidad significa que tienes interés y disponibilidad para contactar al cliente y presupuestar; no te obliga a ejecutar la obra.</p>
     </div>
   </aside>
@@ -523,7 +523,7 @@ def page_ciudad(c):
 </main>
 """
     write(f"{c['slug']}/index.html", head(f"Profesionales en {c['nombre']}: electricistas, fontaneros y más · OficioCerca",
-          f"Solicita electricista, fontanero, marmolista, albañil u otro profesional en {c['nombre']}. Servicio piloto gratuito con seguimiento.",
+          f"Solicita electricista, fontanero, marmolista, carpintero, pintor u otro profesional en {c['nombre']}. Servicio piloto gratuito con seguimiento.",
           f"{c['slug']}/", p) + header(p) + body + footer(p))
 
 def page_oficio_ciudad(c, o):
@@ -554,23 +554,24 @@ def page_privacidad():
 <h2>1. Responsable del tratamiento</h2>
 <p>Titular: {PH('nombre completo o razón social pendiente')}. Identificación fiscal: {PH('pendiente')}. Domicilio y país de establecimiento: {PH('pendiente')}. Correo de contacto: {MAIL}.</p>
 <h2>2. Qué datos tratamos</h2>
-<p>Clientes: nombre, correo electrónico, WhatsApp, zona o barrio, servicio, descripción del trabajo y plazo deseado (obligatorios); y, si el usuario los indica, empresa, teléfono alternativo, código postal, tipo de trabajo, fecha aproximada, preferencia de contacto y fotografías.</p>
-<p>Profesionales: nombre, correo, WhatsApp, servicios que realiza, experiencia, ciudad, código postal, zonas, distancia, disponibilidad habitual y tipo de clientes que atiende (obligatorios); y, si los indica, empresa, especialidades y descripción.</p>
-<p>Durante la gestión también registramos: la versión del consentimiento o de las condiciones aceptadas y su fecha; las oportunidades enviadas a cada profesional, sus respuestas y la disponibilidad indicada; los presupuestos registrados (mano de obra, materiales y total) y la respuesta del cliente; la confirmación de finalización, las valoraciones, las incidencias y sugerencias; y un registro de los correos enviados. Sirven para dar el servicio, poder demostrar qué se compartió y con quién, y calcular la tarifa de intermediación cuando proceda.</p>
-<p>Recomendamos no incluir en las fotos personas, documentos ni datos que no sean necesarios para valorar el trabajo.</p>
+<p><strong>Quien solicita un servicio</strong> (particular, empresa o contratista): quién solicita, nombre, correo electrónico, WhatsApp, zona o barrio, servicio, descripción del trabajo y plazo deseado (obligatorios); y, si los indica, nombre de la empresa, código postal, fecha aproximada, cómo prefiere que le contacte el profesional asignado y fotografías.</p>
+<p><strong>Quien se registra para recibir trabajos</strong> (profesional independiente o autónomo, contratista o empresa): tipo de proveedor, nombre, correo, WhatsApp, servicios que realiza, experiencia, ciudad, código postal, zonas, distancia, disponibilidad habitual y tipo de clientes que atiende (obligatorios); y, si los indica, empresa o nombre comercial, otro teléfono, especialidades y descripción.</p>
+<p>Durante la gestión también registramos: la aceptación (sí, versión, fecha y hora) del consentimiento de la solicitud o de las condiciones para profesionales; las oportunidades enviadas a cada profesional, sus respuestas y la disponibilidad indicada; los presupuestos registrados (mano de obra, materiales y total) y la respuesta del cliente; la confirmación de finalización, las valoraciones, las incidencias y sugerencias; y un registro de los correos enviados. Sirven para dar el servicio, poder demostrar qué se compartió y con quién, y calcular la tarifa de intermediación cuando proceda.</p>
+<p>Una misma persona o empresa puede solicitar servicios y, por separado, registrarse para recibir trabajos. Recomendamos no incluir en las fotos personas, documentos ni datos que no sean necesarios para valorar el trabajo.</p>
 <h2>3. Para qué los usamos</h2>
-<p>Gestionar la solicitud, encontrar un profesional compatible, facilitar el contacto, informar al cliente por correo de cada paso, registrar presupuestos y su aceptación, confirmar la finalización, recoger valoraciones e incidencias y mejorar el servicio. En el caso de profesionales: revisar su alta, enviarles oportunidades de sus servicios y zona, y llevar su historial interno (oportunidades, respuestas, trabajos y valoraciones), que no se publica.</p>
+<p>Gestionar la solicitud, encontrar un profesional compatible, facilitar el contacto entre cliente y profesional asignado, informar al cliente por correo y en su página de seguimiento, registrar presupuestos y su aceptación, confirmar la finalización, recoger valoraciones e incidencias y mejorar el servicio. En el caso de quien se registra para recibir trabajos: revisar su alta, enviarle oportunidades de sus servicios y zona y llevar su historial interno (oportunidades, respuestas, trabajos y valoraciones), que no se publica. No usamos los datos para publicidad ni boletines; si algún día se propusiera, se pediría un consentimiento aparte y nunca premarcado.</p>
 <h2>4. Cómo se elige al profesional (reglas, no IA)</h2>
-<p>La selección puede hacerse de forma automática mediante reglas de compatibilidad fijas: servicio declarado por el profesional, ciudad, zona y distancia, tipo de cliente (particular o empresa), disponibilidad y estado del profesional (solo profesionales activos y revisados). Entre los compatibles se ordena por coincidencia de zona, disponibilidad, historial y rotación para repartir las oportunidades. No se utiliza inteligencia artificial ni se toman decisiones con efectos jurídicos sobre el cliente: el cliente decide siempre si acepta un presupuesto, y las sanciones a profesionales las decide una persona. Las solicitudes de «Otro servicio» se revisan manualmente.</p>
+<p>La selección puede hacerse de forma automática mediante reglas de compatibilidad fijas: servicio declarado, ciudad, zona y distancia, tipo de cliente (particular, o empresa/contratista), disponibilidad y estado del profesional (solo profesionales activos y revisados). Entre los compatibles se ordena por coincidencia de zona, disponibilidad, historial y rotación para repartir las oportunidades. No se utiliza inteligencia artificial ni se toman decisiones con efectos jurídicos sobre el cliente: el cliente decide siempre si acepta un presupuesto, y las sanciones a profesionales las decide una persona. Las solicitudes de «Otro servicio» se revisan manualmente. Servicios activos del piloto: Electricidad, Fontanería, Marmolería, Carpintería y ebanistería y Pintura.</p>
 <h2>5. Base legal</h2>
-<p>El consentimiento expreso otorgado en los formularios y la gestión de la solicitud o del alta a petición del propio interesado. {PH('revisar con asesor jurídico')}</p>
+<p>Quien solicita un servicio marca una única casilla, no premarcada, por la que declara haber leído esta política y las condiciones de uso y autoriza la gestión de su solicitud y el reparto de información descrito abajo. Quien se registra para recibir trabajos acepta las condiciones para profesionales con una casilla, también no premarcada. Además, el tratamiento es necesario para gestionar lo que el propio interesado solicita. {PH('revisar con asesor jurídico')}</p>
 <h2>6. Con quién se comparten</h2>
 <p>El reparto se hace en dos momentos y de uno en uno (nunca a muchos profesionales a la vez):</p>
 <ul>
-<li><strong>Para valorar el trabajo:</strong> se envía por correo a un profesional compatible una ficha con el código, el servicio, la zona o barrio, el tipo de trabajo, el plazo deseado, la descripción y las fotos adjuntas. La ficha no incluye nombre, empresa, teléfonos, correo ni código postal del cliente. Si no puede atenderlo, se ofrece al siguiente compatible.</li>
-<li><strong>Solo al profesional asignado:</strong> cuando un profesional confirma que puede atenderlo dentro del plazo pedido, o cuando el cliente aprueba expresamente una disponibilidad posterior, se le envían automáticamente los datos de contacto del cliente (nombre, empresa si la hay, teléfonos, correo, preferencia de contacto, zona y código postal). Al cliente se le comunica el nombre o empresa del profesional y su disponibilidad.</li>
+<li><strong>Para valorar el trabajo:</strong> se envía por correo a un profesional compatible una ficha con el código, el servicio, la zona o barrio, el plazo deseado, si el cliente es particular, empresa o contratista, la descripción y las fotos adjuntas. La ficha no incluye nombre, empresa, teléfonos, correo ni código postal del cliente. Si no puede atenderlo, se ofrece al siguiente compatible.</li>
+<li><strong>Solo con el profesional asignado:</strong> cuando un profesional confirma que puede atenderlo dentro del plazo pedido, o cuando el cliente aprueba expresamente una disponibilidad posterior, se le envían los datos de contacto del cliente (nombre, empresa si la hay, WhatsApp, correo, preferencia de contacto, zona y código postal). A su vez, el cliente ve en su correo y en su página de seguimiento el nombre, la empresa, el tipo de proveedor, el WhatsApp y el correo del profesional asignado, para que puedan comunicarse.</li>
 </ul>
 <p>Las fotos se guardan en una carpeta privada y se envían únicamente como adjuntos de esos correos; no se comparten por enlace. Una vez enviado un correo, su copia queda en el buzón del destinatario y OficioCerca no puede retirarla.</p>
+<p><strong>Página de seguimiento:</strong> cada correo al cliente incluye un enlace personal y privado («Ver seguimiento de mi solicitud») que muestra solo esa solicitud, sin necesidad de cuenta ni contraseña. El enlace contiene un código aleatorio que no incluye datos personales, caduca y puede revocarse. Quien tenga el enlace puede ver esa solicitud: no lo reenvíes.</p>
 <p>Los datos se almacenan y los correos se envían mediante servicios de Google {PH('revisar transferencias internacionales y garantías aplicables')}. No vendemos datos a terceros. Las valoraciones no se publican.</p>
 <h2>7. Cuánto tiempo los conservamos</h2>
 <p>{PH('plazo pendiente; propuesta: solicitudes no gestionadas, 6 meses; solicitudes gestionadas y presupuestos, el tiempo necesario para el seguimiento, la tarifa y las obligaciones legales')}.</p>
@@ -587,20 +588,21 @@ def page_condiciones():
     body = f"""<main id="main"><div class="wrap"><section class="page-hero"><div class="crumbs"><a href="../">Inicio</a> / Condiciones</div><h1>Condiciones de uso</h1></section>
 <article class="legal">{LEGAL_NOTE}
 <h2>1. Qué es OficioCerca</h2>
-<p>OficioCerca es un servicio, actualmente en fase piloto en Córdoba capital, que pone en contacto a personas y empresas que necesitan un trabajo de obra, reforma, reparación o mantenimiento con profesionales independientes que pueden atenderlo. Titular: {PH('pendiente')}. Contacto: {MAIL}.</p>
+<p>OficioCerca es un servicio, actualmente en fase piloto en Córdoba capital, que pone en contacto a particulares, empresas y contratistas que necesitan un trabajo con profesionales independientes, contratistas y empresas que pueden realizarlo. Titular: {PH('pendiente')}. Contacto: {MAIL}.</p>
 <h2>2. Papel de OficioCerca</h2>
 <p>OficioCerca actúa como intermediario. No ejecuta obras, no fija los precios de los trabajos, no emite los presupuestos de los trabajos y no cobra, recibe ni custodia el dinero de los trabajos. El contrato del trabajo se establece directamente entre el cliente y el profesional, que es responsable de su ejecución, permisos, garantías legales y seguros. OficioCerca no presta garantías propias sobre los trabajos.</p>
-<h2>3. Para clientes</h2>
-<p>La solicitud es gratuita y no obliga a aceptar ningún presupuesto. OficioCerca ofrece la solicitud a profesionales compatibles, de uno en uno, según reglas de oficio, zona, plazo y tipo de cliente. Si solo hay disponibilidad posterior al plazo pedido, el cliente decide si continúa con ese profesional, si seguimos buscando o si cancela. Los datos de contacto del cliente solo se facilitan al profesional asignado.</p>
-<p>OficioCerca no garantiza que exista un profesional disponible para todas las solicitudes, ni plazos de atención, y no ofrece un servicio de urgencias 24 horas. El cliente puede cancelar su solicitud antes de la asignación desde el enlace de su correo.</p>
-<h2>4. Seguimiento por correo</h2>
-<p>OficioCerca informa al cliente por correo electrónico de cada paso: confirmación, profesional asignado, presupuesto (que el cliente puede aceptar, no aceptar o pedir aclarar), finalización (que debe confirmar el cliente) y valoración. Los enlaces de esos correos son personales y caducan.</p>
-<h2>5. Valoraciones e incidencias</h2>
-<p>Las valoraciones solo proceden de solicitudes gestionadas y finalizadas a través de OficioCerca, están ligadas a esa solicitud y profesional, y no se publican de forma automática. El cliente puede comunicar un problema o una sugerencia en cualquier momento; una persona de OficioCerca revisa cada incidencia. Ninguna valoración aislada provoca por sí sola sanciones automáticas.</p>
+<h2>3. Para quien solicita un servicio</h2>
+<p>Pueden solicitar servicios particulares, empresas y contratistas desde la misma entrada («Necesito un profesional»). La solicitud es gratuita y no obliga a aceptar ningún presupuesto. Servicios activos del piloto: Electricidad, Fontanería, Marmolería, Carpintería y ebanistería y Pintura; las solicitudes de «Otro servicio» se revisan manualmente, sin garantía de disponibilidad.</p>
+<p>OficioCerca ofrece la solicitud a profesionales compatibles, de uno en uno, según reglas de servicio, zona, plazo y tipo de cliente. Si solo hay disponibilidad posterior al plazo pedido, el cliente decide si continúa con ese profesional, si seguimos buscando o si cancela. Los datos de contacto del cliente solo se facilitan al profesional asignado, y el cliente recibe a su vez los datos de contacto de ese profesional.</p>
+<p>OficioCerca no garantiza que exista un profesional disponible para todas las solicitudes, ni plazos de atención, y no ofrece un servicio de urgencias 24 horas. El cliente puede cancelar su solicitud antes de la asignación desde su página de seguimiento, y puede abrir nuevas solicitudes en cualquier momento: cada trabajo tiene su propio código.</p>
+<h2>4. Seguimiento</h2>
+<p>OficioCerca informa al cliente por correo electrónico de cada paso y le da un enlace privado de seguimiento (sin cuenta ni contraseña) donde ve el estado de su solicitud, el profesional asignado, el presupuesto y la finalización. Desde ahí o desde los botones de los correos puede aceptar o no el presupuesto, confirmar si el trabajo terminó, comunicar un problema y valorar el servicio. Los enlaces son personales, caducan y no deben reenviarse.</p>
+<h2>5. Finalización, valoraciones e incidencias</h2>
+<p>Un trabajo solo se considera finalizado cuando el cliente lo confirma; la declaración del profesional no basta. Si el cliente no responde se le envían, como máximo, dos recordatorios; nunca se crea una conformidad ni una valoración automáticas. Las valoraciones solo proceden de solicitudes gestionadas y finalizadas a través de OficioCerca, están ligadas a esa solicitud y profesional y no se publican de forma automática. El cliente puede comunicar un problema o una sugerencia en cualquier momento; una persona de OficioCerca revisa cada incidencia. Ninguna valoración aislada provoca sanciones automáticas.</p>
 <h2>6. Uso correcto</h2>
 <p>No está permitido enviar solicitudes falsas, datos de terceros sin autorización o contenido ofensivo, ni usar los datos de contacto recibidos para fines distintos de la solicitud.</p>
 <h2>7. Profesionales</h2>
-<p>Los profesionales se rigen además por las <a href="../condiciones-profesionales/">condiciones para profesionales</a>.</p>
+<p>Quienes se registran para recibir trabajos se rigen además por las <a href="../condiciones-profesionales/">condiciones para profesionales</a>. Una misma persona o empresa puede solicitar servicios y también registrarse para recibir trabajos.</p>
 <h2>8. Ley aplicable</h2>
 <p>{PH('pendiente de revisión jurídica')}</p>
 </article></div></main>
@@ -609,58 +611,67 @@ def page_condiciones():
 
 def page_condiciones_profesionales():
     p = "../"
-    body = f"""<main id="main"><div class="wrap"><section class="page-hero"><div class="crumbs"><a href="../">Inicio</a> / <a href="../profesionales/">Profesionales</a> / Condiciones</div><h1>Condiciones para profesionales</h1><p>Versión {PRO_COND_VERSION}</p></section>
+    body = f"""<main id="main"><div class="wrap"><section class="page-hero"><div class="crumbs"><a href="../">Inicio</a> / <a href="../profesionales/">Recibir trabajos</a> / Condiciones</div><h1>Condiciones para profesionales</h1><p>Versión {PRO_COND_VERSION}</p></section>
 <article class="legal">{LEGAL_NOTE}
 <h2>1. Papel de OficioCerca</h2>
-<p>OficioCerca actúa como intermediario entre clientes y profesionales independientes. No es empleador del profesional ni parte del contrato del trabajo. Titular: {PH('pendiente')}. Contacto: {MAIL}.</p>
+<p>OficioCerca actúa como intermediario entre clientes y proveedores independientes (profesionales independientes o autónomos, contratistas y empresas). OficioCerca no es un empleador: no existe relación laboral entre OficioCerca y el proveedor, que recibe oportunidades de trabajo, no un empleo. OficioCerca no es parte del contrato del trabajo. Titular: {PH('pendiente')}. Contacto: {MAIL}.</p>
 <h2>2. Alta y revisión</h2>
-<p>El registro es gratuito. Cada alta queda «Pendiente de revisar» y solo recibe oportunidades cuando OficioCerca la marca como «Activo». Para activarse es necesario haber aceptado esta versión de las condiciones (se registra la versión, la fecha y la hora). El registro no da derecho a un número mínimo de trabajos.</p>
+<p>El registro es gratuito. El proveedor indica su tipo (profesional independiente/autónomo, contratista o empresa) y los servicios que realiza; todos reciben oportunidades de la misma forma. Servicios activos del piloto: Electricidad, Fontanería, Marmolería, Carpintería y ebanistería y Pintura; «Otro servicio» se gestiona manualmente. Cada alta queda «Pendiente de revisar» y solo recibe oportunidades cuando OficioCerca la marca como «Activo». Para activarse es necesario haber aceptado esta versión de las condiciones con la casilla del registro (se registra la versión, la fecha y la hora). El registro no da derecho a un número mínimo de trabajos.</p>
 <h2>3. Oportunidades</h2>
-<p>El profesional solo recibe oportunidades de los servicios que declara, en su zona y para el tipo de cliente que atiende. Cada oportunidad llega por correo con una ficha sin datos del cliente y un botón para responder: «Puedo atenderlo» (indicando cuándo), «Puedo, pero más adelante» o «No puedo / no me interesa». Si no responde en el plazo indicado, la oportunidad se ofrece a otro profesional. El profesional decide libremente si quiere valorar una oportunidad.</p>
+<p>El proveedor solo recibe oportunidades de los servicios que declara, en su zona y para el tipo de cliente que atiende (particulares y/o empresas y contratistas). Cada oportunidad llega por correo con una ficha sin datos del cliente y un botón para responder: «Puedo atenderlo» (indicando cuándo), «Puedo, pero más adelante» o «No puedo / no me interesa». Si no responde en el plazo indicado, la oportunidad se ofrece a otro proveedor. El proveedor decide libremente si quiere valorar una oportunidad.</p>
 <p><strong>Aceptar una oportunidad significa:</strong> «Estoy interesado y tengo disponibilidad para contactar al cliente y valorar/presupuestar el trabajo». No significa que ya se haya comprometido jurídicamente a ejecutar toda la obra.</p>
-<h2>4. Contacto, presupuesto y pago</h2>
-<p>Si se le asigna la solicitud, recibe los datos de contacto del cliente, que solo puede usar para esa solicitud. El profesional fija su propio precio y registra su presupuesto a través del enlace de OficioCerca, indicando por separado la mano de obra, los materiales (si existen) y el total. El cliente acepta o no el presupuesto. Cliente y profesional acuerdan directamente la ejecución y el pago del trabajo. Durante este piloto OficioCerca no recibe ni custodia el dinero de la obra. El profesional es responsable de emitir el presupuesto o factura formal que legalmente corresponda.</p>
-<h2>5. Tarifa de éxito (modelo piloto)</h2>
+<h2>4. Contacto entre las partes</h2>
+<p>Si se le asigna una solicitud, el proveedor recibe los datos de contacto del cliente, que solo puede usar para esa solicitud. <strong>A su vez, el cliente asignado verá el nombre, la empresa o nombre comercial, el tipo de proveedor, el WhatsApp y el correo del proveedor</strong> en su correo y en su página de seguimiento, para que ambas partes puedan comunicarse. Estos datos no se muestran a clientes no asignados ni se publican.</p>
+<h2>5. Presupuesto y pago</h2>
+<p>El proveedor fija su propio precio y registra su presupuesto a través del enlace de OficioCerca, indicando por separado la mano de obra, los materiales (si existen) y el total. El cliente acepta o no el presupuesto. Cliente y proveedor acuerdan directamente la ejecución y el pago del trabajo. Durante este piloto OficioCerca no recibe ni custodia el dinero de la obra. El proveedor es responsable de emitir el presupuesto o factura formal que legalmente corresponda.</p>
+<h2>6. Tarifa de éxito (modelo piloto)</h2>
 <p>La tarifa de OficioCerca es el <strong>10 % del importe de mano de obra aceptado por el cliente, con un máximo de 200 € por solicitud/trabajo</strong>. Los materiales no forman parte de la base. Fórmula: comisión = mínimo(mano de obra × 10 %, 200 €).</p>
 <p>La tarifa solo nace cuando el <strong>cliente</strong> acepta un presupuesto registrado mediante OficioCerca. No se cobra por registrarse, por recibir una oportunidad, por rechazarla ni por enviar un presupuesto que no se acepta.</p>
 <p><strong>Durante el piloto la tarifa solo se calcula y se registra: no se cobra.</strong> Su cobro real queda condicionado a definir el titular, la fiscalidad aplicable y la revisión legal, y se comunicará por escrito antes de aplicarse. {PH('condiciones de facturación y pago pendientes')}</p>
-<p>El profesional debe declarar los importes de forma realista. Falsear deliberadamente los importes para evitar la tarifa puede provocar la revisión o suspensión de su alta.</p>
-<h2>6. Calidad, incidencias y suspensiones</h2>
-<p>Los clientes pueden valorar el servicio y comunicar incidencias. Una valoración negativa aislada no provoca una baja automática. Cada incidencia se registra y la revisa una persona. Ante una incidencia potencialmente grave (fraude, comportamiento peligroso, acoso, documentación falsa, uso indebido de datos o incumplimiento grave) OficioCerca puede aplicar una pausa preventiva mientras la revisa. Varias incidencias verificadas pueden suponer menor prioridad, pausa o baja. Se registra siempre el motivo, la fecha, la acción y la solicitud relacionada. No existen multas automáticas.</p>
+<p>El proveedor debe declarar los importes de forma realista. Falsear deliberadamente los importes para evitar la tarifa puede provocar la revisión o suspensión de su alta.</p>
+<h2>7. Finalización, calidad e incidencias</h2>
+<p>Cuando el proveedor indica que el trabajo ha terminado, el cliente debe confirmarlo; no se da por finalizado solo con la declaración del proveedor. Los clientes pueden valorar el servicio y comunicar incidencias. Una valoración negativa aislada no provoca una baja automática. Cada incidencia se registra y la revisa una persona. Ante una incidencia potencialmente grave (fraude, comportamiento peligroso, acoso, documentación falsa, uso indebido de datos o incumplimiento grave) OficioCerca puede aplicar una pausa preventiva mientras la revisa. Varias incidencias verificadas pueden suponer menor prioridad, pausa o baja. Se registra siempre el motivo, la fecha, la acción y la solicitud relacionada. No existen multas automáticas ni expulsiones automáticas.</p>
 <p>Cuando el cobro de la tarifa esté legalmente operativo, una tarifa vencida y no regularizada podrá impedir recibir nuevas oportunidades.</p>
-<h2>7. Estados del profesional</h2>
-<p>Pendiente de revisar · Activo · En revisión · Pausado · Baja. El profesional puede pedir la baja en cualquier momento escribiendo a {MAIL}.</p>
-<h2>8. Ley aplicable</h2>
+<h2>8. Estados del proveedor</h2>
+<p>Pendiente de revisar · Activo · En revisión · Pausado · Baja. El proveedor puede pedir la baja en cualquier momento escribiendo a {MAIL}. Una misma persona o empresa puede también solicitar servicios como cliente.</p>
+<h2>9. Ley aplicable</h2>
 <p>{PH('pendiente de revisión jurídica')}</p>
 </article></div></main>
 """
     write("condiciones-profesionales/index.html", head("Condiciones para profesionales (borrador) · OficioCerca", "Borrador provisional de las condiciones para profesionales de OficioCerca.", "condiciones-profesionales/", p, noindex=True) + header(p) + body + footer(p))
 
-def page_gestion():
-    """Página de los enlaces de los correos (botones de profesionales y clientes). El token va tras «#»."""
+def page_enlace(ruta, titulo, recargar):
+    """Páginas de los enlaces de los correos. El token va tras «#» (no viaja a ningún servidor ni queda en registros).
+    /gestion/ = botones de un solo uso · /seguimiento/ = portal privado del cliente (se recarga tras cada acción)."""
     p = "../"
     js = """<script>
 (function(){
-  var cfg=window.OC_CONFIG||{}, T=(location.hash||'').replace(/^#/,'');
+  var cfg=window.OC_CONFIG||{}, T=(location.hash||'').replace(/^#/,''), RECARGAR=%s;
   var box=document.getElementById('g-zona'), tit=document.getElementById('g-titulo'), msg=document.getElementById('msg');
   function post(o){return fetch(cfg.ENDPOINT,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(o),redirect:'follow'}).then(function(r){return r.json();});}
+  function cargar(){return post({tipo:'pagina',t:T}).then(function(r){tit.textContent=r.titulo||'OficioCerca';box.innerHTML=r.cuerpo||'';if(r.script){var s=document.createElement('script');s.text=r.script;document.body.appendChild(s);}});}
   window.ver=function(id){document.querySelectorAll('#gestion .panel').forEach(function(x){x.classList.add('hide')});var e=document.getElementById(id);if(e){e.classList.remove('hide');e.scrollIntoView({behavior:'smooth',block:'center'});}};
   window.val=function(id){var e=document.getElementById(id);return e?e.value:'';};
   window.enviar=function(p){var bs=box.querySelectorAll('button');bs.forEach(function(b){b.disabled=true});msg.className='';msg.textContent='Enviando…';
-    post({tipo:'accion',t:T,p:p}).then(function(r){if(r&&r.ok){box.innerHTML='';msg.className='ok';msg.textContent=r.msg;}else{msg.className='err';msg.textContent=(r&&r.msg)||'No se pudo guardar.';bs.forEach(function(b){b.disabled=false});}})
+    post({tipo:'accion',t:T,p:p}).then(function(r){
+      if(r&&r.ok){ if(RECARGAR){cargar().then(function(){msg.className='ok';msg.textContent=r.msg;tit.scrollIntoView({behavior:'smooth'});});} else {box.innerHTML='';msg.className='ok';msg.textContent=r.msg;} }
+      else{msg.className='err';msg.textContent=(r&&r.msg)||'No se pudo guardar.';bs.forEach(function(b){b.disabled=false});}})
     .catch(function(){msg.className='err';msg.textContent='No hemos podido guardar tu respuesta. Revisa tu conexión e inténtalo de nuevo.';bs.forEach(function(b){b.disabled=false});});};
   if(!/^[a-f0-9]{64}$/.test(T)||!cfg.ENDPOINT){tit.textContent='Enlace no válido';box.innerHTML='<p>Abre el botón directamente desde el correo que te enviamos.</p>';return;}
-  post({tipo:'pagina',t:T}).then(function(r){tit.textContent=r.titulo||'OficioCerca';box.innerHTML=r.cuerpo||'';if(r.script){var s=document.createElement('script');s.text=r.script;document.body.appendChild(s);}})
-  .catch(function(){tit.textContent='No se pudo cargar';box.innerHTML='<p>Revisa tu conexión y vuelve a abrir el enlace del correo.</p>';});
+  cargar().catch(function(){tit.textContent='No se pudo cargar';box.innerHTML='<p>Revisa tu conexión y vuelve a abrir el enlace del correo.</p>';});
 })();
-</script>"""
+</script>""" % ("true" if recargar else "false")
     body = """<main id="main"><div class="wrap"><section id="gestion" class="g-box" aria-live="polite">
-<h1 id="g-titulo">Cargando…</h1><div id="g-zona"><p class="nota">Un momento, por favor.</p></div><p id="msg" role="status"></p>
+<p id="msg" role="status"></p><h1 id="g-titulo">Cargando…</h1><div id="g-zona"><p class="nota">Un momento, por favor.</p></div>
 <p class="nota">¿Dudas? Escríbenos a <a href="mailto:oficiocerca@gmail.com">oficiocerca@gmail.com</a></p>
 </section></div></main>
 """
-    write("gestion/index.html", head("Tu solicitud · OficioCerca", "Gestión de solicitudes de OficioCerca.", "gestion/", p, noindex=True)
+    write(f"{ruta}/index.html", head(f"{titulo} · OficioCerca", "Página privada de OficioCerca.", f"{ruta}/", p, noindex=True)
           .replace('<meta name="robots"', '<meta name="referrer" content="no-referrer">\n<meta name="robots"') + header(p) + body + footer(p, js))
+
+def page_gestion():
+    page_enlace("gestion", "Tu solicitud", False)
+    page_enlace("seguimiento", "Seguimiento de tu solicitud", True)
 
 def page_404():
     # 404 en GitHub Pages se sirve en cualquier ruta: usamos URLs absolutas del sitio.
