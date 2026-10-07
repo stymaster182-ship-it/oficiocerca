@@ -1,5 +1,5 @@
 {
-  "_info": "Fuente única de oficios, ciudades y tipos de trabajo. Piloto: 6 servicios + «Otro servicio». Los slugs deben coincidir con SERVICIOS del backend. Tras editar, ejecuta: python3 tools/build.py",
+  "_info": "Servicios del piloto: 5 activos + «Otro servicio». «activo: false» = legacy (no se publica). Los slugs deben coincidir con el backend. Tras editar: python3 tools/build.py",
   "oficios": [
     {
       "slug": "electricidad",
@@ -18,20 +18,12 @@
       "profesional": "Fontanero/a"
     },
     {
-      "slug": "albanileria",
-      "nombre": "Albañilería y pequeñas reformas",
-      "desc": "Arreglos de obra, alicatados, tabiques y reformas pequeñas",
-      "icon": "brick",
-      "url": "albaniles",
-      "profesional": "Albañil / reformista"
-    },
-    {
-      "slug": "pintura",
-      "nombre": "Pintura",
-      "desc": "Paredes, techos, interiores y acabados",
-      "icon": "roller",
-      "url": "pintores",
-      "profesional": "Pintor/a"
+      "slug": "marmoleria",
+      "nombre": "Marmolería",
+      "desc": "Trabajos en mármol, granito, piedra, encimeras y revestimientos",
+      "icon": "slab",
+      "url": "marmolistas",
+      "profesional": "Marmolista"
     },
     {
       "slug": "carpinteria",
@@ -42,12 +34,12 @@
       "profesional": "Carpintero/a o ebanista"
     },
     {
-      "slug": "marmoleria",
-      "nombre": "Marmolería",
-      "desc": "Trabajos en mármol, granito, piedra, encimeras y revestimientos",
-      "icon": "slab",
-      "url": "marmolistas",
-      "profesional": "Marmolista"
+      "slug": "pintura",
+      "nombre": "Pintura",
+      "desc": "Paredes, techos, interiores y acabados",
+      "icon": "roller",
+      "url": "pintores",
+      "profesional": "Pintor/a"
     },
     {
       "slug": "otro",
@@ -56,6 +48,16 @@
       "icon": "plus",
       "url": "otros-servicios",
       "profesional": "Otro oficio"
+    },
+    {
+      "slug": "albanileria",
+      "nombre": "Albañilería y pequeñas reformas",
+      "desc": "Arreglos de obra, alicatados, tabiques y reformas pequeñas",
+      "icon": "brick",
+      "url": "albaniles",
+      "profesional": "Albañil / reformista",
+      "activo": false,
+      "nota": "LEGACY: inactiva en el piloto (no pública, sin matching). Para reactivarla: activo=true aquí y en SERVICIOS_ACTIVOS del backend."
     }
   ],
   "ciudades": [
