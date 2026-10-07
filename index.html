@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
+<script>if(/\.github\.io$/.test(location.hostname)){location.replace("https://oficiocerca.pages.dev"+location.pathname.replace(/^\/oficiocerca/,"")+location.search+location.hash)}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>OficioCerca · Profesionales para obras, reformas y reparaciones</title>
 <meta name="description" content="Cuéntanos qué trabajo necesitas y buscamos profesionales disponibles para tu obra, reforma o reparación. Piloto en Córdoba capital. Solicitud gratuita y con seguimiento.">
@@ -21,7 +22,7 @@
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="icon" href="assets/img/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png">
-<link rel="stylesheet" href="assets/css/styles.css?v=3">
+<link rel="stylesheet" href="assets/css/styles.css?v=4">
 <script>(function(d){try{if(window.matchMedia&&!matchMedia('(prefers-reduced-motion: reduce)').matches&&'IntersectionObserver' in window){d.classList.add('js-motion');setTimeout(function(){if(!window.__ocReveal){d.classList.remove('js-motion')}},2500)}}catch(e){}})(document.documentElement)</script>
 <script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "Organization", "@id": "https://oficiocerca.pages.dev/#org", "name": "OficioCerca", "url": "https://oficiocerca.pages.dev/", "logo": "https://oficiocerca.pages.dev/assets/img/apple-touch-icon.png", "description": "Servicio de intermediación que conecta a clientes y empresas con profesionales de obras, reformas y reparaciones.", "areaServed": {"@type": "City", "name": "Córdoba", "containedInPlace": {"@type": "Country", "name": "España"}}}, {"@type": "WebSite", "@id": "https://oficiocerca.pages.dev/#web", "name": "OficioCerca", "url": "https://oficiocerca.pages.dev/", "inLanguage": "es-ES", "publisher": {"@id": "https://oficiocerca.pages.dev/#org"}}]}</script>
 </head>
@@ -181,7 +182,7 @@
     <div data-reveal>
       <span class="eyebrow">Para profesionales</span>
       <h2 id="h-pro">Recibe oportunidades compatibles con tu oficio y zona</h2>
-      <p>Te enviamos un resumen del trabajo con zona, descripción y fotos. Tú decides si lo aceptas o no.</p>
+      <p>Cuando haya un trabajo compatible, te enviamos por correo una ficha con zona, descripción y fotos. Tú nos confirmas si puedes atenderlo.</p>
       <ul class="checks">
         <li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg><span>Solicitudes revisadas antes de enviártelas.</span></li>
         <li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg><span>Puedes rechazar las que no te encajen.</span></li>
@@ -193,9 +194,9 @@
     <div class="panel" data-reveal>
       <h3>Así llega una oportunidad</h3>
       <ul class="mini-list">
-        <li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>Ficha: oficio, zona, prioridad y fotos</li>
-        <li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>Aceptar solicitud</li>
-        <li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>No puedo atenderla</li>
+        <li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>Te llega por correo una ficha con servicio, zona, descripción y fotos</li>
+        <li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>Nos respondes si puedes atenderlo</li>
+        <li><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11 12 4l9 7"/><path d="M5.5 9.5V20h13V9.5"/><path d="M10 20v-5h4v5"/></svg>Si confirmas, te pasamos el contacto del cliente</li>
       </ul>
     </div>
   </div>
@@ -282,9 +283,8 @@
       </div>
       <div>
         <h2>Contacto</h2>
-        <ul>
+        <ul data-oc-contact>
           <li><a href="solicitar/">Formulario de solicitud</a></li>
-          <li data-oc-wa-footer hidden><a href="#" data-oc-wa>WhatsApp</a></li>
           <li><a href="privacidad/">Política de privacidad</a></li>
           <li><a href="condiciones/">Condiciones de uso</a></li>
         </ul>
@@ -296,9 +296,9 @@
     </div>
   </div>
 </footer>
-<script src="assets/js/config.js?v=3"></script>
-<script src="assets/js/icons.js?v=3"></script>
-<script src="assets/js/main.js?v=3" defer></script>
+<script src="assets/js/config.js?v=4"></script>
+<script src="assets/js/icons.js?v=4"></script>
+<script src="assets/js/main.js?v=4" defer></script>
 
 </body>
 </html>

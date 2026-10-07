@@ -1,7 +1,7 @@
 # OficioCerca — web V1 (piloto Córdoba)
 
 - **URL pública del piloto:** https://oficiocerca.pages.dev (Cloudflare Pages, despliegue automático desde la rama `main`)
-- **Respaldo técnico:** https://stymaster182-ship-it.github.io/oficiocerca/ (GitHub Pages)
+- **GitHub Pages:** https://stymaster182-ship-it.github.io/oficiocerca/ redirige automáticamente a oficiocerca.pages.dev (script en el `<head>`)
 - **Backend:** Google Apps Script (ver `backend/README.md`)
 
 Profesionales para obras, reformas y reparaciones. Sitio estático para GitHub Pages, coste 0 €.
