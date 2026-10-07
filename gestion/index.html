@@ -5,7 +5,7 @@
 <script>if(/\.github\.io$/.test(location.hostname)){location.replace("https://oficiocerca.pages.dev"+location.pathname.replace(/^\/oficiocerca/,"")+location.search+location.hash)}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Tu solicitud · OficioCerca</title>
-<meta name="description" content="Gestión de solicitudes de OficioCerca.">
+<meta name="description" content="Página privada de OficioCerca.">
 <link rel="canonical" href="https://oficiocerca.pages.dev/gestion/">
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex,follow">
@@ -14,7 +14,7 @@
 <meta property="og:locale" content="es_ES">
 <meta property="og:site_name" content="OficioCerca">
 <meta property="og:title" content="Tu solicitud · OficioCerca">
-<meta property="og:description" content="Gestión de solicitudes de OficioCerca.">
+<meta property="og:description" content="Página privada de OficioCerca.">
 <meta property="og:url" content="https://oficiocerca.pages.dev/gestion/">
 <meta property="og:image" content="https://oficiocerca.pages.dev/assets/img/og-image.png">
 <meta property="og:image:width" content="1200">
@@ -23,7 +23,7 @@
 <link rel="icon" href="../favicon.svg" type="image/svg+xml">
 <link rel="icon" href="../assets/img/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="../assets/img/apple-touch-icon.png">
-<link rel="stylesheet" href="../assets/css/styles.css?v=6">
+<link rel="stylesheet" href="../assets/css/styles.css?v=7">
 <script>(function(d){try{if(window.matchMedia&&!matchMedia('(prefers-reduced-motion: reduce)').matches&&'IntersectionObserver' in window){d.classList.add('js-motion');setTimeout(function(){if(!window.__ocReveal){d.classList.remove('js-motion')}},2500)}}catch(e){}})(document.documentElement)</script>
 
 </head>
@@ -32,16 +32,16 @@
 <header class="hdr" id="top">
   <div class="wrap">
     <a class="brand" href="../" aria-label="OficioCerca, inicio"><svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="10" fill="#13253D"/><path d="M9 21.5 20 12.5l11 9" stroke="#DD6326" stroke-width="3.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="20" cy="25.5" r="4.2" fill="#fff"/></svg><span class="brand-name">OFICIO<b>CERCA</b></span></a>
-    <nav class="nav" aria-label="Principal"><a href="../">Inicio</a><a href="../#como-funciona">Cómo funciona</a><a href="../#servicios">Servicios</a><a href="../solicitar/?tipo=empresa">Empresas</a><a href="../profesionales/">Para profesionales</a><a href="../#contacto">Contacto</a></nav>
-    <a class="btn btn-primary btn-sm hdr-cta" href="../solicitar/">Solicitar profesional</a>
+    <nav class="nav" aria-label="Principal"><a href="../">Inicio</a><a href="../#como-funciona">Cómo funciona</a><a href="../#servicios">Servicios</a><a href="../profesionales/">Recibir trabajos</a><a href="../#contacto">Contacto</a></nav>
+    <a class="btn btn-primary btn-sm hdr-cta" href="../solicitar/">Solicitar un servicio</a>
     <button class="menu-btn" type="button" aria-expanded="false" aria-controls="mnav" aria-label="Abrir menú">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
     </button>
   </div>
-  <nav class="mobile-nav" id="mnav" aria-label="Menú móvil"><a href="../">Inicio</a><a href="../#como-funciona">Cómo funciona</a><a href="../#servicios">Servicios</a><a href="../solicitar/?tipo=empresa">Empresas</a><a href="../profesionales/">Para profesionales</a><a href="../#contacto">Contacto</a><a class="btn btn-primary" href="../solicitar/">Solicitar profesional</a></nav>
+  <nav class="mobile-nav" id="mnav" aria-label="Menú móvil"><a href="../">Inicio</a><a href="../#como-funciona">Cómo funciona</a><a href="../#servicios">Servicios</a><a href="../profesionales/">Recibir trabajos</a><a href="../#contacto">Contacto</a><a class="btn btn-primary" href="../solicitar/">Solicitar un servicio</a></nav>
 </header>
 <main id="main"><div class="wrap"><section id="gestion" class="g-box" aria-live="polite">
-<h1 id="g-titulo">Cargando…</h1><div id="g-zona"><p class="nota">Un momento, por favor.</p></div><p id="msg" role="status"></p>
+<p id="msg" role="status"></p><h1 id="g-titulo">Cargando…</h1><div id="g-zona"><p class="nota">Un momento, por favor.</p></div>
 <p class="nota">¿Dudas? Escríbenos a <a href="mailto:oficiocerca@gmail.com">oficiocerca@gmail.com</a></p>
 </section></div></main>
 <footer class="ftr" id="contacto">
@@ -56,15 +56,14 @@
       <div>
         <h2>Solicitar</h2>
         <ul>
-          <li><a href="../solicitar/?tipo=empresa">Empresa o contratista</a></li>
-          <li><a href="../solicitar/?tipo=particular">Particular</a></li>
+          <li><a href="../solicitar/">Solicitar un servicio</a></li>
           <li><a href="../cordoba/">Oficios en Córdoba</a></li>
         </ul>
       </div>
       <div>
-        <h2>Profesionales</h2>
+        <h2>Recibir trabajos</h2>
         <ul>
-          <li><a href="../profesionales/">Registro de profesionales</a></li>
+          <li><a href="../profesionales/">Registrarme para recibir trabajos</a></li>
           <li><a href="../condiciones-profesionales/">Condiciones para profesionales</a></li>
           <li><a href="../#como-funciona">Cómo funciona</a></li>
         </ul>
@@ -85,22 +84,24 @@
     </div>
   </div>
 </footer>
-<script src="../assets/js/config.js?v=6"></script>
-<script src="../assets/js/icons.js?v=6"></script>
-<script src="../assets/js/main.js?v=6" defer></script>
+<script src="../assets/js/config.js?v=7"></script>
+<script src="../assets/js/icons.js?v=7"></script>
+<script src="../assets/js/main.js?v=7" defer></script>
 <script>
 (function(){
-  var cfg=window.OC_CONFIG||{}, T=(location.hash||'').replace(/^#/,'');
+  var cfg=window.OC_CONFIG||{}, T=(location.hash||'').replace(/^#/,''), RECARGAR=false;
   var box=document.getElementById('g-zona'), tit=document.getElementById('g-titulo'), msg=document.getElementById('msg');
   function post(o){return fetch(cfg.ENDPOINT,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(o),redirect:'follow'}).then(function(r){return r.json();});}
+  function cargar(){return post({tipo:'pagina',t:T}).then(function(r){tit.textContent=r.titulo||'OficioCerca';box.innerHTML=r.cuerpo||'';if(r.script){var s=document.createElement('script');s.text=r.script;document.body.appendChild(s);}});}
   window.ver=function(id){document.querySelectorAll('#gestion .panel').forEach(function(x){x.classList.add('hide')});var e=document.getElementById(id);if(e){e.classList.remove('hide');e.scrollIntoView({behavior:'smooth',block:'center'});}};
   window.val=function(id){var e=document.getElementById(id);return e?e.value:'';};
   window.enviar=function(p){var bs=box.querySelectorAll('button');bs.forEach(function(b){b.disabled=true});msg.className='';msg.textContent='Enviando…';
-    post({tipo:'accion',t:T,p:p}).then(function(r){if(r&&r.ok){box.innerHTML='';msg.className='ok';msg.textContent=r.msg;}else{msg.className='err';msg.textContent=(r&&r.msg)||'No se pudo guardar.';bs.forEach(function(b){b.disabled=false});}})
+    post({tipo:'accion',t:T,p:p}).then(function(r){
+      if(r&&r.ok){ if(RECARGAR){cargar().then(function(){msg.className='ok';msg.textContent=r.msg;tit.scrollIntoView({behavior:'smooth'});});} else {box.innerHTML='';msg.className='ok';msg.textContent=r.msg;} }
+      else{msg.className='err';msg.textContent=(r&&r.msg)||'No se pudo guardar.';bs.forEach(function(b){b.disabled=false});}})
     .catch(function(){msg.className='err';msg.textContent='No hemos podido guardar tu respuesta. Revisa tu conexión e inténtalo de nuevo.';bs.forEach(function(b){b.disabled=false});});};
   if(!/^[a-f0-9]{64}$/.test(T)||!cfg.ENDPOINT){tit.textContent='Enlace no válido';box.innerHTML='<p>Abre el botón directamente desde el correo que te enviamos.</p>';return;}
-  post({tipo:'pagina',t:T}).then(function(r){tit.textContent=r.titulo||'OficioCerca';box.innerHTML=r.cuerpo||'';if(r.script){var s=document.createElement('script');s.text=r.script;document.body.appendChild(s);}})
-  .catch(function(){tit.textContent='No se pudo cargar';box.innerHTML='<p>Revisa tu conexión y vuelve a abrir el enlace del correo.</p>';});
+  cargar().catch(function(){tit.textContent='No se pudo cargar';box.innerHTML='<p>Revisa tu conexión y vuelve a abrir el enlace del correo.</p>';});
 })();
 </script>
 </body>
