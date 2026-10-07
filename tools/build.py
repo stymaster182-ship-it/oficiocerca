@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parent.parent
 CAT = json.loads((ROOT / "assets/data/catalogo.json").read_text(encoding="utf-8"))
 OFICIOS, CIUDADES, TIPOS = CAT["oficios"], CAT["ciudades"], CAT["tiposTrabajo"]
 SITE = "https://oficiocerca.pages.dev/"
-VERSION = "3"
+VERSION = "4"
 e = html.escape
 
 ICONS = {}
@@ -48,6 +48,7 @@ def head(title, desc, path, p, noindex=False, jsonld=None):
 <html lang="es">
 <head>
 <meta charset="utf-8">
+<script>if(/\\.github\\.io$/.test(location.hostname)){{location.replace("https://oficiocerca.pages.dev"+location.pathname.replace(/^\\/oficiocerca/,"")+location.search+location.hash)}}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{e(title)}</title>
 <meta name="description" content="{e(desc)}">
@@ -119,9 +120,8 @@ def footer(p, extra_js=""):
       </div>
       <div>
         <h2>Contacto</h2>
-        <ul>
+        <ul data-oc-contact>
           <li><a href="{p}solicitar/">Formulario de solicitud</a></li>
-          <li data-oc-wa-footer hidden><a href="#" data-oc-wa>WhatsApp</a></li>
           <li><a href="{p}privacidad/">Política de privacidad</a></li>
           <li><a href="{p}condiciones/">Condiciones de uso</a></li>
         </ul>
@@ -343,7 +343,7 @@ def page_home():
     <div data-reveal>
       <span class="eyebrow">Para profesionales</span>
       <h2 id="h-pro">Recibe oportunidades compatibles con tu oficio y zona</h2>
-      <p>Te enviamos un resumen del trabajo con zona, descripción y fotos. Tú decides si lo aceptas o no.</p>
+      <p>Cuando haya un trabajo compatible, te enviamos por correo una ficha con zona, descripción y fotos. Tú nos confirmas si puedes atenderlo.</p>
       <ul class="checks">
         <li>{ico('check')}<span>Solicitudes revisadas antes de enviártelas.</span></li>
         <li>{ico('check')}<span>Puedes rechazar las que no te encajen.</span></li>
@@ -355,9 +355,9 @@ def page_home():
     <div class="panel" data-reveal>
       <h3>Así llega una oportunidad</h3>
       <ul class="mini-list">
-        <li>{ico('plus')}Ficha: oficio, zona, prioridad y fotos</li>
-        <li>{ico('check')}Aceptar solicitud</li>
-        <li>{ico('x')}No puedo atenderla</li>
+        <li>{ico('plus')}Te llega por correo una ficha con servicio, zona, descripción y fotos</li>
+        <li>{ico('check')}Nos respondes si puedes atenderlo</li>
+        <li>{ico('home')}Si confirmas, te pasamos el contacto del cliente</li>
       </ul>
     </div>
   </div>
@@ -580,7 +580,7 @@ def page_profesionales():
           <div class="field"><label for="p-wa">WhatsApp <span class="req">*</span></label><input id="p-wa" name="whatsapp" type="tel" inputmode="tel" autocomplete="tel" required data-phone><span class="err-msg">Revisa el número.</span></div>
           <div class="field"><label for="p-tel">Teléfono <span class="opt">(si es distinto)</span></label><input id="p-tel" name="telefono" type="tel" inputmode="tel" data-phone-optional><span class="err-msg">Revisa el número.</span></div>
         </div>
-        <div class="field"><label for="p-email">Correo electrónico <span class="opt">(opcional)</span></label><input id="p-email" name="email" type="email" autocomplete="email" maxlength="160"><span class="err-msg">Revisa el correo.</span></div>
+        <div class="field"><label for="p-email">Correo electrónico <span class="req">*</span></label><input id="p-email" name="email" type="email" autocomplete="email" maxlength="160" required><span class="hint">Aquí recibirás las fichas de trabajo con sus fotos.</span><span class="err-msg">Escribe un correo válido: lo usamos para enviarte las fichas.</span></div>
       </fieldset>
       <fieldset>
         <legend><span class="n">2</span>Tu oficio</legend>
@@ -633,7 +633,7 @@ def page_profesionales():
   <aside class="aside-sticky">
     <div class="aside-card">
       <h2>Cómo funciona para ti</h2>
-      <ol><li>Te damos de alta tras una breve llamada.</li><li>Recibes una ficha: oficio, zona, prioridad, descripción y fotos.</li><li>Respondes «Aceptar solicitud» o «No puedo atenderla».</li><li>Si aceptas, te pasamos el contacto del cliente.</li><li>Tú presupuestas y cobras directamente al cliente.</li></ol>
+      <ol><li>Te damos de alta tras una breve llamada.</li><li>Recibes por correo una ficha: servicio, zona, prioridad, descripción y fotos.</li><li>Respondes al correo indicando si puedes atenderlo.</li><li>Si confirmas, te pasamos el contacto del cliente.</li><li>Tú presupuestas y cobras directamente al cliente.</li></ol>
       <p>En el piloto inicial solo existe coste cuando un trabajo gestionado por OficioCerca se concreta. Las condiciones económicas se informan y aceptan antes de recibir trabajos.</p>
     </div>
   </aside>
@@ -694,7 +694,7 @@ def page_privacidad():
 <h2>4. Base legal</h2>
 <p>El consentimiento expreso otorgado en los formularios y la gestión de la solicitud a petición del propio interesado. {PH('revisar con asesor jurídico')}</p>
 <h2>5. Con quién se comparten</h2>
-<p>Con el profesional que acepte atender la solicitud, únicamente los datos necesarios para contactar y valorar el trabajo. Los datos se almacenan en servicios de Google (Google Sheets y Google Drive) {PH('revisar transferencias internacionales y garantías aplicables')}. No vendemos datos a terceros.</p>
+<p>Con un profesional que pueda atender el trabajo, en dos momentos: primero se le envía por correo una ficha con el servicio, la zona o barrio, la prioridad, la descripción y las fotos (sin nombre ni datos de contacto del cliente); solo si confirma que puede atenderlo, se le facilitan los datos de contacto necesarios. Las fotos se envían como adjuntos de ese correo; las carpetas de fotos no se comparten. Los datos se almacenan en servicios de Google (Google Sheets y Google Drive) {PH('revisar transferencias internacionales y garantías aplicables')}. No vendemos datos a terceros.</p>
 <h2>6. Cuánto tiempo los conservamos</h2>
 <p>{PH('plazo pendiente; propuesta: solicitudes no gestionadas, 6 meses; solicitudes gestionadas, el tiempo necesario para el seguimiento y obligaciones legales')}.</p>
 <h2>7. Tus derechos</h2>
