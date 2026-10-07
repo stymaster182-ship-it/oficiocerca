@@ -1,5 +1,5 @@
 {
-  "_info": "Fuente única de oficios, ciudades y tipos de trabajo. Piloto: 5 servicios principales + «Otro servicio». Tras editar, ejecuta: python3 tools/build.py",
+  "_info": "Fuente única de oficios, ciudades y tipos de trabajo. Piloto: 6 servicios + «Otro servicio». Los slugs deben coincidir con SERVICIOS del backend. Tras editar, ejecuta: python3 tools/build.py",
   "oficios": [
     {
       "slug": "electricidad",
@@ -40,6 +40,14 @@
       "icon": "saw",
       "url": "carpinteros",
       "profesional": "Carpintero/a o ebanista"
+    },
+    {
+      "slug": "marmoleria",
+      "nombre": "Marmolería",
+      "desc": "Trabajos en mármol, granito, piedra, encimeras y revestimientos",
+      "icon": "slab",
+      "url": "marmolistas",
+      "profesional": "Marmolista"
     },
     {
       "slug": "otro",
