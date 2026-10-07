@@ -32,13 +32,18 @@
     setSelect(form.elements.ciudad, params.get("ciudad"));
 
     // ---- Campos condicionales
-    var condFields = form.querySelectorAll("[data-show-if]");
+    var condFields = form.querySelectorAll("[data-show-if], [data-show-if-has]");
     function updateConditions() {
       condFields.forEach(function (f) {
-        var rule = f.getAttribute("data-show-if").split("="), show = getValue(form, rule[0]) === rule[1];
+        var show;
+        if (f.hasAttribute("data-show-if-has")) { var rh = f.getAttribute("data-show-if-has").split("="); show = hasValue(form, rh[0], rh[1]); }
+        else { var rule = f.getAttribute("data-show-if").split("="); show = getValue(form, rule[0]) === rule[1]; }
         f.classList.toggle("cond-hidden", !show);
       });
     }
+    // Fechas: no antes de hoy
+    var hoy = new Date(); hoy.setMinutes(hoy.getMinutes() - hoy.getTimezoneOffset());
+    form.querySelectorAll("[data-min-today]").forEach(function (d) { d.min = hoy.toISOString().slice(0, 10); });
     form.addEventListener("change", updateConditions); updateConditions();
 
     // ---- Contador de caracteres
@@ -148,6 +153,9 @@
     if (el instanceof RadioNodeList || (el.length && !el.tagName)) { for (var i = 0; i < el.length; i++) if (el[i].checked) return el[i].value; return ""; }
     return el.value;
   }
+  function hasValue(form, name, v) {
+    return Array.prototype.some.call(form.querySelectorAll("input[name='" + name + "']"), function (i) { return i.checked && i.value === v; });
+  }
   function cleanPhone(v) { return (v || "").replace(/[\s\-.()]/g, ""); }
   function phoneOk(v) {
     v = cleanPhone(v);
@@ -172,18 +180,20 @@
     });
     form.querySelectorAll("input, select, textarea").forEach(function (el) {
       if (el.type === "radio" || el.type === "file" || el.name === "web") return;
+      if (el.type === "checkbox" && el.closest("[data-required-group]")) return;
       var field = el.closest(".field, .consent");
       if (!field || field.classList.contains("cond-hidden")) return;
       var v = (el.value || "").trim();
       if (el.type === "checkbox") { if (el.required && !el.checked) bad(el, field); return; }
-      var reqIf = el.getAttribute("data-required-if");
-      var required = el.required || (reqIf && getValue(form, reqIf.split("=")[0]) === reqIf.split("=")[1]);
+      var reqIf = el.getAttribute("data-required-if"), reqHas = el.getAttribute("data-required-if-has");
+      var required = el.required || (reqIf && getValue(form, reqIf.split("=")[0]) === reqIf.split("=")[1]) || (reqHas && hasValue(form, reqHas.split("=")[0], reqHas.split("=")[1]));
       if (required && !v) return bad(el, field);
       if (!v) return;
       if (el.hasAttribute("data-phone") || el.hasAttribute("data-phone-optional")) { if (!phoneOk(v)) bad(el, field); return; }
       if (el.type === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)) return bad(el, field);
       if (el.pattern && !new RegExp("^(?:" + el.pattern + ")$").test(v)) return bad(el, field);
       if (el.minLength > 0 && v.length < el.minLength) return bad(el, field);
+      if (el.type === "date" && el.min && v < el.min) return bad(el, field);
     });
     return first;
   }
@@ -191,10 +201,14 @@
     var data = { tipo: kind, enviadoEn: new Date().toISOString(), pagina: location.pathname, origen: origin, ua: navigator.userAgent.slice(0, 180) };
     var fd = new FormData(form);
     fd.forEach(function (v, k) { if (k !== "web") data[k] = typeof v === "string" ? v.trim() : v; });
-    // En selects de oficio/ciudad guardamos el nombre legible (no el código interno)
-    form.querySelectorAll("select").forEach(function (sel) { if (sel.name && data[sel.name] && sel.value !== "") data[sel.name] = sel.options[sel.selectedIndex].text.replace(/ \(próximamente\)$/, ""); });
+    // Grupos de casillas (p. ej. servicios): lista de códigos normalizados
+    var grupos = {};
+    form.querySelectorAll("input[type=checkbox]").forEach(function (cb) { if (cb.closest("[data-required-group]")) grupos[cb.name] = 1; });
+    Object.keys(grupos).forEach(function (k) { data[k] = fd.getAll(k); });
+    // En selects guardamos el texto legible, salvo los marcados data-keep-value (códigos para el matching)
+    form.querySelectorAll("select").forEach(function (sel) { if (sel.name && data[sel.name] && sel.value !== "" && !sel.hasAttribute("data-keep-value")) data[sel.name] = sel.options[sel.selectedIndex].text.replace(/ \(próximamente\)$/, ""); });
     ["whatsapp", "telefonoAlt", "telefono"].forEach(function (k) { if (data[k]) data[k] = cleanPhone(data[k]); });
-    form.querySelectorAll("[data-show-if].cond-hidden input, [data-show-if].cond-hidden select").forEach(function (el) { delete data[el.name]; });
+    form.querySelectorAll(".cond-hidden input, .cond-hidden select").forEach(function (el) { delete data[el.name]; });
     return data;
   }
   function compress(file) {

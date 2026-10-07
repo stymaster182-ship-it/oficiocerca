@@ -8,9 +8,9 @@
  *   (ej. "34600000000"). Vacío = no se muestra ningún botón de WhatsApp.
  */
 window.OC_CONFIG = {
-  ENDPOINT: "https://script.google.com/macros/s/AKfycbyAPYvE78dXkVdarRMy0tyT7XZra-k_sVF8iDh07DJ7otVZDj5fiRYYPmAvQgAD50rMTw/exec",
+  ENDPOINT: "https://script.google.com/macros/s/AKfycbyjOjHiDWHdLwXx23eMkHZi7z2PYbTRiuqYYQvfe7HGRdnPfWqNO9MlhB-pl0_BrCHZ/exec",
   WHATSAPP: "",
-  CONTACT_EMAIL: "",
+  CONTACT_EMAIL: "oficiocerca@gmail.com",
   SITE_URL: "https://oficiocerca.pages.dev/",
   MAX_PHOTOS: 5,
   PHOTO_MAX_SIDE: 1600,
