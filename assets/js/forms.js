@@ -191,6 +191,8 @@
     var data = { tipo: kind, enviadoEn: new Date().toISOString(), pagina: location.pathname, origen: origin, ua: navigator.userAgent.slice(0, 180) };
     var fd = new FormData(form);
     fd.forEach(function (v, k) { if (k !== "web") data[k] = typeof v === "string" ? v.trim() : v; });
+    // En selects de oficio/ciudad guardamos el nombre legible (no el código interno)
+    form.querySelectorAll("select").forEach(function (sel) { if (sel.name && data[sel.name] && sel.value !== "") data[sel.name] = sel.options[sel.selectedIndex].text.replace(/ \(próximamente\)$/, ""); });
     ["whatsapp", "telefonoAlt", "telefono"].forEach(function (k) { if (data[k]) data[k] = cleanPhone(data[k]); });
     form.querySelectorAll("[data-show-if].cond-hidden input, [data-show-if].cond-hidden select").forEach(function (el) { delete data[el.name]; });
     return data;
