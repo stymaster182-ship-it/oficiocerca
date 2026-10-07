@@ -25,7 +25,7 @@
     // ---- Prefill desde la URL (?tipo=empresa&oficio=electricidad&ciudad=cordoba)
     var tipo = params.get("tipo");
     if (tipo && form.elements.tipoSolicitante) {
-      var val = tipo === "empresa" ? "Empresa / Contratista" : tipo === "particular" ? "Particular" : "";
+      var val = tipo === "empresa" ? "Empresa" : tipo === "contratista" ? "Contratista" : tipo === "particular" ? "Particular" : "";
       Array.prototype.forEach.call(form.querySelectorAll("input[name=tipoSolicitante]"), function (r) { if (r.value === val) r.checked = true; });
     }
     setSelect(form.elements.oficio, params.get("oficio"));
@@ -37,7 +37,7 @@
       condFields.forEach(function (f) {
         var show;
         if (f.hasAttribute("data-show-if-has")) { var rh = f.getAttribute("data-show-if-has").split("="); show = hasValue(form, rh[0], rh[1]); }
-        else { var rule = f.getAttribute("data-show-if").split("="); show = getValue(form, rule[0]) === rule[1]; }
+        else { var rule = f.getAttribute("data-show-if").split("="); show = rule[1].split("|").indexOf(getValue(form, rule[0])) >= 0; }
         f.classList.toggle("cond-hidden", !show);
       });
     }
@@ -135,7 +135,10 @@
       submitBtn.disabled = on;
       submitBtn.classList.toggle("loading", on);
       var l = submitBtn.querySelector("[data-btn-label]");
-      if (on) { l.setAttribute("data-orig", l.textContent); l.textContent = photos.length ? "Enviando solicitud y fotos…" : "Enviando…"; }
+      if (on) {
+        l.setAttribute("data-orig", l.textContent); l.textContent = photos.length ? "Registrando solicitud y fotos…" : "Enviando…";
+        if (photos.length) showStatus("info", "Estamos registrando tu solicitud y preparando tus fotos. No cierres esta ventana.");
+      }
       else if (l.getAttribute("data-orig")) l.textContent = l.getAttribute("data-orig");
     }
     function showStatus(type, text) { statusBox.className = "form-status show " + type; statusBox.textContent = text; }
@@ -186,7 +189,7 @@
       var v = (el.value || "").trim();
       if (el.type === "checkbox") { if (el.required && !el.checked) bad(el, field); return; }
       var reqIf = el.getAttribute("data-required-if"), reqHas = el.getAttribute("data-required-if-has");
-      var required = el.required || (reqIf && getValue(form, reqIf.split("=")[0]) === reqIf.split("=")[1]) || (reqHas && hasValue(form, reqHas.split("=")[0], reqHas.split("=")[1]));
+      var required = el.required || (reqIf && reqIf.split("=")[1].split("|").indexOf(getValue(form, reqIf.split("=")[0])) >= 0) || (reqHas && hasValue(form, reqHas.split("=")[0], reqHas.split("=")[1]));
       if (required && !v) return bad(el, field);
       if (!v) return;
       if (el.hasAttribute("data-phone") || el.hasAttribute("data-phone-optional")) { if (!phoneOk(v)) bad(el, field); return; }
