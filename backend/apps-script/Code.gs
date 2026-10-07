@@ -1563,7 +1563,6 @@ function accion(t, p) {
     }
     if (!r) return { ok: false, msg: 'Acción no válida.' };
     if (r.ok && unUso && !r.noConsume) marcarToken_(tok, r.msg);
-    if (r.ok && r.valorar) r.msg += ' También puedes valorarlo desde el correo que acabamos de enviarte.';
     try { actualizarPanel(); } catch (e) { }
     return { ok: !!r.ok, msg: r.msg };
   } catch (err) {
