@@ -43,7 +43,9 @@ var COLS_SOLICITUDES = [
   'Ciudad', 'Código postal', 'Zona', 'Oficio', 'Oficio (otro)', 'Tipo de trabajo', 'Descripción', 'Prioridad',
   'Contacto preferido', 'Nº fotos', 'Carpeta fotos', 'Consent. contacto', 'Consent. compartir', 'Consent. privacidad',
   'Origen', 'Profesional asignado (PRO)', 'Fecha asignación', 'Importe mano de obra (€)', 'Comisión (€)',
-  'Comisión pagada (fecha)', 'Valoración (1-5)', 'Motivo cancelación', 'Notas internas'
+  'Comisión pagada (fecha)', 'Valoración (1-5)', 'Motivo cancelación', 'Notas internas',
+  // V1.2 — asignación y envío de ficha al profesional (se reutilizan «Profesional asignado (PRO)» y «Fecha asignación»)
+  'Nombre profesional', 'Correo profesional', 'Enviar ficha', 'Estado envío ficha', 'Ficha enviada (fecha)'
 ];
 
 var COLS_PROFESIONALES = [
@@ -171,10 +173,13 @@ function saveSolicitud_(d) {
     code, new Date(), 'Nueva', s_(d.tipoSolicitante), s_(d.nombre), s_(d.empresa), t_(d.whatsapp), t_(d.telefonoAlt), s_(d.email),
     s_(d.ciudad), t_(d.codigoPostal), s_(d.zona), s_(d.oficio), s_(d.oficioOtro), s_(d.tipoTrabajo), s_(d.descripcion, 3000), s_(d.prioridad),
     s_(d.contactoPreferido), fotos.length, folderUrl, 'Sí', 'Sí', 'Sí',
-    origen_(d), '', '', '', '', '', '', '', ''
+    origen_(d), '', '', '', '', '', '', '', '',
+    '', '', false, 'Sin asignar', ''
   ];
   // Importe y comisión se rellenan a mano: el modelo (porcentaje o tramos) está pendiente de definir.
-  sheet_('Solicitudes').appendRow(row);
+  var shSol = sheet_('Solicitudes');
+  shSol.appendRow(row);
+  shSol.getRange(shSol.getLastRow(), col_('Enviar ficha')).insertCheckboxes();
   notify_('Nueva solicitud ' + code + ' · ' + s_(d.oficio) + ' · ' + s_(d.zona),
     'Código: ' + code + '\nTipo: ' + s_(d.tipoSolicitante) + '\nNombre: ' + s_(d.nombre) + '\nWhatsApp: ' + s_(d.whatsapp) +
     '\nZona: ' + s_(d.zona) + ' (' + s_(d.codigoPostal) + ')\nOficio: ' + s_(d.oficio) + ' ' + s_(d.oficioOtro) +
@@ -183,7 +188,8 @@ function saveSolicitud_(d) {
 }
 
 function saveProfesional_(d) {
-  req_(d, ['nombre', 'whatsapp', 'profesion', 'experiencia', 'ciudad', 'codigoPostal', 'zonas', 'distancia', 'disponibilidad', 'conParticulares', 'conEmpresas']);
+  req_(d, ['nombre', 'whatsapp', 'email', 'profesion', 'experiencia', 'ciudad', 'codigoPostal', 'zonas', 'distancia', 'disponibilidad', 'conParticulares', 'conEmpresas']);
+  if (!emailOk_(d.email)) throw new Error('email no válido');
   if (d.consentContacto !== 'si' || d.consentPrivacidad !== 'si') throw new Error('faltan consentimientos');
   var code = nextCode_('SEQ_PRO', 'PRO-');
   var row = [
@@ -275,4 +281,200 @@ function notify_(subject, body) {
 
 function json_(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+}
+
+/* ======================================================================
+ * V1.2 — Asignación de una solicitud a un profesional y envío de la ficha
+ * ----------------------------------------------------------------------
+ * Flujo en la hoja «Solicitudes» (todo manual y deliberado):
+ *  1. Escribe el código del profesional en «Profesional asignado (PRO)».
+ *     → El script rellena «Nombre profesional», «Correo profesional», «Fecha asignación»
+ *       y deja «Estado envío ficha» = «Listo para enviar» (o explica por qué no se puede).
+ *  2. Revisa nombre y correo. Si son correctos, marca la casilla «Enviar ficha».
+ *     → Se envía UNA ficha por correo con las fotos adjuntas (sin datos de contacto del cliente),
+ *       se registra fecha y estado y la casilla vuelve a desmarcarse.
+ *  Bloqueos: no se envía si ya hay «Ficha enviada (fecha)», si el profesional no está «Activo»,
+ *  si no tiene correo válido o si el cliente no autorizó compartir datos.
+ *  Para reasignar a otro profesional: borra a mano «Ficha enviada (fecha)» y repite los pasos.
+ * Las fotos NO se comparten por Drive: viajan como adjuntos del correo. Las carpetas siguen privadas.
+ * ==================================================================== */
+
+/** Ejecutar UNA vez desde el editor: añade las columnas nuevas y el activador de edición del panel. */
+function prepararAsignacionV12() {
+  var ss = SpreadsheetApp.openById(PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID'));
+  prepareSheet_(ss, 'Solicitudes', COLS_SOLICITUDES, ESTADOS_SOLICITUD);
+  var sh = ss.getSheetByName('Solicitudes');
+  var last = sh.getLastRow();
+  if (last > 1) {
+    sh.getRange(2, col_('Enviar ficha'), last - 1, 1).insertCheckboxes();
+    var est = sh.getRange(2, col_('Estado envío ficha'), last - 1, 1);
+    var vals = est.getValues().map(function (r) { return [r[0] || 'Sin asignar']; });
+    est.setValues(vals);
+  }
+  var existe = ScriptApp.getProjectTriggers().some(function (t) { return t.getHandlerFunction() === 'alEditarPanel'; });
+  if (!existe) ScriptApp.newTrigger('alEditarPanel').forSpreadsheet(ss).onEdit().create();
+  Logger.log('Columnas V1.2 listas. Activador alEditarPanel: ' + (existe ? 'ya existía' : 'creado'));
+}
+
+/** Activador instalable onEdit de la hoja (solo reacciona a 2 columnas de «Solicitudes»). */
+function alEditarPanel(e) {
+  if (!e || !e.range) return;
+  var r = e.range, sh = r.getSheet();
+  if (sh.getName() !== 'Solicitudes' || r.getRow() < 2 || r.getNumRows() !== 1 || r.getNumColumns() !== 1) return;
+  var c = r.getColumn(), row = r.getRow();
+  if (c === col_('Profesional asignado (PRO)')) return asignarProfesional_(sh, row, e.oldValue);
+  if (c === col_('Enviar ficha') && r.getValue() === true) return enviarFicha_(sh, row);
+}
+
+function asignarProfesional_(sh, row, anterior) {
+  var get = function (name) { return sh.getRange(row, col_(name)); };
+  var pro = String(get('Profesional asignado (PRO)').getValue() || '').trim().toUpperCase();
+  if (get('Ficha enviada (fecha)').getValue()) {
+    get('Profesional asignado (PRO)').setValue(anterior === undefined ? '' : anterior); // se deshace el cambio
+    get('Estado envío ficha').setValue('Bloqueado: ya se envió una ficha. Para reasignar, borra «Ficha enviada (fecha)».');
+    return;
+  }
+  if (!pro) {
+    get('Nombre profesional').setValue(''); get('Correo profesional').setValue('');
+    get('Estado envío ficha').setValue('Sin asignar');
+    return;
+  }
+  get('Profesional asignado (PRO)').setValue(pro);
+  var p = buscarProfesional_(pro);
+  if (!p) {
+    get('Nombre profesional').setValue(''); get('Correo profesional').setValue('');
+    get('Estado envío ficha').setValue('Error: ' + pro + ' no existe en «Profesionales».');
+    return;
+  }
+  get('Nombre profesional').setValue(p.nombre);
+  get('Correo profesional').setValue(p.email);
+  get('Fecha asignación').setValue(new Date());
+  get('Estado envío ficha').setValue(motivoBloqueo_(p, sh, row) || 'Listo para enviar: revisa nombre y correo y marca «Enviar ficha».');
+}
+
+function enviarFicha_(sh, row) {
+  var get = function (name) { return sh.getRange(row, col_(name)); };
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    if (get('Ficha enviada (fecha)').getValue()) {
+      get('Estado envío ficha').setValue('Bloqueado: esta ficha ya se envió el ' + fecha_(get('Ficha enviada (fecha)').getValue()) + '. No se reenvía.');
+      return;
+    }
+    var pro = String(get('Profesional asignado (PRO)').getValue() || '').trim().toUpperCase();
+    var p = pro && buscarProfesional_(pro);
+    if (!p) { get('Estado envío ficha').setValue('Error: indica un código PRO válido antes de enviar.'); return; }
+    // El destinatario debe coincidir con lo que se mostró al asignar (evita enviar al profesional equivocado)
+    if (String(get('Correo profesional').getValue()).trim().toLowerCase() !== p.email.toLowerCase()) {
+      get('Nombre profesional').setValue(p.nombre); get('Correo profesional').setValue(p.email);
+      get('Estado envío ficha').setValue('Revisa: los datos del profesional cambiaron. Comprueba nombre y correo y vuelve a marcar.');
+      return;
+    }
+    var bloqueo = motivoBloqueo_(p, sh, row);
+    if (bloqueo) { get('Estado envío ficha').setValue(bloqueo); return; }
+
+    var v = filaComoObjeto_(sh, row);
+    var adjuntos = fotosDeSolicitud_(v['Carpeta fotos']);
+    var ficha = componerFicha_(v, p, adjuntos.length);
+    MailApp.sendEmail({
+      to: p.email,
+      bcc: Session.getEffectiveUser().getEmail(),
+      subject: ficha.asunto,
+      body: ficha.texto,
+      htmlBody: ficha.html,
+      name: 'OficioCerca',
+      attachments: adjuntos
+    });
+    var ahora = new Date();
+    get('Ficha enviada (fecha)').setValue(ahora);
+    get('Estado envío ficha').setValue('Enviada a ' + pro + ' (' + p.email + ') · ' + adjuntos.length + ' foto(s) · esperando respuesta');
+    if (get('Estado').getValue() === 'Nueva') get('Estado').setValue('Buscando profesional');
+  } catch (err) {
+    get('Estado envío ficha').setValue('Error al enviar: ' + String(err && err.message || err).slice(0, 180));
+  } finally {
+    get('Enviar ficha').setValue(false);
+    lock.releaseLock();
+  }
+}
+
+function motivoBloqueo_(p, sh, row) {
+  if (String(p.estado).trim() !== 'Activo') return 'Bloqueado: ' + p.codigo + ' está «' + (p.estado || 'sin estado') + '». Ponlo en «Activo» en Profesionales para poder enviarle fichas.';
+  if (!emailOk_(p.email)) return 'Sin correo válido: ' + p.codigo + ' no puede recibir la ficha automática. Añade su correo en Profesionales o envíala a mano.';
+  if (String(sh.getRange(row, col_('Consent. compartir')).getValue()).trim() !== 'Sí') return 'Bloqueado: el cliente no autorizó compartir datos con un profesional.';
+  return '';
+}
+
+function buscarProfesional_(codigo) {
+  var sh = sheet_('Profesionales');
+  var data = sh.getDataRange().getValues();
+  var h = data[0];
+  var iC = h.indexOf('Código'), iN = h.indexOf('Nombre'), iE = h.indexOf('Email'), iS = h.indexOf('Estado');
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][iC]).trim().toUpperCase() === codigo) {
+      return { codigo: codigo, nombre: String(data[i][iN]).trim(), email: String(data[i][iE]).trim(), estado: String(data[i][iS]).trim() };
+    }
+  }
+  return null;
+}
+
+function filaComoObjeto_(sh, row) {
+  var h = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
+  var v = sh.getRange(row, 1, 1, h.length).getValues()[0];
+  var o = {};
+  h.forEach(function (k, i) { o[k] = v[i]; });
+  return o;
+}
+
+/** Fotos de ESA solicitud únicamente (la carpeta enlazada en su fila), como adjuntos. No cambia permisos. */
+function fotosDeSolicitud_(url) {
+  var m = String(url || '').match(/folders\/([\w-]+)/);
+  if (!m) return [];
+  var out = [];
+  var it = DriveApp.getFolderById(m[1]).getFiles();
+  while (it.hasNext() && out.length < CONFIG.MAX_PHOTOS) {
+    var f = it.next();
+    if (/^image\//.test(f.getMimeType())) out.push(f.getBlob().setName(f.getName()));
+  }
+  out.sort(function (a, b) { return a.getName() < b.getName() ? -1 : 1; });
+  return out;
+}
+
+/** Ficha SIN datos de contacto del cliente (nombre, teléfono, correo, empresa y código postal no se incluyen). */
+function componerFicha_(v, p, nFotos) {
+  var servicio = String(v['Oficio'] || '') + (v['Oficio (otro)'] ? ' — ' + v['Oficio (otro)'] : '');
+  var filas = [
+    ['Solicitud', v['Código']],
+    ['Servicio', servicio],
+    ['Zona / barrio', v['Zona'] + (v['Ciudad'] ? ' (' + v['Ciudad'] + ')' : '')],
+    ['Prioridad', v['Prioridad'] || 'Normal'],
+    ['Tipo de trabajo', v['Tipo de trabajo'] || 'Sin especificar'],
+    ['Fotos', nFotos ? nFotos + ' adjunta(s) a este correo' : 'El cliente no adjuntó fotos']
+  ];
+  var esc = function (t) { return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
+  var asunto = '[OficioCerca] Nueva oportunidad ' + v['Código'] + ' · ' + servicio + ' · ' + v['Zona'];
+  var intro = 'Hola ' + (p.nombre || '') + ',\n\nTe proponemos este trabajo en Córdoba. Revisa la ficha y responde a este correo indicando si puedes atenderlo (SÍ / NO).\nSi confirmas, te enviaremos los datos de contacto del cliente para que acordéis la visita y el presupuesto.';
+  var texto = intro + '\n\n' + filas.map(function (f) { return f[0] + ': ' + f[1]; }).join('\n') +
+    '\n\nDescripción del trabajo:\n' + v['Descripción'] +
+    '\n\nEsta ficha es confidencial: no la reenvíes ni publiques las fotos.\n— OficioCerca (piloto en Córdoba)';
+  var html = '<div style="font-family:Arial,sans-serif;font-size:15px;color:#0E1A2B;max-width:600px">' +
+    '<p>Hola ' + esc(p.nombre || '') + ',</p><p>Te proponemos este trabajo en Córdoba. Revisa la ficha y <b>responde a este correo indicando si puedes atenderlo (SÍ / NO)</b>. Si confirmas, te enviaremos los datos de contacto del cliente para que acordéis la visita y el presupuesto.</p>' +
+    '<table style="border-collapse:collapse;width:100%;margin:12px 0">' +
+    filas.map(function (f) { return '<tr><td style="padding:8px;border:1px solid #DED6C8;background:#F6F2EB;width:150px"><b>' + esc(f[0]) + '</b></td><td style="padding:8px;border:1px solid #DED6C8">' + esc(f[1]) + '</td></tr>'; }).join('') +
+    '</table><p><b>Descripción del trabajo</b><br>' + esc(v['Descripción']).replace(/\n/g, '<br>') + '</p>' +
+    '<p style="color:#586374;font-size:13px">Esta ficha es confidencial: no la reenvíes ni publiques las fotos.<br>— OficioCerca (piloto en Córdoba)</p></div>';
+  return { asunto: asunto, texto: texto, html: html };
+}
+
+function col_(name) {
+  var i = COLS_SOLICITUDES.indexOf(name);
+  if (i < 0) throw new Error('Columna desconocida: ' + name);
+  return i + 1;
+}
+
+function emailOk_(v) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(v || '').trim());
+}
+
+function fecha_(d) {
+  return Utilities.formatDate(new Date(d), 'Europe/Madrid', 'dd/MM/yyyy HH:mm');
 }
