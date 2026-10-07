@@ -5,7 +5,7 @@
 <script>if(/\.github\.io$/.test(location.hostname)){location.replace("https://oficiocerca.pages.dev"+location.pathname.replace(/^\/oficiocerca/,"")+location.search+location.hash)}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Profesionales: recibe trabajos de tu oficio · OficioCerca</title>
-<meta name="description" content="Únete a la red de OficioCerca y recibe oportunidades de trabajo compatibles con tu oficio y zona. Registro gratuito. Piloto en Córdoba.">
+<meta name="description" content="Regístrate en OficioCerca y recibe por correo oportunidades compatibles con tus servicios y tu zona. Registro gratuito. Piloto en Córdoba.">
 <link rel="canonical" href="https://oficiocerca.pages.dev/profesionales/">
 
 <meta name="theme-color" content="#13253D">
@@ -13,7 +13,7 @@
 <meta property="og:locale" content="es_ES">
 <meta property="og:site_name" content="OficioCerca">
 <meta property="og:title" content="Profesionales: recibe trabajos de tu oficio · OficioCerca">
-<meta property="og:description" content="Únete a la red de OficioCerca y recibe oportunidades de trabajo compatibles con tu oficio y zona. Registro gratuito. Piloto en Córdoba.">
+<meta property="og:description" content="Regístrate en OficioCerca y recibe por correo oportunidades compatibles con tus servicios y tu zona. Registro gratuito. Piloto en Córdoba.">
 <meta property="og:url" content="https://oficiocerca.pages.dev/profesionales/">
 <meta property="og:image" content="https://oficiocerca.pages.dev/assets/img/og-image.png">
 <meta property="og:image:width" content="1200">
@@ -22,7 +22,7 @@
 <link rel="icon" href="../favicon.svg" type="image/svg+xml">
 <link rel="icon" href="../assets/img/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="../assets/img/apple-touch-icon.png">
-<link rel="stylesheet" href="../assets/css/styles.css?v=5">
+<link rel="stylesheet" href="../assets/css/styles.css?v=6">
 <script>(function(d){try{if(window.matchMedia&&!matchMedia('(prefers-reduced-motion: reduce)').matches&&'IntersectionObserver' in window){d.classList.add('js-motion');setTimeout(function(){if(!window.__ocReveal){d.classList.remove('js-motion')}},2500)}}catch(e){}})(document.documentElement)</script>
 
 </head>
@@ -42,33 +42,40 @@
 <main id="main">
 <section class="page-hero"><div class="wrap">
   <div class="crumbs"><a href="../">Inicio</a> / Profesionales</div>
-  <h1>Únete a OficioCerca</h1>
-  <p>Recibe oportunidades compatibles con tu oficio y zona. Te enviamos una ficha del trabajo y tú decides si la aceptas.</p>
+  <h1>Regístrate como profesional</h1>
+  <p>Recibe por correo oportunidades compatibles con tus servicios y tu zona. Tú decides cuáles atiendes. Registro gratuito.</p>
+  <p class="req-legend"><span class="req">*</span> Obligatorio. El resto es opcional.</p>
 </div></section>
 <div class="wrap form-layout">
   <div class="form-card">
     <form id="form-profesional" data-oc-form="profesional" novalidate>
       <div class="hp" aria-hidden="true"><label>No rellenar <input type="text" name="web" tabindex="-1" autocomplete="off"></label></div>
+      <input type="hidden" name="condVersion" value="PRO-COND-2026-10-V1">
       <fieldset>
         <legend><span class="n">1</span>Tus datos</legend>
         <div class="grid2">
           <div class="field"><label for="p-nombre">Nombre y apellidos <span class="req">*</span></label><input id="p-nombre" name="nombre" type="text" autocomplete="name" required maxlength="120"><span class="err-msg">Escribe tu nombre.</span></div>
           <div class="field"><label for="p-empresa">Empresa o autónomo <span class="opt">(si aplica)</span></label><input id="p-empresa" name="empresa" type="text" autocomplete="organization" maxlength="120"></div>
         </div>
+        <div class="field"><label for="p-email">Correo electrónico <span class="req">*</span></label><input id="p-email" name="email" type="email" autocomplete="email" maxlength="160" required><span class="hint">Este correo se utilizará para enviarte oportunidades y gestionar el seguimiento de los trabajos.</span><span class="err-msg">Escribe un correo válido.</span></div>
         <div class="grid2">
           <div class="field"><label for="p-wa">WhatsApp <span class="req">*</span></label><input id="p-wa" name="whatsapp" type="tel" inputmode="tel" autocomplete="tel" required data-phone><span class="err-msg">Revisa el número.</span></div>
           <div class="field"><label for="p-tel">Teléfono <span class="opt">(si es distinto)</span></label><input id="p-tel" name="telefono" type="tel" inputmode="tel" data-phone-optional><span class="err-msg">Revisa el número.</span></div>
         </div>
-        <div class="field"><label for="p-email">Correo electrónico <span class="req">*</span></label><input id="p-email" name="email" type="email" autocomplete="email" maxlength="160" required><span class="hint">Aquí recibirás las fichas de trabajo con sus fotos.</span><span class="err-msg">Escribe un correo válido: lo usamos para enviarte las fichas.</span></div>
       </fieldset>
       <fieldset>
-        <legend><span class="n">2</span>Tu oficio</legend>
+        <legend><span class="n">2</span>Servicios que realizas</legend>
+        <fieldset class="choice-group" data-required-group="servicios">
+          <legend class="label">Marca todos los que haces <span class="req">*</span></legend>
+          <div class="choices c2 servs"><label class="choice"><input type="checkbox" name="servicios" value="electricidad" required><span>Electricidad</span></label><label class="choice"><input type="checkbox" name="servicios" value="fontaneria"><span>Fontanería</span></label><label class="choice"><input type="checkbox" name="servicios" value="albanileria"><span>Albañilería y pequeñas reformas</span></label><label class="choice"><input type="checkbox" name="servicios" value="pintura"><span>Pintura</span></label><label class="choice"><input type="checkbox" name="servicios" value="carpinteria"><span>Carpintería y ebanistería</span></label><label class="choice"><input type="checkbox" name="servicios" value="marmoleria"><span>Marmolería</span></label><label class="choice"><input type="checkbox" name="servicios" value="otro"><span>Otro</span></label></div>
+          <span class="hint">Solo te enviaremos trabajos de los servicios que marques.</span>
+          <span class="err-msg">Marca al menos un servicio.</span>
+        </fieldset>
+        <div class="field" data-show-if-has="servicios=otro"><label for="p-otro">¿Qué otro servicio haces? <span class="req">*</span></label><input id="p-otro" name="servicioOtro" type="text" maxlength="120" data-required-if-has="servicios=otro"><span class="err-msg">Indica el servicio.</span></div>
         <div class="grid2">
-          <div class="field"><label for="p-prof">Profesión principal <span class="req">*</span></label><select id="p-prof" name="profesion" required><option value="">Selecciona tu oficio principal</option><option value="electricidad">Electricista</option><option value="fontaneria">Fontanero/a</option><option value="albanileria">Albañil / reformista</option><option value="pintura">Pintor/a</option><option value="carpinteria">Carpintero/a o ebanista</option><option value="otro">Otro oficio</option></select><span class="err-msg">Elige tu oficio.</span></div>
           <div class="field"><label for="p-exp">Años de experiencia <span class="req">*</span></label><select id="p-exp" name="experiencia" required><option value="">Selecciona</option><option>Menos de 2 años</option><option>2 a 5 años</option><option>6 a 10 años</option><option>Más de 10 años</option></select><span class="err-msg">Elige una opción.</span></div>
+          <div class="field"><label for="p-esp">Especialidades <span class="opt">(opcional)</span></label><input id="p-esp" name="especialidades" type="text" maxlength="300" placeholder="Ej.: boletines, encimeras de cuarzo…"></div>
         </div>
-        <div class="field" data-show-if="profesion=otro"><label for="p-otro">¿Cuál es tu oficio? <span class="req">*</span></label><input id="p-otro" name="profesionOtro" type="text" maxlength="120" data-required-if="profesion=otro"><span class="err-msg">Indica tu oficio.</span></div>
-        <div class="field"><label for="p-esp">Especialidades <span class="opt">(opcional)</span></label><input id="p-esp" name="especialidades" type="text" maxlength="300" placeholder="Ej.: boletines, cuadros eléctricos, encimeras de cuarzo…"></div>
         <div class="field"><label for="p-desc">Descripción breve de tu experiencia <span class="opt">(opcional)</span></label><textarea id="p-desc" name="descripcion" maxlength="1500" placeholder="Tipo de trabajos que haces, con quién trabajas…"></textarea></div>
       </fieldset>
       <fieldset>
@@ -80,19 +87,23 @@
         <div class="field"><label for="p-zonas">Zonas donde trabajas <span class="req">*</span></label><input id="p-zonas" name="zonas" type="text" required maxlength="300" placeholder="Barrios, pueblos o códigos postales"><span class="err-msg">Indica al menos una zona.</span></div>
         <div class="grid2">
           <div class="field"><label for="p-dist">Distancia que te desplazas <span class="req">*</span></label><select id="p-dist" name="distancia" required><option value="">Selecciona</option><option>Solo mi barrio o pueblo</option><option>Hasta 10 km</option><option>Hasta 25 km</option><option>Hasta 50 km</option><option>Toda la provincia</option></select><span class="err-msg">Elige una opción.</span></div>
-          <div class="field"><label for="p-disp">Disponibilidad <span class="req">*</span></label><select id="p-disp" name="disponibilidad" required><option value="">Selecciona</option><option>Esta semana</option><option>En 1-2 semanas</option><option>Solo trabajos puntuales</option><option>Agenda completa, pero me interesa</option></select><span class="err-msg">Elige una opción.</span></div>
+          <div class="field"><label for="p-disp">Disponibilidad habitual <span class="req">*</span></label><select id="p-disp" name="disponibilidad" required><option value="">Selecciona</option><option>Esta semana</option><option>En 1-2 semanas</option><option>Solo trabajos puntuales</option><option>Agenda completa, pero me interesa</option></select><span class="hint">En cada oportunidad te preguntaremos cuándo puedes.</span><span class="err-msg">Elige una opción.</span></div>
         </div>
         <div class="grid2">
-          <fieldset class="choice-group" data-required-group="conParticulares"><legend class="label">¿Trabajas con particulares? <span class="req">*</span></legend><div class="choices c2"><label class="choice"><input type="radio" name="conParticulares" value="Sí" required><span>Sí</span></label><label class="choice"><input type="radio" name="conParticulares" value="No"><span>No</span></label></div><span class="err-msg">Elige una opción.</span></fieldset>
-          <fieldset class="choice-group" data-required-group="conEmpresas"><legend class="label">¿Con empresas y contratistas? <span class="req">*</span></legend><div class="choices c2"><label class="choice"><input type="radio" name="conEmpresas" value="Sí" required><span>Sí</span></label><label class="choice"><input type="radio" name="conEmpresas" value="No"><span>No</span></label></div><span class="err-msg">Elige una opción.</span></fieldset>
+          <fieldset class="choice-group" data-required-group="conParticulares"><legend class="label">¿Atiendes a particulares? <span class="req">*</span></legend><div class="choices c2"><label class="choice"><input type="radio" name="conParticulares" value="Sí" required><span>Sí</span></label><label class="choice"><input type="radio" name="conParticulares" value="No"><span>No</span></label></div><span class="err-msg">Elige una opción.</span></fieldset>
+          <fieldset class="choice-group" data-required-group="conEmpresas"><legend class="label">¿Atiendes a empresas y contratistas? <span class="req">*</span></legend><div class="choices c2"><label class="choice"><input type="radio" name="conEmpresas" value="Sí" required><span>Sí</span></label><label class="choice"><input type="radio" name="conEmpresas" value="No"><span>No</span></label></div><span class="err-msg">Elige una opción.</span></fieldset>
         </div>
       </fieldset>
       <fieldset>
-        <legend><span class="n">4</span>Autorizaciones</legend>
-        <p class="fs-help">Documentación, seguros, acreditaciones y fotos de trabajos te los pediremos más adelante, solo si hacen falta para tu oficio.</p>
+        <legend><span class="n">4</span>Condiciones y autorizaciones</legend>
+        <p class="fs-help">Resumen: tú decides qué oportunidades atiendes y fijas tu precio; el cliente te paga directamente. La tarifa de OficioCerca solo se calcula si el cliente acepta un presupuesto registrado aquí (10 % de la mano de obra, máximo 200 €) y durante el piloto no se cobra.</p>
         <div class="consent" data-consent>
+  <input type="checkbox" id="p-consentCondiciones" name="consentCondiciones" value="si" required>
+  <label for="p-consentCondiciones">He leído y acepto las <a href="../condiciones-profesionales/" target="_blank" rel="noopener">condiciones para profesionales</a> (versión PRO-COND-2026-10-V1). <span class="req">*</span></label>
+  <span class="err-msg">Necesitamos esta autorización para continuar.</span>
+</div><div class="consent" data-consent>
   <input type="checkbox" id="p-consentContacto" name="consentContacto" value="si" required>
-  <label for="p-consentContacto">Autorizo a OficioCerca a contactarme por WhatsApp, llamada o correo para ofrecerme trabajos y gestionar mi alta. <span class="req">*</span></label>
+  <label for="p-consentContacto">Autorizo a OficioCerca a contactarme por correo, WhatsApp o llamada para enviarme oportunidades y gestionar mi alta. <span class="req">*</span></label>
   <span class="err-msg">Necesitamos esta autorización para continuar.</span>
 </div><div class="consent" data-consent>
   <input type="checkbox" id="p-consentPrivacidad" name="consentPrivacidad" value="si" required>
@@ -101,25 +112,26 @@
 </div>
       </fieldset>
       <div class="submit-row">
-        <button class="btn btn-primary btn-block" type="submit"><span class="spinner" aria-hidden="true"></span><span data-btn-label>Quiero recibir trabajos</span></button>
-        <span class="hint">El registro es gratuito. Las condiciones económicas se informan y aceptan antes de recibir trabajos.</span>
+        <button class="btn btn-primary btn-block" type="submit"><span class="spinner" aria-hidden="true"></span><span data-btn-label>Registrarme como profesional</span></button>
+        <span class="hint">Registro gratuito. Tu alta queda pendiente de revisión antes de recibir trabajos.</span>
       </div>
       <div class="form-status" role="alert" data-status></div>
     </form>
     <div class="success" data-success tabindex="-1">
       <div class="badge"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></div>
       <h2>Registro recibido</h2>
-      <p>Gracias por querer formar parte de OficioCerca. Revisaremos tus datos y te contactaremos para completar el alta.</p>
       <div class="ticket"><small>Tu código de profesional</small><strong data-code>—</strong></div>
-      <div class="next"><strong>Próximos pasos</strong><ol><li>Te contactamos para conocerte y explicarte las condiciones.</li><li>Si encaja, te enviamos fichas de trabajos compatibles.</li><li>Tú decides cuáles aceptas.</li></ol></div>
+      <p class="mail-alert"><strong>Tu alta queda pendiente de revisión. Te avisaremos por correo cuando esté activa.</strong></p>
+      <p>Si no ves nuestro correo, revisa también <strong>Spam</strong> o <strong>Promociones</strong>.</p>
+      <div class="next"><strong>Después</strong><ol><li>Recibirás por correo oportunidades de tus servicios y tu zona.</li><li>Respondes con un botón: puedo, puedo más adelante o no puedo.</li><li>Si te la asignamos, recibes el contacto del cliente y registras tu presupuesto.</li></ol></div>
       <a class="btn btn-ghost" href="../">Volver al inicio</a>
     </div>
   </div>
   <aside class="aside-sticky">
     <div class="aside-card">
       <h2>Cómo funciona para ti</h2>
-      <ol><li>Te damos de alta tras una breve llamada.</li><li>Recibes por correo una ficha: servicio, zona, prioridad, descripción y fotos (sin datos del cliente).</li><li>Respondes al correo indicando si puedes atenderlo.</li><li>Si confirmas, te pasamos el contacto del cliente.</li><li>Tú presupuestas y cobras directamente al cliente.</li></ol>
-      <p>En el piloto inicial solo existe coste cuando un trabajo gestionado por OficioCerca se concreta. Las condiciones económicas se informan y aceptan antes de recibir trabajos.</p>
+      <ol><li>Revisamos tu alta y la activamos.</li><li>Recibes por correo una ficha: servicio, zona, plazo, descripción y fotos (sin datos del cliente).</li><li>Respondes con un botón e indicas cuándo puedes.</li><li>Si te asignamos el trabajo, recibes el contacto del cliente.</li><li>Registras tu presupuesto; el cliente lo acepta o no y te paga directamente.</li></ol>
+      <p>Aceptar una oportunidad significa que tienes interés y disponibilidad para contactar al cliente y presupuestar; no te obliga a ejecutar la obra.</p>
     </div>
   </aside>
 </div>
@@ -131,6 +143,7 @@
         <a class="brand" href="../"><svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="10" fill="#13253D"/><path d="M9 21.5 20 12.5l11 9" stroke="#DD6326" stroke-width="3.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="20" cy="25.5" r="4.2" fill="#fff"/></svg><span class="brand-name">OFICIO<b>CERCA</b></span></a>
         <p style="margin-top:12px">Profesionales para obras, reformas y reparaciones.</p>
         <p>Córdoba, España — zona piloto.</p>
+        <p>Correo: <a href="mailto:oficiocerca@gmail.com">oficiocerca@gmail.com</a></p>
       </div>
       <div>
         <h2>Solicitar</h2>
@@ -144,12 +157,14 @@
         <h2>Profesionales</h2>
         <ul>
           <li><a href="../profesionales/">Registro de profesionales</a></li>
+          <li><a href="../condiciones-profesionales/">Condiciones para profesionales</a></li>
           <li><a href="../#como-funciona">Cómo funciona</a></li>
         </ul>
       </div>
       <div>
         <h2>Contacto</h2>
         <ul data-oc-contact>
+          <li><a href="mailto:oficiocerca@gmail.com">oficiocerca@gmail.com</a></li>
           <li><a href="../solicitar/">Formulario de solicitud</a></li>
           <li><a href="../privacidad/">Política de privacidad</a></li>
           <li><a href="../condiciones/">Condiciones de uso</a></li>
@@ -162,9 +177,9 @@
     </div>
   </div>
 </footer>
-<script src="../assets/js/config.js?v=5"></script>
-<script src="../assets/js/icons.js?v=5"></script>
-<script src="../assets/js/main.js?v=5" defer></script>
-<script src="../assets/js/forms.js?v=5" defer></script>
+<script src="../assets/js/config.js?v=6"></script>
+<script src="../assets/js/icons.js?v=6"></script>
+<script src="../assets/js/main.js?v=6" defer></script>
+<script src="../assets/js/forms.js?v=6" defer></script>
 </body>
 </html>
