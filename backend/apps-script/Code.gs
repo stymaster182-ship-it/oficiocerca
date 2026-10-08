@@ -1669,7 +1669,7 @@ function pagina_(t) {
     var opts = Object.keys(DISP_PRO).filter(function (k) { return k !== 'OTRA_FECHA'; }).map(function (k) { return '<option value="' + k + '">' + esc_(DISP_PRO[k].t) + '</option>'; }).join('');
     return html_('Oportunidad ' + oc, filas_([['Servicio', servicioTxt_(sol)], ['Zona / barrio', sol['Zona'] + ' (Córdoba)'],
       ['Plazo que pide el cliente', plazoTxt_(sol)], ['Descripción', sol['Descripción']], ['Responde antes de', fecha_(of['Expira'])]]) +
-      '<p class="nota">Aceptar significa: «Estoy interesado y tengo disponibilidad para contactar al cliente y valorar/presupuestar el trabajo». No te compromete todavía a ejecutar la obra.</p>' +
+      '<p class="nota">Aceptar significa: «Estoy interesado y tengo disponibilidad para contactar al cliente y valorar el trabajo». No te compromete todavía a ejecutar la obra. Recibir o rechazar oportunidades no tiene coste.</p>' +
       '<button class="btn" onclick="ver(\'pa\')">✔ PUEDO ATENDERLO</button>' +
       '<div id="pa" class="panel opc hide"><label for="disp">¿Cuándo podrías empezar?</label><select id="disp">' + opts + '</select>' +
       '<button class="btn" onclick="enviar({a:\'si\',disp:val(\'disp\')})">Confirmar: puedo atenderlo</button></div>' +
@@ -1712,6 +1712,7 @@ function pagina_(t) {
       '<button class="btn sec" onclick="if(!val(\'ts\').trim()){alert(\'Escribe tu sugerencia\');return}enviar({a:\'sugerencia\',texto:val(\'ts\')})">Enviar sugerencia</button></div>', t);
   }
   if (tipo === 'gestion') return paginaGestion_(t, oc, pro);
+  if (tipo === 'pago_comision' || tipo === 'pago_sbx') return paginaPago_(t);
   if (tipo === 'condiciones') {
     var pc = profesional_(pro), urlCond = String(cfg_('URL_WEB') || 'https://oficiocerca.pages.dev/').replace(/\/?$/, '/') + 'condiciones-profesionales/';
     if (!pc) return html_('Enlace no válido', '<p>Profesional no encontrado.</p>');
@@ -1750,7 +1751,7 @@ function accion(t, p) {
     }
     if (!r) return { ok: false, msg: 'Acción no válida.' };
     if (r.ok && unUso && !r.noConsume) marcarToken_(tok, r.msg);
-    try { actualizarPanel(); } catch (e) { }
+    if (r.ok) marcarPendiente_(); // el panel y la cola se actualizan en segundo plano (respuesta más rápida)
     return { ok: !!r.ok, msg: r.msg, t: r.t || undefined, url: r.url || undefined };
   } catch (err) {
     errorSistema_('accion', err);
@@ -1763,10 +1764,12 @@ function paginaGestion_(t, oc, pro) {
   var sol = solicitud_(oc), estado = sol['Estado'], com = comisionDeOC_(oc);
   if (sol['Profesional asignado (PRO)'] !== pro) return html_('Trabajo ' + oc, '<p>Este trabajo ya no está asignado a ti.</p>');
   var h = resumenV16_(sol, com, 'pro') + lineaProgresoV16_(sol, com, 'pro');
+  var estPro = { 'Profesional asignado': 'Contacto habilitado · falta registrar el acuerdo', 'Acuerdo pendiente del cliente': 'Acuerdo pendiente de que el cliente lo confirme',
+    'Finalización por confirmar': 'Terminado · pendiente de la confirmación del cliente', 'Comisión pendiente': 'Terminado · comisión pendiente' }[estado];
   h += '<h2>Datos del trabajo</h2>' + filas_([['Servicio', servicioTxt_(sol)], ['Cliente', sol['Nombre']], ['WhatsApp del cliente', limpio_(sol['WhatsApp'])],
-    ['Correo del cliente', sol['Email']], ['Zona', sol['Zona']], ['Estado', ESTADO_HUMANO[estado] || estado]]);
+    ['Correo del cliente', sol['Email']], ['Zona', sol['Zona']], ['Estado', estPro || ESTADO_HUMANO[estado] || estado]]);
   var pres = sol['Presupuesto vigente'] ? tabla_('Presupuestos').buscar('ID', sol['Presupuesto vigente']) : null;
-  if (pres) h += bloqueAcuerdoCliente_(pres).replace('Pendiente de tu confirmación', 'Pendiente de que el cliente lo confirme');
+  if (pres) h += bloqueAcuerdoCliente_(pres).replace('Acuerdo con el profesional', 'Acuerdo registrado').replace('Pendiente de tu confirmación', 'Pendiente de que el cliente lo confirme');
   h += historialAcuerdo_(oc, 'pro');
   if (ESTADOS_PERMITEN_ACUERDO.indexOf(estado) >= 0) {
     var modificar = ['Acuerdo confirmado', 'Trabajo en proceso', 'Acuerdo pendiente del cliente'].indexOf(estado) >= 0;
@@ -2080,6 +2083,7 @@ function pasoActualV16_(sol, com) {
 
 function lineaProgresoV16_(sol, com, vista) {
   var actual = pasoActualV16_(sol, com), sinCobro = !com || com['Estado'] === 'NO_HABILITADA';
+  if (vista === 'cliente' && sol['Estado'] === 'Comisión pendiente') actual = 11; // para el cliente su servicio ya está terminado
   if (sol['Estado'] === 'Comisión pendiente' && com && com['Estado'] === 'PAYMENT_PENDING') actual = 9;
   return '<ol class="prog">' + PASOS_V16.map(function (txt, i) {
     if (vista === 'cliente' && PASOS_SOLO_PRO.indexOf(i) >= 0) return '';
@@ -2120,6 +2124,8 @@ function resumenV16_(sol, com, vista) {
     ({ 'Profesional asignado': 'asignado', 'Acuerdo pendiente del cliente': 'pendCli', 'Acuerdo no confirmado': 'noConf', 'Acuerdo confirmado': 'conf', 'Trabajo en proceso': 'conf',
       'Finalización por confirmar': 'fin', 'Comisión pendiente': 'comPend', 'Cerrado': 'cerrado', 'Cancelada': 'cancel' })[e] || 'busca';
   var r = m[k];
+  if (cli && k === 'busca' && /mismo profesional/i.test(sol['Origen servicio'] || '') && sol['Estado'] === 'Esperando respuesta profesional')
+    r = R('Hemos pedido este servicio a tu profesional y esperamos su respuesta.', 'Nada por ahora. Te avisaremos por correo.', 'Si acepta, verás aquí sus datos; si no puede, buscaremos otro profesional compatible.');
   if (!cli && k === 'comPend' && com && com['Estado'] === 'PAYMENT_PENDING') r = R('Wompi está procesando tu pago.', 'Nada: espera la confirmación.', 'Al aprobarse, el servicio se cierra y vuelves a recibir oportunidades.');
   if (!cli && k === 'comPend' && com && com['Estado'] === 'MANUAL_REVIEW') r = R('El pago de la comisión está en revisión.', 'Nada: te escribiremos.', '—');
   return '<div class="panel4"><p><b>¿Dónde estoy?</b> ' + esc_((cli ? 'Seguimiento de tu servicio ' : 'Trabajo ') + sol['Código'] + ' · ' + servicioTxt_(sol)) + '</p>' +
@@ -2509,7 +2515,7 @@ function sbxCheckout_(pago) { return checkoutWompi_(pago); }
 /** URL de la página de pago (?wpago=<token>), ligada a UNA comisión. */
 function urlPagoComision_(oc, pro) {
   var t = crearToken_('pago_comision', oc, pro, '', Date.now() + 30 * 86400000);
-  return urlApp_() + (urlApp_().indexOf('?') < 0 ? '?' : '&') + 'wpago=' + t;
+  return String(cfg_('URL_WEB') || 'https://oficiocerca.pages.dev/').replace(/\/?$/, '/') + 'gestion/#' + t; // página propia (evita /macros/u/N con varias cuentas)
 }
 
 /** Página de pago (?wpago=<token>; ?wsbx= se mantiene por compatibilidad). */
