@@ -229,6 +229,23 @@ def page_home():
   </div>
 </section>
 
+<section class="sec-inst" id="conoce" aria-labelledby="h-inst">
+  <div class="wrap">
+    <div class="inst-card">
+      <button type="button" class="inst-poster" data-video-open="video-institucional" aria-haspopup="dialog" aria-label="Ver el vídeo: Conoce OficioCerca en menos de un minuto">
+        <img src="assets/video/oficiocerca-institucional-poster.webp" width="1080" height="1920" loading="lazy" decoding="async" alt="">
+        <span class="inst-play" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg></span>
+      </button>
+      <div class="inst-txt">
+        <h2 id="h-inst">Conoce OficioCerca en menos de un minuto</h2>
+        <p>Descubre cómo conectamos personas, empresas y contratistas con profesionales de oficios en Córdoba.</p>
+        <button type="button" class="btn inst-btn" data-video-open="video-institucional" aria-haspopup="dialog">{SVG_PLAY}<span>Ver vídeo</span></button>
+      </div>
+    </div>
+  </div>
+  {video_modal(p, "video-institucional", "Conoce OficioCerca en menos de un minuto", "oficiocerca-institucional", poster="oficiocerca-institucional-poster.webp", vtt=False, aria="vídeo con narración y subtítulos integrados", nota="Vídeo con narración y subtítulos integrados. Puedes ajustar el volumen y verlo en pantalla completa.", clase="vmodal-inst")}
+</section>
+
 <section class="sec" id="servicios" aria-labelledby="h-serv">
   <div class="wrap">
     <div class="sec-head" data-reveal>
@@ -319,14 +336,16 @@ def ayuda_box(p, video_id, pregunta_video, pregunta_wa, wa_msg):
     </div>
   </div>"""
 
-def video_modal(p, video_id, titulo, archivo):
-    return f"""<dialog class="vmodal" id="{video_id}" aria-labelledby="{video_id}-t">
+def video_modal(p, video_id, titulo, archivo, poster=None, vtt=True, aria="vídeo sin voz, con textos en pantalla",
+                nota="Vídeo sin voz: las instrucciones aparecen escritas en pantalla.", clase=""):
+    poster = poster or f"{archivo}.webp"
+    track = f'\n      <track kind="captions" srclang="es" label="Español" data-src="{p}assets/video/{archivo}.vtt">' if vtt else ""
+    return f"""<dialog class="vmodal{(' ' + clase) if clase else ''}" id="{video_id}" aria-labelledby="{video_id}-t">
   <div class="vmodal-box">
     <div class="vmodal-top"><h2 id="{video_id}-t">{e(titulo)}</h2><button type="button" class="vmodal-x" data-video-close aria-label="Cerrar el vídeo">&times;</button></div>
-    <div class="vmodal-media"><video controls playsinline preload="none" data-poster="{p}assets/video/{archivo}.webp" data-src="{p}assets/video/{archivo}.mp4" aria-label="{e(titulo)} (vídeo sin voz, con textos en pantalla)">
-      <track kind="captions" srclang="es" label="Español" data-src="{p}assets/video/{archivo}.vtt">
+    <div class="vmodal-media"><video controls playsinline preload="none" data-poster="{p}assets/video/{poster}" data-src="{p}assets/video/{archivo}.mp4" aria-label="{e(titulo)} ({aria})">{track}
     </video></div>
-    <p class="vmodal-note">Vídeo sin voz: las instrucciones aparecen escritas en pantalla.</p>
+    <p class="vmodal-note">{e(nota)}</p>
     <button type="button" class="btn btn-ghost vmodal-close" data-video-close>Cerrar y volver</button>
   </div>
 </dialog>"""
