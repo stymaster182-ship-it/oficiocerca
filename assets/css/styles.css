@@ -50,7 +50,7 @@ p{margin:0 0 1em}
 .mobile-nav.open{display:block}
 .mobile-nav a{display:block;padding:15px 16px;border-bottom:1px solid var(--sand-2);text-decoration:none;color:var(--ink);font-weight:600}
 .mobile-nav .btn{margin:14px 16px 18px;display:flex;border-bottom:0}
-@media(min-width:960px){
+@media(min-width:1100px){
   .nav{display:flex;gap:2px}
   .btn.hdr-cta{display:inline-flex}
   .menu-btn,.mobile-nav,.mobile-nav.open{display:none}
@@ -469,3 +469,11 @@ html.modal-abierto{overflow:hidden}
 .vmodal video{display:block;width:auto;max-width:100%;height:auto;max-height:calc(100dvh - 190px);aspect-ratio:1/2;background:#0E1A2B}
 .vmodal-note{margin:0;font-size:.82rem;color:var(--muted);text-align:center}
 .vmodal-close{width:100%;min-height:46px}
+/* ===== Accesos generales a asesoría (cabecera, menú móvil, pie) — secundarios, sin flotante ===== */
+[data-wa-item][hidden]{display:none!important}
+.hdr-ctas{display:none;align-items:center;gap:8px;flex:none}
+.btn.hdr-wa{background:transparent;color:var(--navy-2);border-color:var(--line-2);font-weight:600}
+.btn.hdr-wa:hover{background:#fff;border-color:var(--navy-2);color:var(--navy)}
+.mobile-nav .btn.mnav-wa{margin-top:-6px;background:#fff;color:var(--navy-2);border-color:var(--line-2)}
+@media(min-width:1100px){.hdr-ctas{display:flex}.nav a{white-space:nowrap}}
+@media(min-width:1100px) and (max-width:1219px){.nav a{padding:8px 7px}.hdr .wrap{gap:8px}.hdr-ctas .btn{padding:0 14px}}
