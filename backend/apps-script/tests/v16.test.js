@@ -231,9 +231,10 @@ caso('8. Comisión (PRUEBA + sandbox): nace al confirmar el cliente, DUE, correo
   assert.strictEqual(c['Importe comisión (€)'], 250); assert.strictEqual(c['Materiales (€)'], 5000);
   assert.strictEqual(ES.ctx.solicitud_(FS.oc)['Estado'], 'Comisión pendiente');
   const m = correosA(ES, FS.pEmail).filter(x => /Comisión pendiente/.test(x.subject))[0];
-  assert.ok(m && /PRUEBA \/ SANDBOX/.test(m.subject) && /PAGAR COMISIÓN \(SANDBOX\)/.test(m.htmlBody) && /wpago=[a-f0-9]{64}/.test(m.htmlBody));
-  const tok = /wpago=([a-f0-9]{64})/.exec(m.htmlBody)[1];
-  const page = ES.ctx.doGet({ parameter: { wpago: tok } }).h;
+  assert.ok(m && /PRUEBA \/ SANDBOX/.test(m.subject) && /PAGAR COMISIÓN \(SANDBOX\)/.test(m.htmlBody));
+  const tok = /gestion\/#([a-f0-9]{64})"[^>]*>PAGAR/.exec(m.htmlBody)[1];
+  const page = pagina(ES, tok).cuerpo; // la página de pago se sirve en la web propia
+  assert.ok(ES.ctx.doGet({ parameter: { wpago: tok } }).h.includes('250,00 €'), 'compatibilidad ?wpago=');
   ['PRUEBA / SANDBOX', '250,00 €', '1.125.000 COP', 'TEST_EXCHANGE_RATE (ficticia', 'checkout.wompi.co/p/?public-key=pub_test_'].forEach(t => assert.ok(page.includes(t), 'falta en página: ' + t));
   assert.ok(!page.includes(ES.S.integ));
   pagoS = ES.ctx.tabla_('Pagos comisión').todas().slice(-1)[0];
