@@ -287,6 +287,42 @@ def consent_block(prefix, items):
 PLAZOS = [("HOY_MANANA", "Hoy o mañana"), ("DOS_TRES_DIAS", "En 2–3 días"), ("ESTA_SEMANA", "Esta semana"),
           ("UNA_DOS_SEMANAS", "En 1–2 semanas"), ("FLEXIBLE", "Flexible / sin fecha concreta"), ("OTRA_FECHA", "Otra fecha")]
 
+
+# ---------------------------------------------------------------- AYUDA CONTEXTUAL (tutorial + asesor)
+SVG_PLAY = '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M10 8.5v7l6-3.5z" fill="currentColor"/></svg>'
+SVG_CHAT = ('<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+            '<path d="M20 12a8 8 0 0 1-11.6 7.1L4 20l1-4.1A8 8 0 1 1 20 12z"/><path d="M8.5 11h7M8.5 14h4.5"/></svg>')
+
+WA_MSG_CLIENTE = "Hola, necesito ayuda para completar una solicitud en OficioCerca."
+WA_MSG_PRO = "Hola, quiero registrarme para recibir oportunidades de trabajo en OficioCerca y necesito ayuda con el proceso."
+WA_MSG_SEG_GENERICO = "Hola, necesito ayuda con una solicitud de OficioCerca."
+
+def ayuda_box(p, video_id, pregunta_video, pregunta_wa, wa_msg):
+    """Ayuda contextual: tutorial en modal + asesor por WhatsApp. El número NO se escribe aquí:
+    lo pone main.js desde OC_CONFIG.WHATSAPP_SUPPORT (si falta, el botón de asesor no se muestra)."""
+    return f"""<div class="ayuda" role="group" aria-label="Ayuda">
+    <div class="ayuda-item">
+      <p class="ayuda-q">{e(pregunta_video)}</p>
+      <button type="button" class="btn-ayuda" data-video-open="{video_id}" aria-haspopup="dialog">{SVG_PLAY}<span>Ver cómo hacerlo en 40 segundos</span></button>
+    </div>
+    <div class="ayuda-item" data-wa-item hidden>
+      <p class="ayuda-q">{e(pregunta_wa)}</p>
+      <a class="btn-ayuda btn-ayuda-wa" data-wa-msg="{e(wa_msg)}" target="_blank" rel="noopener" aria-label="Hablar con un asesor de OficioCerca por WhatsApp (se abre en una ventana nueva)">{SVG_CHAT}<span>Hablar con un asesor</span></a>
+    </div>
+  </div>"""
+
+def video_modal(p, video_id, titulo, archivo):
+    return f"""<dialog class="vmodal" id="{video_id}" aria-labelledby="{video_id}-t">
+  <div class="vmodal-box">
+    <div class="vmodal-top"><h2 id="{video_id}-t">{e(titulo)}</h2><button type="button" class="vmodal-x" data-video-close aria-label="Cerrar el vídeo">&times;</button></div>
+    <div class="vmodal-media"><video controls playsinline preload="none" data-poster="{p}assets/video/{archivo}.webp" data-src="{p}assets/video/{archivo}.mp4" aria-label="{e(titulo)} (vídeo sin voz, con textos en pantalla)">
+      <track kind="captions" srclang="es" label="Español" data-src="{p}assets/video/{archivo}.vtt">
+    </video></div>
+    <p class="vmodal-note">Vídeo sin voz: las instrucciones aparecen escritas en pantalla.</p>
+    <button type="button" class="btn btn-ghost vmodal-close" data-video-close>Cerrar y volver</button>
+  </div>
+</dialog>"""
+
 def page_solicitar():
     p = "../"
     c = ciudad_activa()
@@ -297,6 +333,7 @@ def page_solicitar():
   <h1>Solicitar un profesional</h1>
   <p>Cuéntanos qué necesitas. Buscamos un profesional compatible con tu trabajo, tu zona y tu plazo en {e(c['nombre'])}, y te informamos por correo. Es gratuito y sin compromiso.</p>
   <p class="req-legend"><span class="req">*</span> Obligatorio. El resto es opcional.</p>
+  {ayuda_box(p, "tut-solicitar", "¿Es la primera vez que solicitas un servicio?", "¿Todavía necesitas ayuda?", WA_MSG_CLIENTE)}
 </div></section>
 <div class="wrap form-layout">
   <div class="form-card">
@@ -324,7 +361,7 @@ def page_solicitar():
 
       <fieldset>
         <legend><span class="n">2</span>Qué necesitas</legend>
-        <div class="field"><label for="s-oficio">Servicio que necesitas <span class="req">*</span></label><select id="s-oficio" name="oficio" required data-keep-value>{oficio_opts()}</select><span class="err-msg">Elige un servicio (o «Otro servicio»).</span></div>
+        <div class="field"><label for="s-oficio">Servicio que necesitas <span class="req">*</span></label><select id="s-oficio" name="oficio" required data-keep-value>{oficio_opts()}</select><span class="hint">Si no encuentras tu servicio, selecciona «Otro servicio» y cuéntanos qué necesitas.</span><span class="err-msg">Elige un servicio (o «Otro servicio»).</span></div>
         <div class="field otro-box" data-show-if="oficio=otro"><label for="s-otro">¿Qué servicio o profesional necesitas? <span class="req">*</span></label><input id="s-otro" name="oficioOtro" type="text" maxlength="120" data-required-if="oficio=otro" placeholder="Ej.: cerrajero, cristalero…"><span class="hint">Revisaremos si hay profesionales disponibles en {e(c['nombre'])}. No podemos garantizar que los haya.</span><span class="err-msg">Indica qué servicio o profesional necesitas.</span></div>
         <div class="field"><label for="s-desc">Cuéntanos qué necesitas <span class="req">*</span></label><span class="hint" style="margin:0 0 6px">Describe brevemente el trabajo para que el profesional pueda entenderlo y valorar si puede atenderlo.</span><textarea id="s-desc" name="descripcion" required minlength="10" maxlength="3000" placeholder="Ej.: Tengo una fuga debajo del fregadero y necesito revisarla."></textarea><span class="hint"><span data-count="s-desc">0</span>/3000</span><span class="err-msg">Describe brevemente el trabajo (mínimo 10 caracteres).</span></div>
         <fieldset class="choice-group" data-required-group="plazo">
@@ -400,6 +437,7 @@ def page_solicitar():
     </div>
   </aside>
 </div>
+{video_modal(p, "tut-solicitar", "Cómo solicitar un profesional en OficioCerca", "como-solicitar-oficiocerca")}
 </main>
 """
     write("solicitar/index.html", head("Solicitar un profesional · OficioCerca",
@@ -416,6 +454,7 @@ def page_profesionales():
   <h1>Regístrate para recibir trabajos</h1>
   <p>Para profesionales independientes, contratistas y empresas. Recibe por correo oportunidades compatibles con tus servicios y tu zona; tú decides cuáles atiendes. OficioCerca no es un empleador: te pone en contacto con clientes. Registro gratuito.</p>
   <p class="req-legend"><span class="req">*</span> Obligatorio. El resto es opcional.</p>
+  {ayuda_box(p, "tut-registro", "¿Quieres ver cómo funciona el registro?", "¿Necesitas ayuda con tu registro?", WA_MSG_PRO)}
 </div></section>
 <div class="wrap form-layout">
   <div class="form-card">
@@ -505,6 +544,7 @@ def page_profesionales():
     </div>
   </aside>
 </div>
+{video_modal(p, "tut-registro", "Cómo registrarte para recibir trabajos en OficioCerca", "como-registrarse-oficiocerca")}
 </main>
 """
     write("profesionales/index.html", head("Profesionales: recibe trabajos de tu oficio · OficioCerca",
@@ -649,7 +689,11 @@ def page_enlace(ruta, titulo, recargar):
   var cfg=window.OC_CONFIG||{}, T=(location.hash||'').replace(/^#/,''), RECARGAR=%s;
   var box=document.getElementById('g-zona'), tit=document.getElementById('g-titulo'), msg=document.getElementById('msg');
   function post(o){return fetch(cfg.ENDPOINT,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(o),redirect:'follow'}).then(function(r){return r.json();});}
-  function cargar(){return post({tipo:'pagina',t:T}).then(function(r){tit.textContent=r.titulo||'OficioCerca';box.innerHTML=r.cuerpo||'';if(r.script){var s=document.createElement('script');s.text=r.script;document.body.appendChild(s);}});}
+  var wa=document.getElementById('wa-seg'), WA=String(cfg.WHATSAPP_SUPPORT||'').replace(/\\D/g,'');
+  function ayudaWA(){ if(!wa||!/^\\d{8,15}$/.test(WA))return; var oc=(tit.textContent.match(/\\bOC-\\d{4,6}\\b/)||[])[0];
+    var m=oc?'Hola, necesito ayuda con mi solicitud '+oc+' de OficioCerca.':wa.getAttribute('data-wa-msg');
+    wa.href='https://wa.me/'+WA+'?text='+encodeURIComponent(m); document.getElementById('ayuda-seg').hidden=false; }
+  function cargar(){return post({tipo:'pagina',t:T}).then(function(r){tit.textContent=r.titulo||'OficioCerca';box.innerHTML=r.cuerpo||'';if(r.script){var s=document.createElement('script');s.text=r.script;document.body.appendChild(s);}ayudaWA();});}
   window.ver=function(id){document.querySelectorAll('#gestion .panel').forEach(function(x){x.classList.add('hide')});var e=document.getElementById(id);if(e){e.classList.remove('hide');e.scrollIntoView({behavior:'smooth',block:'center'});}};
   window.val=function(id){var e=document.getElementById(id);return e?e.value:'';};
   window.enviar=function(p){var bs=box.querySelectorAll('button');bs.forEach(function(b){b.disabled=true});msg.className='';msg.textContent='Enviando…';
@@ -657,15 +701,20 @@ def page_enlace(ruta, titulo, recargar):
       if(r&&r.ok){ if(RECARGAR){cargar().then(function(){msg.className='ok';msg.textContent=r.msg;tit.scrollIntoView({behavior:'smooth'});});} else {box.innerHTML='';msg.className='ok';msg.textContent=r.msg;} }
       else{msg.className='err';msg.textContent=(r&&r.msg)||'No se pudo guardar.';bs.forEach(function(b){b.disabled=false});}})
     .catch(function(){msg.className='err';msg.textContent='No hemos podido guardar tu respuesta. Revisa tu conexión e inténtalo de nuevo.';bs.forEach(function(b){b.disabled=false});});};
-  if(!/^[a-f0-9]{64}$/.test(T)||!cfg.ENDPOINT){tit.textContent='Enlace no válido';box.innerHTML='<p>Abre el botón directamente desde el correo que te enviamos.</p>';return;}
+  if(!/^[a-f0-9]{64}$/.test(T)||!cfg.ENDPOINT){tit.textContent='Enlace no válido';box.innerHTML='<p>Abre el botón directamente desde el correo que te enviamos.</p>';ayudaWA();return;}
   cargar().catch(function(){tit.textContent='No se pudo cargar';box.innerHTML='<p>Revisa tu conexión y vuelve a abrir el enlace del correo.</p>';});
 })();
 </script>""" % ("true" if recargar else "false")
     body = """<main id="main"><div class="wrap"><section id="gestion" class="g-box" aria-live="polite">
 <p id="msg" role="status"></p><h1 id="g-titulo">Cargando…</h1><div id="g-zona"><p class="nota">Un momento, por favor.</p></div>
 <p class="nota">¿Dudas? Escríbenos a <a href="mailto:oficiocerca@gmail.com">oficiocerca@gmail.com</a></p>
-</section></div></main>
+%s</section></div></main>
 """
+    ayuda = ('<div class="ayuda-seg" id="ayuda-seg" hidden><p class="ayuda-q">¿Necesitas ayuda con esta solicitud?</p>'
+             '<a class="btn-ayuda btn-ayuda-wa" id="wa-seg" data-wa-msg="%s" target="_blank" rel="noopener" '
+             'aria-label="Hablar con un asesor de OficioCerca por WhatsApp (se abre en una ventana nueva)">%s<span>Hablar con un asesor</span></a></div>\n'
+             % (WA_MSG_SEG_GENERICO, SVG_CHAT)) if ruta == "seguimiento" else ""
+    body = body % ayuda
     write(f"{ruta}/index.html", head(f"{titulo} · OficioCerca", "Página privada de OficioCerca.", f"{ruta}/", p, noindex=True)
           .replace('<meta name="robots"', '<meta name="referrer" content="no-referrer">\n<meta name="robots"') + header(p) + body + footer(p, js))
 
