@@ -477,3 +477,20 @@ html.modal-abierto{overflow:hidden}
 .mobile-nav .btn.mnav-wa{margin-top:-6px;background:#fff;color:var(--navy-2);border-color:var(--line-2)}
 @media(min-width:1100px){.hdr-ctas{display:flex}.nav a{white-space:nowrap}}
 @media(min-width:1100px) and (max-width:1219px){.nav a{padding:8px 7px}.hdr .wrap{gap:8px}.hdr-ctas .btn{padding:0 14px}}
+/* ===== Vídeo institucional (home): sección compacta, secundaria respecto a los CTA ===== */
+.sec-inst{padding:28px 0 8px}
+.inst-card{display:grid;grid-template-columns:104px 1fr;gap:16px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:14px;box-shadow:var(--sh-1);max-width:820px;margin:0 auto}
+.inst-poster{position:relative;display:block;width:100%;aspect-ratio:9/16;padding:0;border:0;border-radius:12px;overflow:hidden;background:var(--navy);cursor:pointer}
+.inst-poster img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s var(--ease)}
+.inst-poster:hover img{transform:scale(1.03)}
+.inst-play{position:absolute;left:50%;top:50%;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 18px rgba(14,26,43,.35);border:2px solid #fff}
+.inst-play svg{width:22px;height:22px;margin-left:3px}
+.inst-txt{min-width:0}
+.inst-txt h2{font-size:clamp(1.02rem,1.6vw + .7rem,1.45rem);text-transform:uppercase;letter-spacing:.01em;color:var(--navy);margin:0 0 8px}
+.inst-txt p{color:var(--muted);font-size:.95rem;margin:0 0 12px}
+.btn.inst-btn{min-height:46px;padding:0 18px;background:var(--navy);color:#fff;border-color:var(--navy);text-transform:uppercase;letter-spacing:.03em;font-size:.92rem}
+.btn.inst-btn:hover{background:var(--navy-2);color:#fff}
+.btn.inst-btn .ico{width:20px;height:20px}
+@media(max-width:400px){.inst-card{grid-template-columns:88px 1fr;gap:12px;padding:12px}.inst-txt p{font-size:.9rem}.btn.inst-btn{width:100%;padding:0 10px}}
+@media(min-width:720px){.sec-inst{padding:40px 0 12px}.inst-card{grid-template-columns:150px 1fr;gap:26px;padding:18px 22px}.inst-play{width:56px;height:56px;margin:-28px 0 0 -28px}}
+.vmodal-inst video{aspect-ratio:9/16}
