@@ -80,6 +80,10 @@ def head(title, desc, path, p, noindex=False, jsonld=None):
 <a class="skip" href="#main">Saltar al contenido</a>
 """
 
+WA_MSG_HOME = "Hola, estoy visitando OficioCerca y necesito orientación antes de realizar una solicitud o registro."
+WA_MSG_CONTACTO = "Hola, estoy revisando la sección de contacto de OficioCerca y necesito ayuda."
+WA_ARIA = "(WhatsApp, se abre en una ventana nueva)"
+
 def header(p):
     nav = [("Inicio", f"{p}"), ("Cómo funciona", f"{p}#como-funciona"), ("Servicios", f"{p}#servicios"),
            ("Recibir trabajos", f"{p}profesionales/"), ("Contacto", f"{p}#contacto")]
@@ -88,12 +92,15 @@ def header(p):
   <div class="wrap">
     <a class="brand" href="{p}" aria-label="OficioCerca, inicio">{LOGO}<span class="brand-name">OFICIO<b>CERCA</b></span></a>
     <nav class="nav" aria-label="Principal">{links}</nav>
-    <a class="btn btn-primary btn-sm hdr-cta" href="{p}solicitar/">Solicitar un servicio</a>
+    <div class="hdr-ctas">
+      <a class="btn btn-sm hdr-wa" data-wa-item hidden data-wa-msg="{e(WA_MSG_HOME)}" target="_blank" rel="noopener" aria-label="Hablar con un asesor {WA_ARIA}">Hablar con un asesor</a>
+      <a class="btn btn-primary btn-sm hdr-cta" href="{p}solicitar/">Solicitar un servicio</a>
+    </div>
     <button class="menu-btn" type="button" aria-expanded="false" aria-controls="mnav" aria-label="Abrir menú">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
     </button>
   </div>
-  <nav class="mobile-nav" id="mnav" aria-label="Menú móvil">{links}<a class="btn btn-primary" href="{p}solicitar/">Solicitar un servicio</a></nav>
+  <nav class="mobile-nav" id="mnav" aria-label="Menú móvil">{links}<a class="btn btn-primary" href="{p}solicitar/">Solicitar un servicio</a><a class="btn btn-ghost mnav-wa" data-wa-item hidden data-wa-msg="{e(WA_MSG_HOME)}" target="_blank" rel="noopener" aria-label="Hablar con un asesor {WA_ARIA}">Hablar con un asesor</a></nav>
 </header>
 """
 
@@ -127,6 +134,7 @@ def footer(p, extra_js=""):
         <h2>Contacto</h2>
         <ul data-oc-contact>
           <li><a href="mailto:{CONTACT_EMAIL}">{CONTACT_EMAIL}</a></li>
+          <li data-wa-item hidden><a data-wa-msg="{e(WA_MSG_CONTACTO)}" target="_blank" rel="noopener" aria-label="Hablar con un asesor por WhatsApp (se abre en una ventana nueva)">Hablar con un asesor por WhatsApp</a></li>
           <li><a href="{p}solicitar/">Formulario de solicitud</a></li>
           <li><a href="{p}privacidad/">Política de privacidad</a></li>
           <li><a href="{p}condiciones/">Condiciones de uso</a></li>
