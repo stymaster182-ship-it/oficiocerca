@@ -731,7 +731,7 @@ def page_enlace(ruta, titulo, recargar):
   window.val=function(id){var e=document.getElementById(id);return e?e.value:'';};
   window.enviar=function(p){var bs=box.querySelectorAll('button');bs.forEach(function(b){b.disabled=true});msg.className='';msg.textContent='Enviando…';
     post({tipo:'accion',t:T,p:p}).then(function(r){
-      if(r&&r.ok&&r.url){msg.className='ok';msg.textContent=r.msg;location.href=r.url;return;}
+      if(r&&r.ok&&r.url){msg.className='ok';msg.textContent=r.msg;var u=new URL(r.url,location.href);if(u.host===location.host&&u.pathname===location.pathname){location.hash=u.hash;location.reload();}else{location.href=r.url;}return;}
       if(r&&r.ok&&r.t&&/^[a-f0-9]{64}$/.test(r.t)){T=r.t;history.replaceState(null,'','#'+T);cargar().then(function(){tit.scrollIntoView({behavior:'smooth'});});return;}
       if(r&&r.ok){ if(RECARGAR){cargar().then(function(){msg.className='ok';msg.textContent=r.msg;tit.scrollIntoView({behavior:'smooth'});});} else {box.innerHTML='';msg.className='ok';msg.textContent=r.msg;} }
       else{msg.className='err';msg.textContent=(r&&r.msg)||'No se pudo guardar.';bs.forEach(function(b){b.disabled=false});}})
