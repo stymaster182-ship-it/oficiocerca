@@ -250,6 +250,62 @@ function respaldoV15VideoInstitucional() {
   Logger.log('Respaldo: ' + c.getUrl());
 }
 
+/* ============================================================ V1.6 · RESPALDO, AUDITORÍA Y ACTIVADORES */
+
+function respaldoV16Pre() {
+  var c = crearRespaldo_('OFICIOCERCA-V1.6-PRE', 'OFICIOCERCA-V1.6-PRE');
+  DriveApp.getFileById(ss_().getId()).makeCopy('OFICIOCERCA-V1.6-PRE — copia de la hoja (con los registros PRUEBA SANDBOX)', c);
+  c.createFile('LEEME.txt', [
+    'OFICIOCERCA-V1.6-PRE — estado justo antes de la V1.6 (comisiones 10 %/5 %, acuerdo, seguimiento, Wompi).',
+    'GitHub: main = d9b2d224 · wompi-sandbox = fccb17f4 (etiqueta OFICIOCERCA-V1.6-PRE) · Apps Script: implementación versión 10.',
+    'La copia de la hoja incluye los registros marcados PRUEBA SANDBOX (no hay registros reales).',
+    'Endpoint: ' + cfg_('URL_APP'),
+    'Rollback del backend: Gestionar implementaciones → editar → Versión 10. Rollback web: rama main (sin cambios).'
+  ].join('\n'));
+  Logger.log('Respaldo: ' + c.getUrl());
+}
+
+/** Auditoría sin secretos: pestañas, cabeceras, filas, nombres de propiedades, registros reales vs. prueba. */
+function auditoriaV16() {
+  var ss = ss_(), props = PropertiesService.getScriptProperties().getProperties();
+  Logger.log('Versión: ' + VERSION_BACKEND + ' · Hoja: ' + ss.getId());
+  ss.getSheets().forEach(function (sh) {
+    var c = sh.getLastColumn(), cab = c ? sh.getRange(1, 1, 1, c).getValues()[0].filter(String) : [];
+    Logger.log('Pestaña «' + sh.getName() + '» · filas ' + Math.max(sh.getLastRow() - 1, 0) + ' · ' + cab.length + ' columnas: ' + cab.join(' | '));
+  });
+  Logger.log('Propiedades (solo nombres): ' + Object.keys(props).sort().join(', '));
+  ['SEQ_OC', 'SEQ_PRO', 'SEQ_INC'].forEach(function (k) { Logger.log(k + ' → ' + props[k]); });
+  ['COMMISSION_COLLECTION_ENABLED', 'WOMPI_SANDBOX_ENABLED', 'TEST_EXCHANGE_RATE', 'PRO_COND_VERSION', 'CONSENT_VERSION', 'COMISION_MAXIMO_EUR'].forEach(function (k) {
+    Logger.log('Config ' + k + ' → ' + cfg_(k));
+  });
+  var esPrueba = function (r) { return /PRUEBA|SANDBOX/i.test([r['Nombre'], r['Notas internas'], r['Origen']].join(' ')); };
+  ['Solicitudes', 'Profesionales'].forEach(function (n) {
+    var t = tabla_(n).todas();
+    Logger.log(n + ': ' + t.length + ' registro(s) · prueba ' + t.filter(esPrueba).length + ' · NO prueba ' + t.filter(function (r) { return !esPrueba(r); }).length +
+      ' · códigos ' + t.map(function (r) { return r['Código'] + (esPrueba(r) ? '(prueba)' : '(REAL?)'); }).join(', '));
+  });
+  Logger.log('Activadores: ' + ScriptApp.getProjectTriggers().map(function (t) { return t.getHandlerFunction() + '[' + t.getEventType() + ']'; }).join(', '));
+}
+
+/**
+ * Activadores deshabilitados por Google («Se ha desactivado la cuenta del propietario de este activador»):
+ * se eliminan los de procesarPendientes y cicloAutomatico y se crean de nuevo con la cuenta actual (uno de cada).
+ */
+function repararActivadoresV16() {
+  var ss = ss_();
+  var fijar = { procesarPendientes: function () { ScriptApp.newTrigger('procesarPendientes').timeBased().everyMinutes(1).create(); },
+                cicloAutomatico: function () { ScriptApp.newTrigger('cicloAutomatico').timeBased().everyMinutes(10).create(); } };
+  ScriptApp.getProjectTriggers().forEach(function (t) { if (fijar[t.getHandlerFunction()]) ScriptApp.deleteTrigger(t); });
+  Object.keys(fijar).forEach(function (f) { fijar[f](); });
+  var hay = function (f) { return ScriptApp.getProjectTriggers().some(function (t) { return t.getHandlerFunction() === f; }); };
+  if (!hay('alEditar')) ScriptApp.newTrigger('alEditar').forSpreadsheet(ss).onEdit().create();
+  if (!hay('alAbrir')) ScriptApp.newTrigger('alAbrir').forSpreadsheet(ss).onOpen().create();
+  if (!hay('resumenDiario')) ScriptApp.newTrigger('resumenDiario').timeBased().atHour(8).nearMinute(5).everyDays(1).inTimezone(ZONA_HORARIA).create();
+  var cuenta = {};
+  ScriptApp.getProjectTriggers().forEach(function (t) { cuenta[t.getHandlerFunction()] = (cuenta[t.getHandlerFunction()] || 0) + 1; });
+  Logger.log('Activadores (función × número): ' + JSON.stringify(cuenta) + ' · cuenta ' + Session.getEffectiveUser().getEmail());
+}
+
 /* ============================================================ ENTRADA DESDE LA WEB */
 
 function doPost(e) {
