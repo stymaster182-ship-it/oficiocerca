@@ -43,13 +43,42 @@
   // Año
   document.querySelectorAll("[data-year]").forEach(function (n) { n.textContent = new Date().getFullYear(); });
 
-  // WhatsApp: no se muestra ningún enlace hasta que exista un número real en config.js
-  if (cfg.WHATSAPP && /^\d{8,15}$/.test(cfg.WHATSAPP)) {
-    var href = "https://wa.me/" + cfg.WHATSAPP + "?text=" + encodeURIComponent("Hola OficioCerca, quiero hacer una consulta.");
-    document.querySelectorAll("[data-oc-contact]").forEach(function (ul) {
-      var li = document.createElement("li"), a = document.createElement("a");
-      a.href = href; a.target = "_blank"; a.rel = "noopener"; a.textContent = "WhatsApp";
-      li.appendChild(a); ul.insertBefore(li, ul.children[1] || null);
+  // Ayuda contextual por WhatsApp (soporte humano). Sin botón flotante ni enlace global:
+  // solo los botones [data-wa-msg] de cada proceso, cada uno con su propio mensaje.
+  // El número sale únicamente de OC_CONFIG.WHATSAPP_SUPPORT; si falta, esos botones no se muestran.
+  var WA = String(cfg.WHATSAPP_SUPPORT || "").replace(/\D/g, "");
+  document.querySelectorAll("a[data-wa-msg]").forEach(function (a) {
+    if (a.id === "wa-seg") return; // el portal de seguimiento lo gestiona su propia página (añade el código OC)
+    if (!/^\d{8,15}$/.test(WA)) return;
+    a.href = "https://wa.me/" + WA + "?text=" + encodeURIComponent(a.getAttribute("data-wa-msg"));
+    var item = a.closest("[data-wa-item]"); if (item) item.hidden = false;
+  });
+
+  // Tutoriales en vídeo: modal dentro de la misma página (el formulario no se toca).
+  // El MP4 no se descarga hasta que la persona abre el tutorial.
+  document.querySelectorAll("[data-video-open]").forEach(function (btn) {
+    var dlg = document.getElementById(btn.getAttribute("data-video-open"));
+    if (!dlg) return;
+    var video = dlg.querySelector("video");
+    function cerrar() { if (video) video.pause(); if (dlg.open) dlg.close(); }
+    btn.addEventListener("click", function () {
+      if (video && !video.getAttribute("src")) {
+        var tr = video.querySelector("track[data-src]");
+        if (tr) tr.setAttribute("src", tr.getAttribute("data-src"));
+        if (video.getAttribute("data-poster")) video.setAttribute("poster", video.getAttribute("data-poster"));
+        video.setAttribute("preload", "metadata");
+        video.setAttribute("src", video.getAttribute("data-src"));
+      }
+      if (typeof dlg.showModal === "function") dlg.showModal(); else dlg.setAttribute("open", "");
+      document.documentElement.classList.add("modal-abierto");
+      var x = dlg.querySelector(".vmodal-x"); if (x) x.focus();
     });
-  }
+    dlg.querySelectorAll("[data-video-close]").forEach(function (b) { b.addEventListener("click", cerrar); });
+    dlg.addEventListener("click", function (ev) { if (ev.target === dlg) cerrar(); }); // clic fuera del recuadro
+    dlg.addEventListener("close", function () {
+      if (video) video.pause();
+      document.documentElement.classList.remove("modal-abierto");
+      btn.focus({ preventScroll: true });
+    });
+  });
 })();
