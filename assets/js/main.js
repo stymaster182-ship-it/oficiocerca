@@ -54,13 +54,24 @@
     var item = a.closest("[data-wa-item]"); if (item) item.hidden = false;
   });
 
-  // Tutoriales en vídeo: modal dentro de la misma página (el formulario no se toca).
-  // El MP4 no se descarga hasta que la persona abre el tutorial.
+  // Vídeos (tutoriales e institucional): modal dentro de la misma página (no se toca ningún formulario).
+  // El MP4 y su portada no se descargan hasta que la persona pulsa el botón. Al cerrar, el vídeo se pausa.
+  var dialogos = {};
   document.querySelectorAll("[data-video-open]").forEach(function (btn) {
-    var dlg = document.getElementById(btn.getAttribute("data-video-open"));
+    var id = btn.getAttribute("data-video-open"), dlg = document.getElementById(id);
     if (!dlg) return;
     var video = dlg.querySelector("video");
-    function cerrar() { if (video) video.pause(); if (dlg.open) dlg.close(); }
+    if (!dialogos[id]) {
+      dialogos[id] = true;
+      var cerrar = function () { if (video) video.pause(); if (dlg.open) dlg.close(); };
+      dlg.querySelectorAll("[data-video-close]").forEach(function (b) { b.addEventListener("click", cerrar); });
+      dlg.addEventListener("click", function (ev) { if (ev.target === dlg) cerrar(); }); // clic fuera del recuadro
+      dlg.addEventListener("close", function () {
+        if (video) video.pause();
+        document.documentElement.classList.remove("modal-abierto");
+        if (dlg._opener) dlg._opener.focus({ preventScroll: true });
+      });
+    }
     btn.addEventListener("click", function () {
       if (video && !video.getAttribute("src")) {
         var tr = video.querySelector("track[data-src]");
@@ -69,16 +80,10 @@
         video.setAttribute("preload", "metadata");
         video.setAttribute("src", video.getAttribute("data-src"));
       }
+      dlg._opener = btn;
       if (typeof dlg.showModal === "function") dlg.showModal(); else dlg.setAttribute("open", "");
       document.documentElement.classList.add("modal-abierto");
       var x = dlg.querySelector(".vmodal-x"); if (x) x.focus();
-    });
-    dlg.querySelectorAll("[data-video-close]").forEach(function (b) { b.addEventListener("click", cerrar); });
-    dlg.addEventListener("click", function (ev) { if (ev.target === dlg) cerrar(); }); // clic fuera del recuadro
-    dlg.addEventListener("close", function () {
-      if (video) video.pause();
-      document.documentElement.classList.remove("modal-abierto");
-      btn.focus({ preventScroll: true });
     });
   });
 })();
