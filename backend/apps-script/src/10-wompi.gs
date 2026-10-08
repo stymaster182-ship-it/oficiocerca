@@ -201,7 +201,7 @@ function sbxCheckout_(pago) { return checkoutWompi_(pago); }
 /** URL de la página de pago (?wpago=<token>), ligada a UNA comisión. */
 function urlPagoComision_(oc, pro) {
   var t = crearToken_('pago_comision', oc, pro, '', Date.now() + 30 * 86400000);
-  return urlApp_() + (urlApp_().indexOf('?') < 0 ? '?' : '&') + 'wpago=' + t;
+  return String(cfg_('URL_WEB') || 'https://oficiocerca.pages.dev/').replace(/\/?$/, '/') + 'gestion/#' + t; // página propia (evita /macros/u/N con varias cuentas)
 }
 
 /** Página de pago (?wpago=<token>; ?wsbx= se mantiene por compatibilidad). */

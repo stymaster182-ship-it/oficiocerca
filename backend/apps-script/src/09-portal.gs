@@ -31,6 +31,7 @@ function pasoActualV16_(sol, com) {
 
 function lineaProgresoV16_(sol, com, vista) {
   var actual = pasoActualV16_(sol, com), sinCobro = !com || com['Estado'] === 'NO_HABILITADA';
+  if (vista === 'cliente' && sol['Estado'] === 'Comisión pendiente') actual = 11; // para el cliente su servicio ya está terminado
   if (sol['Estado'] === 'Comisión pendiente' && com && com['Estado'] === 'PAYMENT_PENDING') actual = 9;
   return '<ol class="prog">' + PASOS_V16.map(function (txt, i) {
     if (vista === 'cliente' && PASOS_SOLO_PRO.indexOf(i) >= 0) return '';
@@ -71,6 +72,8 @@ function resumenV16_(sol, com, vista) {
     ({ 'Profesional asignado': 'asignado', 'Acuerdo pendiente del cliente': 'pendCli', 'Acuerdo no confirmado': 'noConf', 'Acuerdo confirmado': 'conf', 'Trabajo en proceso': 'conf',
       'Finalización por confirmar': 'fin', 'Comisión pendiente': 'comPend', 'Cerrado': 'cerrado', 'Cancelada': 'cancel' })[e] || 'busca';
   var r = m[k];
+  if (cli && k === 'busca' && /mismo profesional/i.test(sol['Origen servicio'] || '') && sol['Estado'] === 'Esperando respuesta profesional')
+    r = R('Hemos pedido este servicio a tu profesional y esperamos su respuesta.', 'Nada por ahora. Te avisaremos por correo.', 'Si acepta, verás aquí sus datos; si no puede, buscaremos otro profesional compatible.');
   if (!cli && k === 'comPend' && com && com['Estado'] === 'PAYMENT_PENDING') r = R('Wompi está procesando tu pago.', 'Nada: espera la confirmación.', 'Al aprobarse, el servicio se cierra y vuelves a recibir oportunidades.');
   if (!cli && k === 'comPend' && com && com['Estado'] === 'MANUAL_REVIEW') r = R('El pago de la comisión está en revisión.', 'Nada: te escribiremos.', '—');
   return '<div class="panel4"><p><b>¿Dónde estoy?</b> ' + esc_((cli ? 'Seguimiento de tu servicio ' : 'Trabajo ') + sol['Código'] + ' · ' + servicioTxt_(sol)) + '</p>' +
