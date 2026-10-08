@@ -69,3 +69,19 @@ function sbxE2E_activar() {
 }
 /** Desactiva el sandbox (estado por defecto). La capacidad se conserva: basta volver a ejecutar sbxE2E_activar. */
 function sbxE2E_desactivar() { cfgPoner_('WOMPI_SANDBOX_ENABLED', 'FALSE'); diagnosticoWompiSandbox(); }
+
+/** Enlaces de PRUEBA sin correo (útil si la cuota diaria de correo está agotada): seguimiento del cliente, oferta abierta y
+ * gestión del profesional de cada solicitud PRUEBA de hoy. Tokens de 1 día. Nunca para solicitudes reales. */
+function sbxE2E_enlaces() {
+  var hoy = Utilities.formatDate(new Date(), ZONA_HORARIA, 'yyyy-MM-dd'), web = String(cfg_('URL_WEB_PRUEBAS') || cfg_('URL_WEB')).replace(/\/?$/, '/');
+  var tok = function (tipo, oc, pro, ref) { return crearToken_(tipo, oc, pro, ref || '', Date.now() + 86400000); };
+  tabla_('Solicitudes').todas().forEach(function (s) {
+    if (!esPrueba_(s['Nombre']) || fechaIso_(s['Fecha']) !== hoy) return;
+    var oc = s['Código'];
+    Logger.log(oc + ' · ' + s['Estado'] + ' · SEGUIMIENTO ' + web + 'seguimiento/#' + tok('seguimiento', oc, ''));
+    tabla_('Ofertas').todas().filter(function (o) { return o['Código OC'] === oc && o['Estado'] === 'Enviada'; }).forEach(function (o) {
+      Logger.log(oc + ' · OFERTA a ' + o['Código PRO'] + ' ' + web + 'gestion/#' + tok('oferta', oc, o['Código PRO'], o['ID']));
+    });
+    if (s['Profesional asignado (PRO)']) Logger.log(oc + ' · GESTIÓN ' + s['Profesional asignado (PRO)'] + ' ' + web + 'gestion/#' + tok('gestion', oc, s['Profesional asignado (PRO)']));
+  });
+}
