@@ -45,6 +45,16 @@
   <h1>Solicitar un profesional</h1>
   <p>Cuéntanos qué necesitas. Buscamos un profesional compatible con tu trabajo, tu zona y tu plazo en Córdoba, y te informamos por correo. Es gratuito y sin compromiso.</p>
   <p class="req-legend"><span class="req">*</span> Obligatorio. El resto es opcional.</p>
+  <div class="ayuda" role="group" aria-label="Ayuda">
+    <div class="ayuda-item">
+      <p class="ayuda-q">¿Es la primera vez que solicitas un servicio?</p>
+      <button type="button" class="btn-ayuda" data-video-open="tut-solicitar" aria-haspopup="dialog"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M10 8.5v7l6-3.5z" fill="currentColor"/></svg><span>Ver cómo hacerlo en 40 segundos</span></button>
+    </div>
+    <div class="ayuda-item" data-wa-item hidden>
+      <p class="ayuda-q">¿Todavía necesitas ayuda?</p>
+      <a class="btn-ayuda btn-ayuda-wa" data-wa-msg="Hola, necesito ayuda para completar una solicitud en OficioCerca." target="_blank" rel="noopener" aria-label="Hablar con un asesor de OficioCerca por WhatsApp (se abre en una ventana nueva)"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 0 1-11.6 7.1L4 20l1-4.1A8 8 0 1 1 20 12z"/><path d="M8.5 11h7M8.5 14h4.5"/></svg><span>Hablar con un asesor</span></a>
+    </div>
+  </div>
 </div></section>
 <div class="wrap form-layout">
   <div class="form-card">
@@ -72,7 +82,7 @@
 
       <fieldset>
         <legend><span class="n">2</span>Qué necesitas</legend>
-        <div class="field"><label for="s-oficio">Servicio que necesitas <span class="req">*</span></label><select id="s-oficio" name="oficio" required data-keep-value><option value="">Selecciona un servicio</option><option value="electricidad">Electricidad</option><option value="fontaneria">Fontanería</option><option value="marmoleria">Marmolería</option><option value="carpinteria">Carpintería y ebanistería</option><option value="pintura">Pintura</option><option value="otro">Otro servicio</option></select><span class="err-msg">Elige un servicio (o «Otro servicio»).</span></div>
+        <div class="field"><label for="s-oficio">Servicio que necesitas <span class="req">*</span></label><select id="s-oficio" name="oficio" required data-keep-value><option value="">Selecciona un servicio</option><option value="electricidad">Electricidad</option><option value="fontaneria">Fontanería</option><option value="marmoleria">Marmolería</option><option value="carpinteria">Carpintería y ebanistería</option><option value="pintura">Pintura</option><option value="otro">Otro servicio</option></select><span class="hint">Si no encuentras tu servicio, selecciona «Otro servicio» y cuéntanos qué necesitas.</span><span class="err-msg">Elige un servicio (o «Otro servicio»).</span></div>
         <div class="field otro-box" data-show-if="oficio=otro"><label for="s-otro">¿Qué servicio o profesional necesitas? <span class="req">*</span></label><input id="s-otro" name="oficioOtro" type="text" maxlength="120" data-required-if="oficio=otro" placeholder="Ej.: cerrajero, cristalero…"><span class="hint">Revisaremos si hay profesionales disponibles en Córdoba. No podemos garantizar que los haya.</span><span class="err-msg">Indica qué servicio o profesional necesitas.</span></div>
         <div class="field"><label for="s-desc">Cuéntanos qué necesitas <span class="req">*</span></label><span class="hint" style="margin:0 0 6px">Describe brevemente el trabajo para que el profesional pueda entenderlo y valorar si puede atenderlo.</span><textarea id="s-desc" name="descripcion" required minlength="10" maxlength="3000" placeholder="Ej.: Tengo una fuga debajo del fregadero y necesito revisarla."></textarea><span class="hint"><span data-count="s-desc">0</span>/3000</span><span class="err-msg">Describe brevemente el trabajo (mínimo 10 caracteres).</span></div>
         <fieldset class="choice-group" data-required-group="plazo">
@@ -151,6 +161,16 @@
     </div>
   </aside>
 </div>
+<dialog class="vmodal" id="tut-solicitar" aria-labelledby="tut-solicitar-t">
+  <div class="vmodal-box">
+    <div class="vmodal-top"><h2 id="tut-solicitar-t">Cómo solicitar un profesional en OficioCerca</h2><button type="button" class="vmodal-x" data-video-close aria-label="Cerrar el vídeo">&times;</button></div>
+    <div class="vmodal-media"><video controls playsinline preload="none" data-poster="../assets/video/como-solicitar-oficiocerca.webp" data-src="../assets/video/como-solicitar-oficiocerca.mp4" aria-label="Cómo solicitar un profesional en OficioCerca (vídeo sin voz, con textos en pantalla)">
+      <track kind="captions" srclang="es" label="Español" data-src="../assets/video/como-solicitar-oficiocerca.vtt">
+    </video></div>
+    <p class="vmodal-note">Vídeo sin voz: las instrucciones aparecen escritas en pantalla.</p>
+    <button type="button" class="btn btn-ghost vmodal-close" data-video-close>Cerrar y volver</button>
+  </div>
+</dialog>
 </main>
 <footer class="ftr" id="contacto">
   <div class="wrap">
