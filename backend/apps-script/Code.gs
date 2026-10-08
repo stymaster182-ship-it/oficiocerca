@@ -12,7 +12,7 @@
  * El código no contiene secretos: los IDs y credenciales se guardan en Propiedades del script.
  */
 
-var VERSION_BACKEND = 'V1.6';
+var VERSION_BACKEND = 'V1.7';
 var ZONA_HORARIA = 'Europe/Madrid';
 
 /** Valores por defecto de la pestaña «Configuración» (editables allí, salvo los de solo lectura). */
@@ -26,8 +26,16 @@ var CONFIG_DEFECTO = [
   ['HORAS_RESPUESTA_URGENTE', '4', 'Horas para responder a una oportunidad cuando el cliente pide «Hoy o mañana».'],
   ['HORAS_RESPUESTA_NORMAL', '24', 'Horas para responder a una oportunidad en el resto de casos.'],
   ['DIAS_VALIDEZ_ENLACES', '30', 'Días de validez de los enlaces enviados a clientes (presupuesto, finalización…).'],
-  ['CUOTA_RESERVA', '3', 'Correos que se reservan para alertas al administrador.'],
-  ['PRO_COND_VERSION', 'PRO-COND-2026-10-V3', 'Versión vigente de las condiciones para profesionales.'],
+  ['CUOTA_RESERVA', '3', 'Correos que se reservan SOLO para alertas al administrador.'],
+  ['CUOTA_RESERVA_BAJA', '15', 'Por debajo de esta cuota solo salen correos de prioridad alta; los demás esperan en cola (nunca se pierden).'],
+  ['SEG_RECORDATORIO_2_HORAS', '48', 'Seguimiento: horas desde el primer aviso hasta el segundo.'],
+  ['SEG_RECORDATORIO_3_HORAS', '120', 'Seguimiento: horas desde el primer aviso hasta el último recordatorio (5 días).'],
+  ['SEG_CIERRE_HORAS', '48', 'Seguimiento: horas tras el último recordatorio para archivar (nadie respondió) o pasar a revisión (faltó una parte).'],
+  ['SEG_ACUERDO_DIAS', '3', 'Días desde la asignación hasta recordar al profesional que registre el acuerdo alcanzado.'],
+  ['REP_PESO_VALORACION', '1', 'Prioridad: peso de la valoración media (señal secundaria; 0 = no influye).'],
+  ['REP_PESO_RESPUESTA', '1', 'Prioridad: peso de la tasa de respuesta a oportunidades (0 = no influye).'],
+  ['REP_PESO_SEGUIMIENTO', '1', 'Prioridad: peso del cumplimiento del seguimiento (0 = no influye).'],
+  ['PRO_COND_VERSION', 'PRO-COND-2026-10-V4', 'Versión vigente de las condiciones para profesionales.'],
   ['CONSENT_VERSION', 'C4-2026-10', 'Versión vigente del consentimiento de clientes.'],
   ['Cuota correo disponible', '', 'Solo lectura: MailApp.getRemainingDailyQuota() en la última comprobación.'],
   ['Última comprobación', '', 'Solo lectura.'],
@@ -73,17 +81,21 @@ var DISP_PRO = {
 };
 
 var ESTADOS_SOLICITUD = [
-  'Nueva', 'Revisión manual', 'Buscando profesional', 'Esperando respuesta profesional',
-  'Esperando decisión cliente', 'Sin profesional compatible', 'Profesional asignado', 'Acuerdo pendiente del cliente',
-  'Acuerdo no confirmado', 'Acuerdo confirmado', 'Trabajo en proceso', 'Finalización por confirmar', 'Comisión pendiente', 'Cerrado', 'Cancelada'
+  'Nueva', 'Revisión manual', 'Buscando profesional', 'Esperando respuesta profesional', 'Esperando decisión cliente',
+  'Sin profesional disponible', 'Profesional asignado', 'Trabajo en proceso', 'Cierre pendiente del profesional',
+  'Finalización por confirmar', 'Comisión pendiente', 'Cerrado', 'En revisión', 'Archivado por inactividad', 'Cancelada'
 ];
 var ESTADOS_PROFESIONAL = ['Pendiente de revisar', 'Activo', 'En revisión', 'Pausado', 'Baja'];
 var ESTADOS_OFERTA = ['Enviada', 'Seleccionada', 'Respaldo', 'Rechazada', 'Sin respuesta', 'Cerrada'];
-var ESTADOS_PRESUPUESTO = ['Pendiente del cliente', 'Sustituido', 'Confirmado', 'No confirmado'];
-/** Comisiones (códigos técnicos): NO_HABILITADA = calculada pero el cobro no está activo (no bloquea). */
-var ESTADOS_COMISION = ['NO_HABILITADA', 'DUE', 'PAYMENT_PENDING', 'PAID', 'PAYMENT_FAILED', 'MANUAL_REVIEW', 'ANULADA'];
-var ESTADOS_INCIDENCIA = ['Abierta', 'En revisión', 'Verificada', 'Descartada', 'Cerrada'];
-var CATEGORIAS_INCIDENCIA = ['Problema con el profesional', 'Problema con el trabajo', 'Comunicación', 'Sugerencia para OficioCerca', 'Valoración baja', 'Otro'];
+var ESTADOS_PRESUPUESTO = ['Registrado', 'Sustituido'];
+/** Comisiones (códigos técnicos): NO_HABILITADA = calculada sin cobro (no bloquea) · EN_REVISION = congelada por incidencia (no bloquea). */
+var ESTADOS_COMISION = ['NO_HABILITADA', 'DUE', 'PAYMENT_PENDING', 'PAID', 'PAYMENT_FAILED', 'MANUAL_REVIEW', 'EN_REVISION', 'ANULADA'];
+var ESTADOS_INCIDENCIA = ['Abierta', 'En revisión', 'Resuelta', 'Descartada', 'Cerrada'];
+var CATEGORIAS_INCIDENCIA = ['No se pudo contactar', 'Retraso', 'Trabajo abandonado', 'Trabajo parcial', 'Desacuerdo económico',
+  'Problema de calidad', 'Daños', 'Materiales / bienes', 'Falta de comunicación', 'Otro', 'Situación grave'];
+var RESULTADOS_INCIDENCIA = ['RESUELTO — TRABAJO COMPLETO', 'RESUELTO — TRABAJO PARCIAL', 'CANCELADO — NO HUBO TRABAJO',
+  'SIN ACUERDO / REVISIÓN MANUAL', 'OTRO'];
+var UNIDADES_DURACION = { horas: 3600000, dias: 86400000, semanas: 604800000 };
 
 var ESQUEMA = {
   'Solicitudes': ['Código', 'Fecha', 'Estado', 'Requiere intervención', 'Tipo solicitante', 'Nombre', 'Empresa', 'WhatsApp',
@@ -94,18 +106,23 @@ var ESQUEMA = {
     'Respaldo (PRO)', 'Respaldo disponibilidad', 'Decisión cliente', 'Contacto enviado (fecha)', 'Presupuesto vigente',
     'Mano de obra aceptada (€)', 'Total aceptado (€)', 'Comisión (€)', 'Fecha aceptación', 'Finalizado (fecha)',
     'Valoración (1-5)', 'Motivo cierre', 'Última actualización', 'Notas internas', 'Consentimiento operativo', 'Consentimiento (fecha)',
-    'Grupo cliente', 'Origen servicio', 'Fecha acordada', 'Materiales aceptados (€)', 'Versión acuerdo', 'Cliente confirmó fin (fecha)'],
+    'Grupo cliente', 'Origen servicio', 'Fecha acordada', 'Materiales aceptados (€)', 'Versión acuerdo', 'Cliente confirmó fin (fecha)',
+    'Fecha registro acuerdo', 'Duración estimada', 'Fecha estimada fin', 'Mano de obra inicial (€)', 'Mano de obra final (€)',
+    'Materiales finales (€)', 'Trabajos adicionales', 'Motivo cambio valor', 'Cierre iniciado por', 'Acción pendiente de', 'Acción desde',
+    'Plantilla seguimiento', 'Recordatorios enviados', 'Último aviso', 'Estado previo', 'Escalado por', 'Ronda búsqueda', 'Historial plazos'],
   'Profesionales': ['Código', 'Fecha', 'Estado', 'Nombre', 'Empresa / autónomo', 'Servicios (códigos)', 'Servicios',
     'Servicio otro', 'Especialidades', 'WhatsApp', 'Teléfono', 'Email', 'Ciudad', 'Código postal', 'Zonas', 'Distancia',
     'Experiencia', 'Disponibilidad habitual', 'Con particulares', 'Con empresas', 'Descripción', 'Consent. contacto (legacy)',
     'Consent. privacidad (legacy)', 'Condiciones (versión)', 'Condiciones aceptadas (fecha)', 'Origen', 'Prioridad',
     'Ofertas recibidas', 'Respuestas', 'Aceptadas', 'Asignaciones', 'Completados', 'Tiempo medio respuesta (h)',
-    'Valoración media', 'Nº valoraciones', 'Incidencias verificadas', 'Comisiones pendientes', 'Última oferta', 'Notas internas', 'Tipo de proveedor'],
+    'Valoración media', 'Nº valoraciones', 'Incidencias verificadas', 'Comisiones pendientes', 'Última oferta', 'Notas internas', 'Tipo de proveedor',
+    'Tasa respuesta (%)', 'Cumplimiento seguimiento (%)'],
   'Ofertas': ['ID', 'Fecha envío', 'Código OC', 'Código PRO', 'Profesional', 'Servicio', 'Puntuación', 'Motivo ranking',
     'Estado', 'Respuesta', 'Disponibilidad (código)', 'Disponibilidad', 'Días hasta disponibilidad', 'Fecha respuesta',
-    'Expira', 'Notas'],
+    'Expira', 'Notas', 'Ronda'],
   'Presupuestos': ['ID', 'Fecha', 'Código OC', 'Código PRO', 'Versión', 'Mano de obra (€)', 'Materiales (€)', 'Total (€)',
-    'Observaciones', 'Estado', 'Respuesta cliente (fecha)', 'Notas', 'Fecha acordada', 'Registrado por', 'Confirmado por', 'Política comisión'],
+    'Observaciones', 'Estado', 'Respuesta cliente (fecha)', 'Notas', 'Fecha acordada', 'Registrado por', 'Confirmado por', 'Política comisión',
+    'Duración (cantidad)', 'Duración (unidad)', 'Fecha estimada fin'],
   'Comisiones': ['Código OC', 'Código PRO', 'Profesional', 'Presupuesto', 'Mano de obra (€)', 'Porcentaje', 'Importe comisión (€)',
     'Fecha generación', 'Estado', 'Fecha pago', 'Notas', 'Materiales (€)', 'Política', 'Tramo 10 % (€)', 'Tramo 5 % (€)', 'Fecha exigible',
     'Referencia vigente', 'Transaction ID', 'Importe pagado (COP)', 'Tasa EUR→COP', 'Fuente tasa', 'Fecha tasa', 'Moneda', 'Ambiente'],
@@ -114,8 +131,9 @@ var ESQUEMA = {
   'Eventos Wompi': ['Clave', 'Recibido', 'Evento', 'Ambiente', 'Transaction ID', 'Referencia', 'Estado Wompi', 'Firma válida', 'Resultado', 'Repeticiones', 'Timestamp'],
   'Aceptaciones condiciones': ['Fecha', 'Código PRO', 'Versión', 'Origen', 'Notas'],
   'Incidencias': ['ID', 'Fecha', 'Tipo', 'Código OC', 'Código PRO', 'Origen', 'Categoría', 'Gravedad', 'Descripción', 'Estado',
-    'Pausa preventiva', 'Acción tomada', 'Administrador', 'Fecha resolución', 'Notas'],
-  'Valoraciones': ['Fecha', 'Código OC', 'Código PRO', 'Estrellas', 'Comentario', 'Publicable', 'Notas'],
+    'Pausa preventiva', 'Acción tomada', 'Administrador', 'Fecha resolución', 'Notas', 'Servicio', 'Cliente', 'Reportado por',
+    'Resultado', 'Mano de obra reconocida (€)', 'Estado previo servicio'],
+  'Valoraciones': ['Fecha', 'Código OC', 'Código PRO', 'Estrellas', 'Comentario', 'Publicable', 'Notas', 'Trabajo verificado'],
   'Historial envíos': ['ID', 'Fecha', 'Clave', 'Tipo', 'Destinatario', 'Correo', 'Código OC', 'Código PRO', 'Asunto',
     'Estado', 'Intentos', 'Fecha envío', 'Nº adjuntos', 'Último error', 'Datos'],
   'Registro': ['Fecha', 'Tipo', 'Acción', 'Código OC', 'Código PRO', 'Detalle', 'Usuario'],
@@ -133,7 +151,7 @@ var DESPLEGABLES = {
   'Ofertas': { 'Estado': ESTADOS_OFERTA },
   'Presupuestos': { 'Estado': ESTADOS_PRESUPUESTO },
   'Comisiones': { 'Estado': ESTADOS_COMISION },
-  'Incidencias': { 'Estado': ESTADOS_INCIDENCIA, 'Gravedad': ['Normal', 'Grave'], 'Categoría': CATEGORIAS_INCIDENCIA }
+  'Incidencias': { 'Estado': ESTADOS_INCIDENCIA, 'Gravedad': ['Normal', 'Alta', 'Grave'], 'Resultado': RESULTADOS_INCIDENCIA }
 };
 /* ============================================================ BASE: hojas, tablas, bloqueo, utilidades */
 
@@ -160,7 +178,10 @@ function tabla_(nombre) {
   var t = {
     nombre: nombre, sh: sh, cols: cols,
     col: function (c) { var j = cols.indexOf(c); if (j < 0) throw new Error('Columna desconocida ' + nombre + '.' + c); return j + 1; },
+    _cache: null,
+    /** Lectura completa memorizada durante la ejecución (se invalida al escribir): evita releer la hoja en cada consulta. */
     todas: function () {
+      if (t._cache) return t._cache;
       var n = sh.getLastRow();
       if (n < 2) return [];
       var v = sh.getRange(2, 1, n - 1, cols.length).getValues();
@@ -171,7 +192,19 @@ function tabla_(nombre) {
         cols.forEach(function (c, j) { o[c] = r[j]; });
         out.push(o);
       });
+      t._cache = out;
       return out;
+    },
+    /** Búsqueda directa de UNA fila por valor exacto en una columna (TextFinder: no lee toda la hoja). */
+    buscarRapido: function (c, val) {
+      if (t._cache) return t.buscar(c, val);
+      var n = sh.getLastRow();
+      if (n < 2 || !val) return null;
+      var celda = sh.getRange(2, t.col(c), n - 1, 1).createTextFinder(String(val)).matchEntireCell(true).findNext();
+      if (!celda) return null;
+      var fila = celda.getRow(), v = sh.getRange(fila, 1, 1, cols.length).getValues()[0], o = { _fila: fila };
+      cols.forEach(function (k, j) { o[k] = v[j]; });
+      return o;
     },
     buscar: function (c, val) {
       var all = t.todas();
@@ -181,10 +214,17 @@ function tabla_(nombre) {
     agregar: function (o) {
       var fila = cols.map(function (c) { return o[c] === undefined ? '' : o[c]; });
       sh.appendRow(fila);
+      t._cache = null;
       return sh.getLastRow();
     },
     poner: function (fila, o) {
-      Object.keys(o).forEach(function (k) { sh.getRange(fila, t.col(k)).setValue(o[k]); });
+      var ks = Object.keys(o);
+      // Celdas contiguas en una sola escritura cuando es posible
+      var idx = ks.map(function (k) { return t.col(k); });
+      var contiguas = idx.every(function (c, i) { return i === 0 || c === idx[i - 1] + 1; });
+      if (ks.length > 1 && contiguas) sh.getRange(fila, idx[0], 1, ks.length).setValues([ks.map(function (k) { return o[k]; })]);
+      else ks.forEach(function (k, i) { sh.getRange(fila, idx[i]).setValue(o[k]); });
+      if (t._cache) { var reg = t._cache.filter(function (x) { return x._fila === fila; })[0]; if (reg) ks.forEach(function (k) { reg[k] = o[k]; }); }
     }
   };
   _tablas[nombre] = t;
@@ -316,7 +356,7 @@ function json_(obj) { return ContentService.createTextOutput(JSON.stringify(obj)
 var NOMBRE_HOJA = 'OficioCerca — Operación';
 
 /** V1.5 → V1.6: misma instalación idempotente (no borra datos) + migración V1.6. */
-function instalarV15() { instalarV16(); }
+function instalarV15() { instalarV17(); }
 
 function instalarV14() {
   var props = PropertiesService.getScriptProperties();
@@ -441,7 +481,7 @@ function limpiarDatosDePrueba() {
     ['Comisiones Sandbox', 'Pagos Sandbox'].forEach(function (n) { var sh = ss_().getSheetByName(n); if (sh) ss_().deleteSheet(sh); });
     var props = PropertiesService.getScriptProperties();
     props.setProperty('SEQ_OC', '0'); props.setProperty('SEQ_PRO', '0'); props.setProperty('SEQ_INC', '0');
-    props.deleteProperty('SBX_E2E_OC'); props.deleteProperty('PENDIENTE');
+    props.deleteProperty('SBX_E2E_OC'); props.deleteProperty('PENDIENTE'); props.deleteProperty('PROX_SEGUIMIENTO');
     _tablas = {};
   });
   actualizarPanel();
@@ -644,6 +684,16 @@ function respaldoV16Final() {
 
 /* ============================================================ ENTRADA DESDE LA WEB */
 
+/** Límite de frecuencia sencillo (CacheService): máx. «n» operaciones por clave y ventana. Sin datos personales en claro. */
+function limiteFrecuencia_(clave, n, segundos) {
+  try {
+    var c = CacheService.getScriptCache(), k = 'rl-' + hash_(clave).slice(0, 32), v = Number(c.get(k) || 0);
+    if (v >= n) return false;
+    c.put(k, String(v + 1), segundos);
+  } catch (e) { }
+  return true;
+}
+
 function doPost(e) {
   try {
     if (!e || !e.postData || !e.postData.contents || e.postData.contents.length > 30 * 1024 * 1024) return json_({ ok: false, error: 'sin datos' });
@@ -653,7 +703,12 @@ function doPost(e) {
     if (d.tipo === 'solicitud') return json_(guardarSolicitud_(d));
     if (d.tipo === 'profesional') return json_(guardarProfesional_(d));
     if (d.tipo === 'pagina') return json_(paginaJson_(d.t));
-    if (d.tipo === 'accion') return json_(accion(String(d.t || ''), d.p || {}));
+    if (d.tipo === 'accion') {
+      // V1.7: la respuesta incluye ya la página actualizada → la web no necesita una segunda llamada
+      var res = accion(String(d.t || ''), d.p || {});
+      if (res && res.ok && !res.url && !res.t) { try { res.pagina = paginaJson_(String(d.t || '')); } catch (e) { } }
+      return json_(res);
+    }
     return json_({ ok: false, error: 'tipo desconocido' });
   } catch (err) {
     var msg = String(err && err.message || err);
@@ -682,6 +737,7 @@ function guardarSolicitud_(d) {
     (/contratista/i.test(d.tipoSolicitante) ? 'Contratista' : /empresa/i.test(d.tipoSolicitante) ? 'Empresa' : 'Particular');
   var fotos = validarFotos_(d.fotos);
 
+  if (!limiteFrecuencia_('sol-' + limpio_(t_(d.whatsapp)) + '-' + String(d.email).toLowerCase(), 6, 3600)) invalido_('demasiadas solicitudes seguidas; inténtalo más tarde');
   return conLock_(function () {
     var ts = tabla_('Solicitudes');
     // Doble envío (doble clic / recarga): misma persona y descripción en los últimos 15 min → mismo código
@@ -753,6 +809,7 @@ function guardarProfesional_(d) {
   if (d.consentCondiciones !== 'si') invalido_('faltan las condiciones');
   var tipoProv = TIPOS_PROVEEDOR.indexOf(d.tipoProveedor) >= 0 ? d.tipoProveedor : 'Profesional independiente / autónomo';
   var version = s_(d.condVersion || cfg_('PRO_COND_VERSION'), 40);
+  if (!limiteFrecuencia_('pro-' + String(d.email).toLowerCase(), 4, 3600)) invalido_('demasiados intentos seguidos; inténtalo más tarde');
   return conLock_(function () {
     var tp = tabla_('Profesionales');
     var email = s_(d.email, 160).toLowerCase();
@@ -807,7 +864,7 @@ function errorSistema_(donde, err) {
  * Ofertas SECUENCIALES: una oferta activa por solicitud, nunca envíos masivos.
  */
 
-var ESTADOS_BUSQUEDA = ['Nueva', 'Buscando profesional', 'Esperando respuesta profesional', 'Sin profesional compatible'];
+var ESTADOS_BUSQUEDA = ['Nueva', 'Buscando profesional', 'Esperando respuesta profesional', 'Sin profesional disponible'];
 
 function solicitud_(oc) {
   var r = tabla_('Solicitudes').buscar('Código', oc);
@@ -830,7 +887,8 @@ function motor_(oc) {
       actualizarSol_(sol, { 'Estado': 'Revisión manual', 'Requiere intervención': sol['Servicio (código)'] === 'otro' ? 'Otro servicio: revisar demanda' : 'Servicio no activo en el piloto: revisar' });
       return 'manual';
     }
-    var ofertas = tabla_('Ofertas').todas().filter(function (o) { return o['Código OC'] === oc; });
+    var ronda = rondaDe_(sol);
+    var ofertas = tabla_('Ofertas').todas().filter(function (o) { return o['Código OC'] === oc && (Number(o['Ronda']) || 1) === ronda; });
     var activa = ofertas.filter(function (o) { return o['Estado'] === 'Enviada'; })[0];
     if (activa) return 'esperando ' + activa['Código PRO'];
 
@@ -850,9 +908,11 @@ function motor_(oc) {
       }
       return 'respaldo ' + respaldo['Código PRO'];
     }
-    if (sol['Estado'] !== 'Sin profesional compatible') {
-      actualizarSol_(sol, { 'Estado': 'Sin profesional compatible', 'Requiere intervención': 'No hay profesional compatible disponible' + (respaldo ? ' (el cliente pidió seguir buscando)' : '') });
-      registrar_('Sistema', 'Sin profesional compatible', oc, '', SERVICIOS[sol['Servicio (código)']] + ' · ' + sol['Zona']);
+    if (sol['Estado'] !== 'Sin profesional disponible') {
+      actualizarSol_(sol, { 'Estado': 'Sin profesional disponible', 'Requiere intervención': 'No hay profesional compatible disponible' + (respaldo ? ' (el cliente pidió seguir buscando)' : '') });
+      registrar_('Sistema', 'Sin profesional disponible', oc, '', SERVICIOS[sol['Servicio (código)']] + ' · ' + sol['Zona'] + ' · ronda ' + ronda);
+      // UN solo correo por ronda de búsqueda (la clave lo hace idempotente); se sigue reintentando en silencio
+      encolarCorreo_('cli-sinpro-' + oc + '-r' + ronda, 'sin_profesional', 'Cliente', sol['Email'], oc, '', {}, true);
     }
     return 'sin candidatos';
   });
@@ -884,10 +944,8 @@ function candidatos_(sol, ofertasOC) {
     if (dCli !== null && dCli <= 7 && /esta semana/.test(habitual)) { puntos += 2; motivos.push('disponibilidad habitual +2'); }
     if (dCli !== null && dCli > 7 && /1-2 semanas|1–2 semanas/.test(habitual)) { puntos += 1; motivos.push('disponibilidad habitual +1'); }
     if (dCli === null && !/completa/.test(habitual)) { puntos += 1; motivos.push('plazo flexible +1'); }
-    var media = Number(p['Valoración media']) || 0;
-    if (media >= 4) { puntos += 1; motivos.push('valoración +1'); }
-    var inc = Number(p['Incidencias verificadas']) || 0;
-    if (inc) { puntos -= 2 * inc; motivos.push('incidencias −' + 2 * inc); }
+    var rep = puntosReputacion_(p);
+    if (rep.puntos) { puntos += rep.puntos; motivos.push(rep.motivo); }
     if (p['Prioridad'] === 'Baja') { puntos -= 3; motivos.push('prioridad baja −3'); }
     var recientes = todasOfertas.filter(function (o) { return o['Código PRO'] === code && new Date(o['Fecha envío']).getTime() > hace30; });
     var ultima = recientes.reduce(function (m, o) { return Math.max(m, new Date(o['Fecha envío']).getTime()); }, 0);
@@ -932,7 +990,7 @@ function ofrecer_(sol, c) {
   tabla_('Ofertas').agregar({
     'ID': id, 'Fecha envío': new Date(), 'Código OC': oc, 'Código PRO': pro, 'Profesional': p['Nombre'],
     'Servicio': SERVICIOS[sol['Servicio (código)']] || sol['Servicio'], 'Puntuación': c.puntos, 'Motivo ranking': c.motivo,
-    'Estado': 'Enviada', 'Expira': expira
+    'Estado': 'Enviada', 'Expira': expira, 'Ronda': rondaDe_(sol)
   });
   actualizarSol_(sol, { 'Estado': 'Esperando respuesta profesional', 'Requiere intervención': '' });
   encolarCorreo_('pro-oferta-' + id, 'oferta_profesional', 'Profesional', p['Email'], oc, pro,
@@ -1067,7 +1125,7 @@ function revisarOfertas_() {
     }
   });
   tabla_('Solicitudes').todas().forEach(function (s) {
-    if (['Nueva', 'Buscando profesional', 'Sin profesional compatible'].indexOf(s['Estado']) >= 0) tocadas[s['Código']] = 1;
+    if (['Nueva', 'Buscando profesional', 'Sin profesional disponible'].indexOf(s['Estado']) >= 0) tocadas[s['Código']] = 1;
   });
   Object.keys(tocadas).forEach(function (oc) { try { motor_(oc); } catch (e) { errorSistema_('motor ' + oc, e); } });
 }
@@ -1087,174 +1145,338 @@ function ofertaManual_(sol, pro) {
   ofrecer_(sol, { pro: p, puntos: '', motivo: 'Oferta manual del administrador' });
   return 'Oferta enviada a ' + pro;
 }
-/* ============================================================ PRESUPUESTO · COMISIÓN · FINALIZACIÓN · VALORACIÓN · INCIDENCIAS */
 
-/* El «presupuesto» de V1.5 es ahora el ACUERDO (V1.6): mano de obra + materiales + fecha acordada + nota.
- * Cada registro o cambio = nueva versión (pestaña «Presupuestos»); nada se sobrescribe y cada cambio exige reconfirmación. */
-var ESTADOS_PERMITEN_ACUERDO = ['Profesional asignado', 'Acuerdo pendiente del cliente', 'Acuerdo no confirmado', 'Acuerdo confirmado', 'Trabajo en proceso'];
+/** Ronda de búsqueda vigente (cada «Volver a buscar» abre una ronda nueva sin pedir otra vez los datos). */
+function rondaDe_(sol) { return Number(sol['Ronda búsqueda']) || 1; }
+
+/**
+ * Reputación como SEÑAL SECUNDARIA de prioridad (los filtros duros —servicio, zona, tipo de cliente, estado activo,
+ * condiciones vigentes y ausencia de bloqueo— se aplican antes). Pesos configurables (REP_PESO_*; 0 = no influye).
+ * Un profesional nuevo sin datos puntúa 0 (neutro) y la rotación (menos ofertas en 30 días primero) le da oportunidades.
+ *  - Valoración: solo con ≥ 1 valoración → (media − 3) / 2  (de −1 a +1).
+ *  - Respuesta: solo con ≥ 3 ofertas → +1 si responde ≥ 80 %, −1 si responde < 40 %.
+ *  - Seguimiento: solo con ≥ 2 trabajos → +0,5 si ≥ 90 % al día, −1 si < 60 %.
+ *  - Nuevo (menos de 3 oportunidades recibidas): +1, para que entre en rotación sin necesitar reseñas.
+ *  - Tope total ±1 (la zona coincidente suma 3): la reputación desempata, nunca domina.
+ */
+function puntosReputacion_(p) {
+  var w1 = cfgNum_('REP_PESO_VALORACION', 1), w2 = cfgNum_('REP_PESO_RESPUESTA', 1), w3 = cfgNum_('REP_PESO_SEGUIMIENTO', 1);
+  var pts = 0, m = [];
+  var nv = Number(p['Nº valoraciones']) || 0, media = Number(p['Valoración media']) || 0;
+  if (nv >= 1 && w1) { var a = w1 * (media - 3) / 2; pts += a; m.push('valoración ' + (a >= 0 ? '+' : '') + Math.round(a * 10) / 10); }
+  var of = Number(p['Ofertas recibidas']) || 0, tr = p['Tasa respuesta (%)'];
+  if (of >= 3 && tr !== '' && tr !== undefined && w2) { var b = Number(tr) >= 80 ? w2 : Number(tr) < 40 ? -w2 : 0; if (b) { pts += b; m.push('respuesta ' + (b > 0 ? '+' : '') + b); } }
+  var cs = p['Cumplimiento seguimiento (%)'], tj = Number(p['Asignaciones']) || 0;
+  if (tj >= 2 && cs !== '' && cs !== undefined && w3) { var c = Number(cs) >= 90 ? 0.5 * w3 : Number(cs) < 60 ? -w3 : 0; if (c) { pts += c; m.push('seguimiento ' + (c > 0 ? '+' : '') + c); } }
+  // Profesional nuevo (menos de 3 oportunidades recibidas): +1 para que tenga oportunidades reales aunque no tenga historial
+  if (of < 3) { pts += 1; m.push('nuevo +1'); }
+  // Señal SECUNDARIA: la reputación nunca suma ni resta más de 1 punto (la zona suma 3). A igualdad de puntos manda la
+  // rotación (menos oportunidades en 30 días), así que nadie queda «siempre primero».
+  var tope = 1, lim = Math.max(-tope, Math.min(tope, pts));
+  if (lim !== pts) m.push('tope ±' + tope);
+  return { puntos: Math.round(lim * 10) / 10, motivo: m.join(' · ') };
+}
+
+/** «Volver a buscar»: nueva ronda sobre la MISMA solicitud (sin rellenar nada otra vez). */
+function volverABuscar_(oc) {
+  return conLock_(function () {
+    var sol = solicitud_(oc);
+    if (sol['Estado'] !== 'Sin profesional disponible') return { ok: false, msg: 'Ahora mismo tu solicitud ya está en búsqueda o en curso.' };
+    var ronda = rondaDe_(sol) + 1;
+    actualizarSol_(sol, { 'Estado': 'Buscando profesional', 'Ronda búsqueda': ronda, 'Requiere intervención': '', 'Decisión cliente': '' });
+    registrar_('Sistema', 'El cliente vuelve a buscar (ronda ' + ronda + ')', oc, '', '');
+    motor_(oc);
+    return { ok: true, msg: 'Hemos vuelto a buscar un profesional para tu solicitud. Te avisaremos por correo cuando haya uno.' };
+  });
+}
+/* ============================================================ V1.7 · ACUERDO EXTERNO · PLAZO · CIERRE · VALORACIÓN · INCIDENCIAS
+ *
+ * OficioCerca NO cotiza ni negocia precios. Cliente y profesional hablan, visitan y acuerdan POR FUERA.
+ * Después el profesional vuelve y REGISTRA EL ACUERDO YA ALCANZADO (mano de obra inicial + duración estimada).
+ * La duración es el reloj del seguimiento: al vencer, la plataforma pregunta el estado a las partes (12-v16.gs).
+ * Cierre: cualquiera lo inicia; el profesional registra la mano de obra FINAL; el cliente confirma. Solo entonces
+ * se calcula la comisión (sobre la mano de obra final confirmada; materiales nunca).
+ */
+
+var ESTADOS_PERMITEN_ACUERDO = ['Profesional asignado', 'Trabajo en proceso'];
 var ESTADOS_PERMITEN_PRESUPUESTO = ESTADOS_PERMITEN_ACUERDO; // compatibilidad
 var ESTADOS_TRAS_CONFIRMAR_FIN = ['Comisión pendiente', 'Cerrado'];
+/** Estados en los que el servicio está «vivo» (se puede reportar un problema e indicar el estado del trabajo). */
+var ESTADOS_ACTIVOS_SERVICIO = ['Profesional asignado', 'Trabajo en proceso', 'Cierre pendiente del profesional', 'Finalización por confirmar', 'Archivado por inactividad'];
 
-/** «Ya hablé con el cliente / Registrar acuerdo». fecha = 'AAAA-MM-DD' (opcional). */
-function registrarAcuerdo_(oc, pro, manoObra, materiales, fecha, nota) {
+/** Duración «cantidad + unidad» → { ms, texto } o null si no es válida. */
+function duracion_(cantidad, unidad) {
+  var n = parseInt(cantidad, 10), u = String(unidad || '').toLowerCase().replace('í', 'i');
+  if (!(n >= 1 && n <= 365) || !UNIDADES_DURACION[u]) return null;
+  var nombres = { horas: ['hora', 'horas'], dias: ['día', 'días'], semanas: ['semana', 'semanas'] };
+  return { n: n, unidad: u, ms: n * UNIDADES_DURACION[u], texto: n + ' ' + nombres[u][n === 1 ? 0 : 1] };
+}
+
+function anotarPlazo_(sol, texto) {
+  var h = String(sol['Historial plazos'] || '');
+  return (h ? h + '\n' : '') + fecha_(new Date()) + ' · ' + texto;
+}
+
+/** «REGISTRAR ACUERDO ALCANZADO» (el acuerdo ya existe: se negoció fuera de OficioCerca). */
+function registrarAcuerdo_(oc, pro, manoObra, materiales, cantidad, unidad, nota) {
   return conLock_(function () {
     var sol = solicitud_(oc);
     if (sol['Profesional asignado (PRO)'] !== pro) return { ok: false, msg: 'Este trabajo no está asignado a ti.' };
-    if (ESTADOS_PERMITEN_ACUERDO.indexOf(sol['Estado']) < 0) return { ok: false, msg: 'Ahora no se puede registrar un acuerdo (estado: ' + sol['Estado'] + ').' };
+    if (ESTADOS_PERMITEN_ACUERDO.indexOf(sol['Estado']) < 0) return { ok: false, msg: 'Ahora no se puede registrar el acuerdo (estado: ' + sol['Estado'] + ').' };
+    if (String(manoObra === undefined || manoObra === null ? '' : manoObra).trim() === '') return { ok: false, msg: 'Indica la mano de obra acordada.' };
     var mo = num_(manoObra), mat = materiales === '' || materiales === undefined || materiales === null ? 0 : num_(materiales);
-    if (isNaN(mo) || mo < 0 || isNaN(mat) || mat < 0) return { ok: false, msg: 'Revisa los importes: usa números (por ejemplo 350 o 350,50).' };
+    if (isNaN(mo) || mo <= 0 || isNaN(mat) || mat < 0) return { ok: false, msg: 'Revisa los importes: usa números (por ejemplo 350 o 350,50).' };
     if (mo > 1000000 || mat > 1000000) return { ok: false, msg: 'Importe demasiado alto. Revisa las cifras.' };
-    var total = Math.round((mo + mat) * 100) / 100;
-    if (total <= 0) return { ok: false, msg: 'El total debe ser mayor que 0.' };
-    var f = String(fecha || '').slice(0, 10);
-    if (f && !/^\d{4}-\d{2}-\d{2}$/.test(f)) return { ok: false, msg: 'Revisa la fecha acordada.' };
+    var d = duracion_(cantidad, unidad);
+    if (!d) return { ok: false, msg: 'Indica la duración estimada (por ejemplo 7 días).' };
     var tp = tabla_('Presupuestos');
     var previos = tp.todas().filter(function (r) { return r['Código OC'] === oc; });
     var ultimo = previos[previos.length - 1];
-    // Doble clic / recarga: mismo acuerdo en los últimos 10 minutos → no se duplica
-    if (ultimo && Number(ultimo['Mano de obra (€)']) === mo && Number(ultimo['Materiales (€)']) === mat && String(ultimo['Observaciones']) === s_(nota, 1000) &&
-      String(ultimo['Fecha acordada'] || '') === f && Date.now() - new Date(ultimo['Fecha']).getTime() < 10 * 60000)
-      return { ok: true, ya: true, msg: 'Este acuerdo ya estaba registrado (versión ' + ultimo['Versión'] + ').' };
-    var reconfirmar = ['Acuerdo confirmado', 'Trabajo en proceso'].indexOf(sol['Estado']) >= 0;
-    previos.forEach(function (r) { if (r['Estado'] === 'Pendiente del cliente' || r['Estado'] === 'Enviado al cliente' || r['Estado'] === 'Confirmado' || r['Estado'] === 'Aceptado') tp.poner(r._fila, { 'Estado': 'Sustituido' }); });
+    if (ultimo && Number(ultimo['Mano de obra (€)']) === mo && Number(ultimo['Materiales (€)']) === mat && String(ultimo['Duración (cantidad)']) === String(d.n) &&
+      String(ultimo['Duración (unidad)']) === d.unidad && Date.now() - new Date(ultimo['Fecha']).getTime() < 10 * 60000)
+      return { ok: true, ya: true, msg: 'Este acuerdo ya estaba registrado.' };
+    previos.forEach(function (r) { if (r['Estado'] !== 'Sustituido') tp.poner(r._fila, { 'Estado': 'Sustituido' }); });
+    var ahora = new Date(), fin = new Date(ahora.getTime() + d.ms);
     var version = previos.length + 1, id = 'P-' + oc + '-v' + version;
-    tp.agregar({ 'ID': id, 'Fecha': new Date(), 'Código OC': oc, 'Código PRO': pro, 'Versión': version, 'Mano de obra (€)': mo, 'Materiales (€)': mat,
-      'Total (€)': total, 'Observaciones': s_(nota, 1000), 'Estado': 'Pendiente del cliente', 'Fecha acordada': f ? "'" + f : '', 'Registrado por': pro,
-      'Política comisión': POLITICA_COMISION.version });
-    actualizarSol_(sol, { 'Estado': 'Acuerdo pendiente del cliente', 'Presupuesto vigente': id, 'Versión acuerdo': version, 'Fecha acordada': f ? "'" + f : '' });
-    encolarCorreo_('cli-acuerdo-' + id, 'acuerdo_cliente', 'Cliente', sol['Email'], oc, pro, { presupuesto: id, cambio: reconfirmar || version > 1 }, true);
-    registrar_('Sistema', reconfirmar ? 'Acuerdo modificado (requiere reconfirmación)' : 'Acuerdo registrado', oc, pro,
-      id + ' · MO ' + euros_(mo) + ' · materiales ' + euros_(mat) + (f ? ' · fecha ' + f : ''));
-    return { ok: true, msg: 'Acuerdo registrado (versión ' + version + '). Hemos pedido al cliente que lo confirme.' };
+    tp.agregar({ 'ID': id, 'Fecha': ahora, 'Código OC': oc, 'Código PRO': pro, 'Versión': version, 'Mano de obra (€)': mo, 'Materiales (€)': mat,
+      'Total (€)': Math.round((mo + mat) * 100) / 100, 'Observaciones': s_(nota, 1000), 'Estado': 'Registrado', 'Registrado por': pro,
+      'Política comisión': POLITICA_COMISION.version, 'Duración (cantidad)': d.n, 'Duración (unidad)': d.unidad, 'Fecha estimada fin': fin });
+    actualizarSol_(sol, { 'Estado': 'Trabajo en proceso', 'Presupuesto vigente': id, 'Versión acuerdo': version, 'Fecha registro acuerdo': ahora,
+      'Duración estimada': d.texto, 'Fecha estimada fin': fin, 'Mano de obra inicial (€)': mo, 'Materiales aceptados (€)': mat,
+      'Historial plazos': anotarPlazo_(sol, (version > 1 ? 'Acuerdo corregido' : 'Acuerdo registrado') + ': ' + d.texto + ' → fin estimado ' + fecha_(fin)) });
+    pararAccion_(sol);
+    programarRevision_(fin);
+    registrar_('Sistema', version > 1 ? 'Acuerdo corregido' : 'Acuerdo alcanzado registrado', oc, pro,
+      id + ' · MO ' + euros_(mo) + ' · materiales ' + euros_(mat) + ' · ' + d.texto + ' · fin estimado ' + fecha_(fin));
+    return { ok: true, msg: 'Acuerdo registrado. Fin estimado: ' + fecha_(fin) + '. Te recordaremos el seguimiento en esa fecha.' };
   });
 }
-/** Compatibilidad V1.5. */
-function registrarPresupuesto_(oc, pro, manoObra, materiales, obs, fecha) { return registrarAcuerdo_(oc, pro, manoObra, materiales, fecha || '', obs); }
+/** Compatibilidad con llamadas antiguas (V1.5/V1.6): sin duración no se puede registrar. */
+function registrarPresupuesto_(oc, pro, manoObra, materiales, obs, cantidad, unidad) { return registrarAcuerdo_(oc, pro, manoObra, materiales, cantidad, unidad, obs); }
 
-/** Respuesta del CLIENTE al acuerdo: 'confirmar' | 'no_de_acuerdo' (+ alias V1.5 'aceptar' | 'rechazar'). */
-function procesarRespuestaPresupuesto_(presId, decision) {
-  if (decision === 'aceptar') decision = 'confirmar';
-  if (decision === 'rechazar') decision = 'no_de_acuerdo';
+/** «Sigue en proceso» del PROFESIONAL: nueva duración/fecha (se conserva el historial). */
+function actualizarPlazo_(oc, pro, cantidad, unidad, nota) {
   return conLock_(function () {
-    var tp = tabla_('Presupuestos'), pr = tp.buscar('ID', presId);
-    if (!pr) return { ok: false, msg: 'Acuerdo no encontrado.' };
-    var sol = solicitud_(pr['Código OC']), oc = sol['Código'], pro = pr['Código PRO'];
-    var p = profesional_(pro);
-    if (pr['Estado'] === 'Confirmado' || pr['Estado'] === 'Aceptado') return { ok: true, ya: true, msg: 'Ya habías confirmado este acuerdo. ¡Gracias!' };
-    if (pr['Estado'] === 'No confirmado' || pr['Estado'] === 'No aceptado') return { ok: true, ya: true, msg: 'Ya nos indicaste que no estás de acuerdo.' };
-    if ((pr['Estado'] !== 'Pendiente del cliente' && pr['Estado'] !== 'Enviado al cliente') || sol['Presupuesto vigente'] !== presId)
-      return { ok: false, msg: 'Este acuerdo fue sustituido por una versión más reciente. Abre tu seguimiento para ver la última.' };
-    var ahora = new Date();
-    if (decision === 'confirmar') {
-      tp.poner(pr._fila, { 'Estado': 'Confirmado', 'Respuesta cliente (fecha)': ahora, 'Confirmado por': 'Cliente (' + sol['Email'] + ')' });
-      var f = fechaIso_(pr['Fecha acordada']);
-      var enCurso = f && f <= Utilities.formatDate(ahora, ZONA_HORARIA, 'yyyy-MM-dd');
-      actualizarSol_(sol, { 'Estado': enCurso ? 'Trabajo en proceso' : 'Acuerdo confirmado', 'Mano de obra aceptada (€)': Number(pr['Mano de obra (€)']) || 0,
-        'Materiales aceptados (€)': Number(pr['Materiales (€)']) || 0, 'Total aceptado (€)': Number(pr['Total (€)']), 'Fecha aceptación': ahora, 'Comisión (€)': '' });
-      if (p) encolarCorreo_('pro-acuerdo-ok-' + presId, 'acuerdo_confirmado_pro', 'Profesional', p['Email'], oc, pro, { presupuesto: presId, token: { tipo: 'gestion', dias: 180 } }, true);
-      registrar_('Sistema', 'Cliente confirma el acuerdo', oc, pro, presId + ' · MO ' + euros_(pr['Mano de obra (€)']) + ' · materiales ' + euros_(pr['Materiales (€)']));
-      return { ok: true, msg: 'Has confirmado el acuerdo. El profesional ya está avisado. Cuando termine el trabajo te pediremos que lo confirmes.' };
-    }
-    if (decision === 'no_de_acuerdo') {
-      tp.poner(pr._fila, { 'Estado': 'No confirmado', 'Respuesta cliente (fecha)': ahora });
-      actualizarSol_(sol, { 'Estado': 'Acuerdo no confirmado' });
-      if (p) encolarCorreo_('pro-acuerdo-no-' + presId, 'acuerdo_no_confirmado_pro', 'Profesional', p['Email'], oc, pro, { presupuesto: presId, token: { tipo: 'gestion', dias: 180 } }, true);
-      registrar_('Sistema', 'Cliente NO está de acuerdo', oc, pro, presId);
-      return { ok: true, msg: 'Hemos avisado al profesional de que no estás de acuerdo. Podéis hablarlo y, si llegáis a otro acuerdo, te pediremos que lo confirmes.' };
-    }
-    return { ok: false, msg: 'Opción no válida.' };
+    var sol = solicitud_(oc);
+    if (sol['Profesional asignado (PRO)'] !== pro) return { ok: false, msg: 'Este trabajo no está asignado a ti.' };
+    if (['Trabajo en proceso', 'Archivado por inactividad'].indexOf(sol['Estado']) < 0) return { ok: false, msg: 'Ahora no se puede actualizar el plazo (estado: ' + sol['Estado'] + ').' };
+    if (!sol['Presupuesto vigente']) return { ok: false, msg: 'Primero registra el acuerdo alcanzado.' };
+    var d = duracion_(cantidad, unidad);
+    if (!d) return { ok: false, msg: 'Indica cuánto tiempo más necesitas (por ejemplo 3 días).' };
+    var fin = new Date(Date.now() + d.ms);
+    if (sol['Estado'] === 'Archivado por inactividad') registrar_('Sistema', 'Servicio reabierto', oc, pro, 'Por el profesional');
+    actualizarSol_(sol, { 'Estado': 'Trabajo en proceso', 'Fecha estimada fin': fin, 'Duración estimada': d.texto,
+      'Historial plazos': anotarPlazo_(sol, 'Plazo actualizado por el profesional: +' + d.texto + ' → fin estimado ' + fecha_(fin) + (nota ? ' (' + s_(nota, 200) + ')' : '')) });
+    pararAccion_(sol);
+    programarRevision_(fin);
+    registrar_('Sistema', 'Plazo actualizado', oc, pro, d.texto + ' · fin estimado ' + fecha_(fin));
+    return { ok: true, msg: 'Plazo actualizado. Nuevo fin estimado: ' + fecha_(fin) + '.' };
   });
 }
 
-/** El profesional indica «Trabajo terminado». No cierra nada: el cliente debe confirmarlo. */
-function marcarFinalizado_(oc, pro) {
+/** «Sigue en proceso» del CLIENTE: se pide al profesional que actualice el plazo. */
+function clienteSigueEnProceso_(oc) {
+  return conLock_(function () {
+    var sol = solicitud_(oc);
+    if (['Trabajo en proceso', 'Archivado por inactividad', 'Finalización por confirmar'].indexOf(sol['Estado']) < 0) return { ok: false, msg: 'Ahora no aplica (estado: ' + sol['Estado'] + ').' };
+    if (sol['Estado'] !== 'Trabajo en proceso') registrar_('Sistema', sol['Estado'] === 'Archivado por inactividad' ? 'Servicio reabierto' : 'El cliente indica que aún no ha terminado', oc, sol['Profesional asignado (PRO)'], 'Por el cliente');
+    actualizarSol_(sol, { 'Estado': 'Trabajo en proceso', 'Historial plazos': anotarPlazo_(sol, 'El cliente indica que el trabajo sigue en proceso') });
+    iniciarAccion_(sol, 'profesional', 'actualizar_plazo');
+    registrar_('Sistema', 'Cliente: el trabajo sigue en proceso', oc, sol['Profesional asignado (PRO)'], '');
+    return { ok: true, msg: 'Gracias. Hemos pedido al profesional que actualice la fecha estimada.' };
+  });
+}
+
+/** «MARCAR TRABAJO COMO TERMINADO» (profesional): valor FINAL de mano de obra + adicionales + motivo. */
+function marcarFinalizado_(oc, pro, moFinal, adicionales, motivo, matFinal) {
   return conLock_(function () {
     var sol = solicitud_(oc);
     if (sol['Profesional asignado (PRO)'] !== pro) return { ok: false, msg: 'Este trabajo no está asignado a ti.' };
     if (sol['Estado'] === 'Finalización por confirmar') return { ok: true, ya: true, msg: 'Ya lo habías indicado. Estamos esperando la confirmación del cliente.' };
-    if (['Acuerdo confirmado', 'Trabajo en proceso'].indexOf(sol['Estado']) < 0) return { ok: false, msg: 'Solo se puede indicar «Trabajo terminado» con un acuerdo confirmado por el cliente (estado actual: ' + sol['Estado'] + ').' };
-    var n = tabla_('Registro').todas().filter(function (r) { return r['Código OC'] === oc && r['Acción'] === 'Profesional indica trabajo finalizado'; }).length + 1;
-    actualizarSol_(sol, { 'Estado': 'Finalización por confirmar' });
-    encolarCorreo_('cli-fin-' + oc + '-' + n, 'fin_cliente', 'Cliente', sol['Email'], oc, pro, {}, true);
-    registrar_('Sistema', 'Profesional indica trabajo finalizado', oc, pro, 'Aviso ' + n);
-    return { ok: true, msg: 'Gracias. Hemos pedido al cliente que confirme que el trabajo terminó.' };
+    if (['Trabajo en proceso', 'Cierre pendiente del profesional', 'Archivado por inactividad', 'Profesional asignado'].indexOf(sol['Estado']) < 0)
+      return { ok: false, msg: 'Ahora no se puede cerrar este trabajo (estado: ' + sol['Estado'] + ').' };
+    if (String(moFinal === undefined || moFinal === null ? '' : moFinal).trim() === '') return { ok: false, msg: 'Indica el valor final de la mano de obra.' };
+    var mo = num_(moFinal), mat = matFinal === '' || matFinal === undefined || matFinal === null ? '' : num_(matFinal);
+    if (isNaN(mo) || mo <= 0 || mo > 1000000 || (mat !== '' && (isNaN(mat) || mat < 0))) return { ok: false, msg: 'Revisa los importes.' };
+    var inicial = sol['Mano de obra inicial (€)'] === '' ? null : Number(sol['Mano de obra inicial (€)']);
+    var cambia = inicial !== null && Math.abs(mo - inicial) >= 0.01;
+    var adic = adicionales === 'si' || adicionales === true || adicionales === 'Sí';
+    if (cambia && !String(motivo || '').trim()) return { ok: false, msg: 'El valor final es distinto del inicial: explica brevemente el motivo.' };
+    var iniciadoPor = sol['Estado'] === 'Cierre pendiente del profesional' ? 'Cliente' : 'Profesional';
+    if (sol['Estado'] === 'Archivado por inactividad') registrar_('Sistema', 'Servicio reabierto', oc, pro, 'Por el profesional');
+    actualizarSol_(sol, { 'Estado': 'Finalización por confirmar', 'Mano de obra final (€)': mo, 'Materiales finales (€)': mat,
+      'Trabajos adicionales': adic ? 'Sí' : 'No', 'Motivo cambio valor': s_(motivo, 500), 'Cierre iniciado por': iniciadoPor });
+    iniciarAccion_(sol, 'cliente', 'confirmar_cierre');
+    registrar_('Sistema', 'Profesional indica trabajo finalizado', oc, pro, 'MO final ' + euros_(mo) + (inicial !== null ? ' (inicial ' + euros_(inicial) + ')' : '') + (adic ? ' · con trabajos adicionales' : ''));
+    return { ok: true, msg: 'Gracias. Hemos pedido al cliente que confirme el cierre.' };
   });
 }
 
-/** Confirmación del cliente: 'si' | 'aun_no' | 'problema' (+ texto y gravedad). La comisión SOLO nace con 'si'. */
-function procesarFinCliente_(oc, decision, texto, grave) {
+/** «EL TRABAJO TERMINÓ» (cliente): el profesional debe registrar el valor final; después el cliente confirma. */
+function clienteTerminado_(oc) {
+  return conLock_(function () {
+    var sol = solicitud_(oc);
+    if (sol['Estado'] === 'Cierre pendiente del profesional') return { ok: true, ya: true, msg: 'Ya lo habías indicado. Estamos esperando al profesional.' };
+    if (['Trabajo en proceso', 'Archivado por inactividad', 'Profesional asignado'].indexOf(sol['Estado']) < 0) return { ok: false, msg: 'Ahora no aplica (estado: ' + sol['Estado'] + ').' };
+    if (sol['Estado'] === 'Archivado por inactividad') registrar_('Sistema', 'Servicio reabierto', oc, sol['Profesional asignado (PRO)'], 'Por el cliente');
+    actualizarSol_(sol, { 'Estado': 'Cierre pendiente del profesional', 'Cierre iniciado por': 'Cliente' });
+    iniciarAccion_(sol, 'profesional', 'registrar_cierre');
+    registrar_('Sistema', 'Cliente indica que el trabajo terminó', oc, sol['Profesional asignado (PRO)'], '');
+    return { ok: true, msg: 'Gracias. Hemos pedido al profesional que registre el valor final para completar el cierre. Después te pediremos tu confirmación.' };
+  });
+}
+
+/** Confirmación definitiva del CLIENTE: 'si' | 'aun_no' | 'problema'. La comisión SOLO nace con 'si'. */
+function procesarFinCliente_(oc, decision, texto, grave, categoria) {
+  if (decision === 'aun_no') return clienteSigueEnProceso_(oc);
+  if (decision === 'problema') return reportarIncidencia_(oc, 'cliente', categoria || (grave ? 'Situación grave' : 'Otro'), texto);
   return conLock_(function () {
     var sol = solicitud_(oc), pro = sol['Profesional asignado (PRO)'], p = profesional_(pro);
-    if (ESTADOS_TRAS_CONFIRMAR_FIN.indexOf(sol['Estado']) >= 0) return { ok: true, ya: true, msg: 'Ya confirmaste que el trabajo terminó. ¡Gracias!' };
-    if (sol['Estado'] !== 'Finalización por confirmar') return { ok: false, msg: 'Ahora no hay ninguna finalización pendiente de confirmar (estado: ' + sol['Estado'] + ').' };
-    if (decision === 'si') {
-      var ahora = new Date();
-      actualizarSol_(sol, { 'Finalizado (fecha)': ahora, 'Cliente confirmó fin (fecha)': ahora });
-      registrar_('Sistema', 'Cliente confirma finalización', oc, pro, '');
-      var c = crearObligacionComision_(sol, p); // calcula, crea la obligación y arranca el cobro si procede
-      actualizarSol_(sol, { 'Estado': c && ESTADOS_COMISION_BLOQUEAN.indexOf(c.estado) >= 0 ? 'Comisión pendiente' : 'Cerrado', 'Comisión (€)': c ? c.importe : '' });
-      return { ok: true, valorar: true, msg: '¡Gracias! Hemos registrado que el trabajo terminó. Si quieres, valora el servicio aquí mismo.' };
-    }
-    if (decision === 'aun_no') {
-      actualizarSol_(sol, { 'Estado': 'Trabajo en proceso' });
-      if (p) encolarCorreo_('pro-aun-no-' + oc + '-' + Date.now(), 'aun_no_pro', 'Profesional', p['Email'], oc, pro, { token: { tipo: 'gestion', dias: 180 } }, true);
-      registrar_('Sistema', 'Cliente indica que aún no ha terminado', oc, pro, 'Discrepancia con la finalización declarada por el profesional');
-      return { ok: true, msg: 'Entendido. Avisamos al profesional. Cuando termine, te volveremos a preguntar.' };
-    }
-    if (decision === 'problema') {
-      crearIncidencia_({ tipo: 'Incidencia', oc: oc, pro: pro, origen: 'Cliente (finalización)', categoria: 'Problema con el trabajo', grave: !!grave, texto: texto });
-      return { ok: true, msg: 'Lo sentimos. Hemos registrado el problema y una persona de OficioCerca lo revisará y te escribirá. La comisión no se genera mientras tanto.' };
-    }
-    return { ok: false, msg: 'Opción no válida.' };
+    if (ESTADOS_TRAS_CONFIRMAR_FIN.indexOf(sol['Estado']) >= 0) return { ok: true, ya: true, msg: 'Ya confirmaste el cierre. ¡Gracias!' };
+    if (sol['Estado'] !== 'Finalización por confirmar') return { ok: false, msg: 'Ahora no hay ningún cierre pendiente de confirmar (estado: ' + sol['Estado'] + ').' };
+    if (decision !== 'si') return { ok: false, msg: 'Opción no válida.' };
+    var ahora = new Date();
+    actualizarSol_(sol, { 'Finalizado (fecha)': ahora, 'Cliente confirmó fin (fecha)': ahora });
+    pararAccion_(sol);
+    registrar_('Sistema', 'Cliente confirma el cierre', oc, pro, 'MO final ' + euros_(sol['Mano de obra final (€)']));
+    var c = crearObligacionComision_(sol, p, Number(sol['Mano de obra final (€)']));
+    actualizarSol_(sol, { 'Estado': c && ESTADOS_COMISION_BLOQUEAN.indexOf(c.estado) >= 0 ? 'Comisión pendiente' : 'Cerrado', 'Comisión (€)': c ? c.importe : '' });
+    return { ok: true, valorar: true, msg: '¡Gracias! El servicio queda cerrado. Si quieres, valóralo aquí mismo.' };
   });
 }
 
-/** Valoración 1–5 ligada a OC + PRO (una por solicitud). */
+/** Valoración 1–5: SOLO tras un cierre real confirmado (o resuelto por soporte como trabajo completo/parcial). */
 function procesarValoracion_(oc, estrellas, comentario) {
   return conLock_(function () {
     var sol = solicitud_(oc), pro = sol['Profesional asignado (PRO)'];
     estrellas = parseInt(estrellas, 10);
     if (!(estrellas >= 1 && estrellas <= 5)) return { ok: false, msg: 'Elige de 1 a 5 estrellas.' };
-    if (!sol['Cliente confirmó fin (fecha)'] && ['Finalizado', 'Valorada'].indexOf(sol['Estado']) < 0) return { ok: false, msg: 'Solo se puede valorar un trabajo finalizado.' };
+    if (!sol['Cliente confirmó fin (fecha)'] || ESTADOS_TRAS_CONFIRMAR_FIN.indexOf(sol['Estado']) < 0) return { ok: false, msg: 'Solo se puede valorar un trabajo con cierre confirmado.' };
     var tv = tabla_('Valoraciones');
     if (tv.todas().some(function (v) { return v['Código OC'] === oc; })) return { ok: true, ya: true, msg: 'Ya habíamos recibido tu valoración. ¡Gracias!' };
-    tv.agregar({ 'Fecha': new Date(), 'Código OC': oc, 'Código PRO': pro, 'Estrellas': estrellas, 'Comentario': s_(comentario, 1000), 'Publicable': 'No' });
+    tv.agregar({ 'Fecha': new Date(), 'Código OC': oc, 'Código PRO': pro, 'Estrellas': estrellas, 'Comentario': s_(comentario, 1000), 'Publicable': 'No', 'Trabajo verificado': 'Sí' });
     actualizarSol_(sol, { 'Valoración (1-5)': estrellas });
-    if (estrellas <= 3) crearIncidencia_({ tipo: 'Incidencia', oc: oc, pro: pro, origen: 'Valoración', categoria: 'Valoración baja', grave: false, texto: estrellas + '/5 · ' + s_(comentario, 500) });
+    var p = profesional_(pro);
+    if (p) encolarCorreo_('pro-valoracion-' + oc, 'valoracion_pro', 'Profesional', p['Email'], oc, pro, { estrellas: estrellas, token: { tipo: 'gestion', dias: 180 } }, true);
     registrar_('Sistema', 'Valoración recibida', oc, pro, estrellas + '/5');
     recalcularMetricas_();
     return { ok: true, msg: '¡Gracias por tu valoración! Nos ayuda a mejorar.' };
   });
 }
 
-/** Problema o sugerencia enviada por el cliente (independiente de la valoración). */
-function procesarComentarioCliente_(oc, tipo, categoria, texto, grave) {
+/* ---------- INCIDENCIAS (cliente o profesional) ---------- */
+
+/** «HAY UN PROBLEMA / REPORTAR INCIDENCIA». Detiene cierre y cobro, no decide culpables, avisa a soporte al momento. */
+function reportarIncidencia_(oc, quien, categoria, comentario) {
   return conLock_(function () {
-    var sol = solicitud_(oc);
+    var sol = solicitud_(oc), pro = sol['Profesional asignado (PRO)'];
+    var cat = CATEGORIAS_INCIDENCIA.indexOf(categoria) >= 0 ? categoria : 'Otro';
+    if (!String(comentario || '').trim()) return { ok: false, msg: 'Cuéntanos brevemente qué ha pasado.' };
+    var abiertas = tabla_('Incidencias').todas().filter(function (i) { return i['Código OC'] === oc && (i['Estado'] === 'Abierta' || i['Estado'] === 'En revisión'); });
+    if (abiertas.some(function (i) { return String(i['Descripción']) === s_(comentario, 1500); })) return { ok: true, ya: true, soporte: true, msg: 'Ya habíamos registrado esta incidencia. Soporte la está revisando.' };
+    if (abiertas.length >= 5) return { ok: false, msg: 'Ya hay varias incidencias abiertas en este servicio. Soporte te escribirá.' };
+    var id = crearIncidencia_({ tipo: 'Incidencia', oc: oc, pro: pro, origen: quien === 'profesional' ? 'Profesional' : 'Cliente', categoria: cat,
+      grave: cat === 'Situación grave', texto: comentario, sol: sol, quien: quien });
+    // El servicio queda EN REVISIÓN: se detienen el cierre automático, los recordatorios y el cobro automático
+    if (sol['Estado'] !== 'En revisión' && sol['Estado'] !== 'Cancelada') {
+      actualizarSol_(sol, { 'Estado previo': sol['Estado'], 'Estado': 'En revisión', 'Requiere intervención': 'Incidencia ' + id });
+      pararAccion_(sol);
+    }
+    var c = comisionDeOC_(oc);
+    if (c && ['DUE', 'PAYMENT_FAILED', 'NO_HABILITADA'].indexOf(c['Estado']) >= 0) tabla_('Comisiones').poner(c._fila, { 'Estado': 'EN_REVISION', 'Notas': 'Congelada por la incidencia ' + id });
+    // Aviso corto a la otra parte (no se decide quién tiene razón)
+    var otra = quien === 'profesional' ? sol['Email'] : (profesional_(pro) || {})['Email'];
+    if (emailOk_(otra)) encolarCorreo_('inc-parte-' + id, 'incidencia_parte', quien === 'profesional' ? 'Cliente' : 'Profesional', otra, oc, quien === 'profesional' ? '' : pro,
+      quien === 'profesional' ? {} : { token: { tipo: 'gestion', dias: 180 } }, true);
+    return { ok: true, soporte: true, msg: 'Hemos registrado la incidencia ' + id + '. El servicio queda en revisión y soporte ya está avisado. Si lo necesitas, escríbenos por WhatsApp.' };
+  });
+}
+
+/** Mensaje general del cliente (ayuda) o sugerencia: no cambia el estado del servicio. */
+function procesarComentarioCliente_(oc, tipo, categoria, texto, grave) {
+  if (tipo !== 'sugerencia' && tipo !== 'ayuda') return reportarIncidencia_(oc, 'cliente', categoria, texto);
+  return conLock_(function () {
     var previas = tabla_('Incidencias').todas().filter(function (i) { return i['Código OC'] === oc && /^Cliente/.test(i['Origen']); });
     if (previas.length >= 5) return { ok: false, msg: 'Ya hemos recibido varios mensajes sobre esta solicitud. Te escribiremos pronto.' };
-    if (previas.some(function (i) { return String(i['Descripción']) === s_(texto, 1500) && i['Categoría'] === categoria; })) return { ok: true, ya: true, msg: 'Ya habíamos recibido este mensaje. ¡Gracias!' };
-    var cat = CATEGORIAS_INCIDENCIA.indexOf(categoria) >= 0 ? categoria : 'Otro';
-    var sug = tipo === 'sugerencia' || cat === 'Sugerencia para OficioCerca';
-    crearIncidencia_({ tipo: sug ? 'Sugerencia' : 'Incidencia', oc: oc, pro: sug ? '' : sol['Profesional asignado (PRO)'], origen: tipo === 'ayuda' ? 'Cliente (pide ayuda)' : 'Cliente',
-      categoria: cat, grave: !sug && !!grave, texto: texto });
-    return { ok: true, msg: sug ? '¡Gracias por tu sugerencia!' : 'Hemos registrado tu mensaje. Una persona de OficioCerca lo revisará y te escribirá.' };
+    if (previas.some(function (i) { return String(i['Descripción']) === s_(texto, 1500); })) return { ok: true, ya: true, msg: 'Ya habíamos recibido este mensaje. ¡Gracias!' };
+    var sug = tipo === 'sugerencia';
+    crearIncidencia_({ tipo: sug ? 'Sugerencia' : 'Ayuda', oc: oc, pro: '', origen: sug ? 'Cliente (sugerencia)' : 'Cliente (pide ayuda)', categoria: 'Otro', grave: !!grave, texto: texto, sol: solicitud_(oc), quien: 'cliente' });
+    return { ok: true, msg: sug ? '¡Gracias por tu sugerencia!' : 'Hemos recibido tu mensaje. Una persona de OficioCerca te escribirá.' };
   });
 }
 
 function crearIncidencia_(o) {
   var id = siguienteCodigo_('SEQ_INC', 'INC-');
-  var esSug = o.tipo === 'Sugerencia';
+  var esSug = o.tipo === 'Sugerencia', sol = o.sol || (o.oc ? solicitud_(o.oc) : null);
+  var prioridad = o.grave ? 'Grave' : ['Daños', 'Trabajo abandonado', 'Desacuerdo económico'].indexOf(o.categoria) >= 0 ? 'Alta' : 'Normal';
   tabla_('Incidencias').agregar({ 'ID': id, 'Fecha': new Date(), 'Tipo': o.tipo, 'Código OC': o.oc || '', 'Código PRO': o.pro || '', 'Origen': o.origen,
-    'Categoría': o.categoria, 'Gravedad': o.grave ? 'Grave' : 'Normal', 'Descripción': s_(o.texto, 1500), 'Estado': esSug ? 'Cerrada' : 'Abierta',
-    'Pausa preventiva': false, 'Notas': esSug ? 'Sugerencia: no cuenta como incidencia del profesional.' : '' });
+    'Categoría': o.categoria, 'Gravedad': prioridad, 'Descripción': s_(o.texto, 1500), 'Estado': esSug ? 'Cerrada' : 'Abierta',
+    'Pausa preventiva': false, 'Notas': esSug ? 'Sugerencia: no cuenta como incidencia del profesional.' : '',
+    'Servicio': sol ? servicioTxt_(sol) : '', 'Cliente': sol ? sol['Nombre'] : '', 'Reportado por': o.quien === 'profesional' ? 'Profesional' : 'Cliente',
+    'Estado previo servicio': sol ? sol['Estado'] : '' });
   var fila = hoja_('Incidencias').getLastRow();
   hoja_('Incidencias').getRange(fila, tabla_('Incidencias').col('Pausa preventiva')).insertCheckboxes();
-  registrar_('Sistema', esSug ? 'Sugerencia recibida' : 'Incidencia creada (' + (o.grave ? 'GRAVE' : 'normal') + ')', o.oc, o.pro, id + ' · ' + o.categoria);
-  if (!esSug) alertaAdmin_('inc-' + id, 'Incidencia', (o.grave ? 'GRAVE · ' : '') + 'Incidencia ' + id + ' · ' + (o.oc || '') + ' ' + (o.pro || ''),
-    'Origen: ' + o.origen + '\nCategoría: ' + o.categoria + '\nGravedad: ' + (o.grave ? 'Grave (puedes aplicar pausa preventiva marcando «Pausa preventiva» en Incidencias)' : 'Normal') +
-    '\n\n' + s_(o.texto, 1500) + '\n\nRevísala en la pestaña Incidencias. Ninguna sanción es automática.');
+  registrar_('Sistema', esSug ? 'Sugerencia recibida' : 'Incidencia creada (' + prioridad + ')', o.oc, o.pro, id + ' · ' + o.categoria);
+  if (!esSug) {
+    var admin = cfg_('ADMIN_EMAIL');
+    if (emailOk_(admin)) encolarCorreo_('admin-inc-' + id, 'incidencia_admin', 'Administrador', admin, o.oc || '', o.pro || '',
+      { id: id, categoria: o.categoria, prioridad: prioridad, quien: o.origen, texto: s_(o.texto, 600) });
+  }
   return id;
+}
+
+/**
+ * Resolución MANUAL de una incidencia (columna «Resultado» de la pestaña Incidencias; la llama alEditar).
+ *  - TRABAJO COMPLETO: comisión sobre la mano de obra final (o «Mano de obra reconocida (€)» si se rellena) → cierre.
+ *  - TRABAJO PARCIAL: comisión SOLO sobre «Mano de obra reconocida (€)» (obligatoria) → cierre.
+ *  - NO HUBO TRABAJO: comisión 0 → servicio cancelado.
+ *  - SIN ACUERDO: no se genera comisión; sigue en revisión manual.
+ *  - OTRO: se cierra la incidencia y el servicio vuelve a su estado anterior (se reanuda el seguimiento).
+ */
+function resolverIncidencia_(id, resultado, usuario) {
+  var ti = tabla_('Incidencias'), inc = ti.buscar('ID', id);
+  if (!inc) return 'Incidencia no encontrada';
+  var oc = inc['Código OC'];
+  if (!oc) return 'Sin solicitud asociada';
+  var sol = solicitud_(oc), pro = sol['Profesional asignado (PRO)'], p = profesional_(pro), ahora = new Date();
+  var reconocida = String(inc['Mano de obra reconocida (€)']).trim() === '' ? NaN : num_(inc['Mano de obra reconocida (€)']);
+  var c = comisionDeOC_(oc), out = '';
+  var cerrarCon = function (mo) {
+    if (c && c['Estado'] !== 'PAID') tabla_('Comisiones').poner(c._fila, { 'Estado': 'ANULADA', 'Notas': 'Sustituida por la resolución de ' + id });
+    actualizarSol_(sol, { 'Mano de obra final (€)': mo, 'Finalizado (fecha)': sol['Finalizado (fecha)'] || ahora, 'Cliente confirmó fin (fecha)': sol['Cliente confirmó fin (fecha)'] || ahora });
+    var nueva = crearObligacionComision_(sol, p, mo, true);
+    actualizarSol_(sol, { 'Estado': nueva && ESTADOS_COMISION_BLOQUEAN.indexOf(nueva.estado) >= 0 ? 'Comisión pendiente' : 'Cerrado', 'Comisión (€)': nueva ? nueva.importe : '', 'Requiere intervención': '' });
+    return 'comisión ' + euros_(nueva ? nueva.importe : 0) + ' sobre ' + euros_(mo);
+  };
+  if (resultado === 'RESUELTO — TRABAJO COMPLETO') {
+    var mo = !isNaN(reconocida) && reconocida > 0 ? reconocida : Number(sol['Mano de obra final (€)']) || Number(sol['Mano de obra inicial (€)']) || 0;
+    if (!(mo > 0)) return 'Falta la mano de obra: rellena «Mano de obra reconocida (€)»';
+    out = 'Trabajo completo · ' + cerrarCon(mo);
+  } else if (resultado === 'RESUELTO — TRABAJO PARCIAL') {
+    if (!(reconocida > 0)) return 'Para trabajo parcial rellena antes «Mano de obra reconocida (€)»';
+    out = 'Trabajo parcial · ' + cerrarCon(reconocida);
+  } else if (resultado === 'CANCELADO — NO HUBO TRABAJO') {
+    if (c && c['Estado'] !== 'PAID') tabla_('Comisiones').poner(c._fila, { 'Estado': 'ANULADA', 'Notas': 'No hubo trabajo (' + id + ')' });
+    actualizarSol_(sol, { 'Estado': 'Cancelada', 'Motivo cierre': 'No hubo trabajo (' + id + ')', 'Requiere intervención': '' });
+    out = 'Cancelado · comisión 0';
+  } else if (resultado === 'SIN ACUERDO / REVISIÓN MANUAL') {
+    actualizarSol_(sol, { 'Estado': 'En revisión', 'Requiere intervención': 'Sin acuerdo: revisión manual (' + id + ')' });
+    ti.poner(inc._fila, { 'Estado': 'En revisión', 'Administrador': usuario || '' });
+    registrar_('Admin', 'Incidencia sin acuerdo: revisión manual', oc, pro, id, usuario);
+    return 'Sin acuerdo: queda en revisión manual (sin comisión automática)';
+  } else if (resultado === 'OTRO') {
+    var previo = inc['Estado previo servicio'] && ESTADOS_SOLICITUD.indexOf(inc['Estado previo servicio']) >= 0 ? inc['Estado previo servicio'] : 'Trabajo en proceso';
+    if (previo === 'En revisión') previo = 'Trabajo en proceso';
+    if (c && c['Estado'] === 'EN_REVISION') tabla_('Comisiones').poner(c._fila, { 'Estado': c['Ambiente'] === 'NO_HABILITADO' ? 'NO_HABILITADA' : 'DUE', 'Notas': 'Reanudada tras ' + id });
+    actualizarSol_(sol, { 'Estado': previo, 'Requiere intervención': '' });
+    out = 'Seguimiento reanudado (' + previo + ')';
+  } else return 'Resultado no válido';
+  ti.poner(inc._fila, { 'Estado': 'Resuelta', 'Fecha resolución': ahora, 'Administrador': usuario || '', 'Acción tomada': out });
+  registrar_('Admin', 'Incidencia resuelta: ' + resultado, oc, pro, id + ' · ' + out, usuario);
+  [['Cliente', sol['Email'], ''], ['Profesional', p && p['Email'], pro]].forEach(function (d) {
+    if (emailOk_(d[1])) encolarCorreo_('inc-res-' + id + '-' + d[0], 'incidencia_resuelta', d[0], d[1], oc, d[2], d[0] === 'Profesional' ? { resultado: resultado, token: { tipo: 'gestion', dias: 180 } } : { resultado: resultado }, true);
+  });
+  return out;
 }
 
 /** Métricas internas por profesional (derivadas: se recalculan desde los datos, sin desajustes). */
@@ -1265,6 +1487,7 @@ function recalcularMetricas_() {
   var sols = tabla_('Solicitudes').todas(), coms = tabla_('Comisiones').todas();
   var cols = ['Ofertas recibidas', 'Respuestas', 'Aceptadas', 'Asignaciones', 'Completados', 'Tiempo medio respuesta (h)', 'Valoración media',
     'Nº valoraciones', 'Incidencias verificadas', 'Comisiones pendientes', 'Última oferta'];
+  var colsRep = ['Tasa respuesta (%)', 'Cumplimiento seguimiento (%)'];
   var c0 = tp.col(cols[0]);
   var valores = pros.map(function (p) {
     var code = p['Código'];
@@ -1275,16 +1498,28 @@ function recalcularMetricas_() {
     var ultima = of.reduce(function (m, o) { return Math.max(m, new Date(o['Fecha envío']).getTime()); }, 0);
     return [of.length, resp.length, resp.filter(function (o) { return /^Puede/.test(o['Respuesta']); }).length,
       sols.filter(function (s) { return s['Profesional asignado (PRO)'] === code; }).length,
-      sols.filter(function (s) { return s['Profesional asignado (PRO)'] === code && !!s['Cliente confirmó fin (fecha)']; }).length,
+      sols.filter(function (s) { return s['Profesional asignado (PRO)'] === code && !!s['Cliente confirmó fin (fecha)'] && ESTADOS_TRAS_CONFIRMAR_FIN.indexOf(s['Estado']) >= 0; }).length,
       tiempos.length ? Math.round(tiempos.reduce(function (a, b) { return a + b; }, 0) / tiempos.length * 10) / 10 : '',
       v.length ? Math.round(v.reduce(function (a, x) { return a + Number(x['Estrellas']); }, 0) / v.length * 10) / 10 : '',
       v.length,
-      incs.filter(function (i) { return i['Código PRO'] === code && i['Tipo'] === 'Incidencia' && i['Estado'] === 'Verificada'; }).length,
+      incs.filter(function (i) { return i['Código PRO'] === code && i['Tipo'] === 'Incidencia' && /Resuelta|Verificada/.test(i['Estado']) && /PARCIAL|NO HUBO/.test(String(i['Resultado'])); }).length,
       coms.filter(function (c) { return c['Código PRO'] === code && ESTADOS_COMISION_BLOQUEAN.indexOf(c['Estado']) >= 0; }).length,
       ultima ? new Date(ultima) : ''];
   });
   // Escritura por bloques contiguos (las filas pueden no ser consecutivas si hay huecos)
   pros.forEach(function (p, i) { tp.sh.getRange(p._fila, c0, 1, cols.length).setValues([valores[i]]); });
+  // Reputación: tasa de respuesta a oportunidades y cumplimiento del seguimiento (servicios con acuerdo que NO acabaron
+  // archivados ni escalados por inacción del profesional). Vacío si aún no hay datos (profesional nuevo = neutro).
+  var c1 = tp.col(colsRep[0]);
+  pros.forEach(function (p) {
+    var code = p['Código'], of = ofertas.filter(function (o) { return o['Código PRO'] === code; });
+    var cerradasOf = of.filter(function (o) { return o['Estado'] !== 'Enviada'; });
+    var resp = cerradasOf.filter(function (o) { return /Puede|No puede/.test(o['Respuesta']); }).length;
+    var trab = sols.filter(function (s) { return s['Profesional asignado (PRO)'] === code && s['Fecha registro acuerdo']; });
+    var malos = trab.filter(function (s) { return /profesional|ambos/.test(String(s['Escalado por'])); }).length;
+    tp.sh.getRange(p._fila, c1, 1, 2).setValues([[cerradasOf.length ? Math.round(resp / cerradasOf.length * 100) : '', trab.length ? Math.round((1 - malos / trab.length) * 100) : '']]);
+  });
+  _tablas['Profesionales'] && (_tablas['Profesionales']._cache = null);
 }
 /* ============================================================ CORREO: cola, cuota, plantillas y enlaces seguros
  * - Remitente: la cuenta propietaria del script (oficiocerca@gmail.com) con nombre «OficioCerca».
@@ -1320,7 +1555,8 @@ function enviarFila_(fila) {
   var r = th.todas().filter(function (x) { return x._fila === fila; })[0];
   if (!r || r['Estado'] === 'Enviado' || r['Estado'] === 'Fallido') return r ? r['Estado'] : '';
   var esAlerta = r['Destinatario'] === 'Administrador';
-  var reserva = esAlerta ? 0 : cfgNum_('CUOTA_RESERVA', 3);
+  var datosFila = {}; try { datosFila = JSON.parse(r['Datos'] || '{}'); } catch (e) { }
+  var reserva = esAlerta ? 0 : prioridadCorreo_(r['Tipo'], datosFila) === 2 ? cfgNum_('CUOTA_RESERVA_BAJA', 15) : cfgNum_('CUOTA_RESERVA', 3);
   var cuota = MailApp.getRemainingDailyQuota();
   if (cuota < 1 + reserva) { th.poner(fila, { 'Estado': 'Pendiente por cuota', 'Último error': 'Cuota insuficiente (' + cuota + ')' }); return 'Pendiente por cuota'; }
   var intentos = Number(r['Intentos'] || 0) + 1;
@@ -1347,7 +1583,11 @@ function enviarFila_(fila) {
 
 function procesarCola_() {
   var th = tabla_('Historial envíos');
-  th.todas().filter(function (r) { return r['Estado'] === 'Pendiente por cuota' || r['Estado'] === 'En cola'; }).forEach(function (r) { enviarFila_(r._fila); });
+  // Primero alertas y prioridad alta; si la cuota no alcanza, el resto espera en cola (nunca se pierde)
+  var pend = th.todas().filter(function (r) { return r['Estado'] === 'Pendiente por cuota' || r['Estado'] === 'En cola'; });
+  var peso = function (r) { if (r['Destinatario'] === 'Administrador') return 0; var d = {}; try { d = JSON.parse(r['Datos'] || '{}'); } catch (e) { } return prioridadCorreo_(r['Tipo'], d); };
+  pend.sort(function (a, b) { return peso(a) - peso(b) || a._fila - b._fila; });
+  pend.forEach(function (r) { enviarFila_(r._fila); });
 }
 
 function alertaAdmin_(clave, categoria, asunto, texto) {
@@ -1372,7 +1612,7 @@ function urlToken_(spec, oc, pro) {
 /** Devuelve el registro del token si es válido (no caducado). */
 function leerToken_(t) {
   if (!/^[a-f0-9]{64}$/.test(String(t || ''))) return null;
-  var r = tabla_('Tokens').buscar('Hash', hash_(t));
+  var r = tabla_('Tokens').buscarRapido('Hash', hash_(t));
   if (!r) return null;
   r.caducado = (r['Expira'] && new Date(r['Expira']).getTime() < Date.now()) || r['Resultado'] === 'Revocado';
   return r;
@@ -1408,171 +1648,151 @@ function servicioTxt_(sol) { return (SERVICIOS[sol['Servicio (código)']] || sol
 function plazoTxt_(sol) { return sol['Plazo'] + (sol['Plazo (código)'] === 'OTRA_FECHA' && sol['Fecha deseada'] ? ' (' + fechaIso_(sol['Fecha deseada']).split('-').reverse().join('/') + ')' : ''); }
 
 /* «EL CORREO AVISA. LA PLATAFORMA REGISTRA.»
- * Cliente: SOLO 4 tipos de aviso (1 solicitud recibida · 2 profesional/contacto disponible · 3 acuerdo pendiente ·
- * 4 finalización pendiente + valoración), con su botón directo al seguimiento de ESE servicio. Un recordatorio como máximo.
- * Profesional: solo cuando debe actuar (oportunidad, cliente asignado, acuerdo, trabajo/cierre, comisión, pago). */
+ * Formato único: asunto claro · 1 frase de qué pasó · 1 frase de qué hacer · 1 botón · como mucho una nota corta.
+ * La información extensa vive en el Centro de ayuda y en el seguimiento. Cada correo = 1 destinatario (1 unidad de cuota).
+ * Prioridad 1 (alta): incidencias, asignación/contacto, oportunidades, cierre, comisión y pagos, confirmación de solicitud.
+ * Prioridad 2 (baja): recordatorios no críticos, valoraciones, avisos informativos. Con poca cuota esperan en cola.
+ */
 var CORREOS_RETIRADOS_V16 = ['solicitud_cubierta', 'presupuesto_cliente', 'presupuesto_aceptado_pro', 'presupuesto_rechazado_pro', 'presupuesto_hablar_pro',
-  'valorar_cliente', 'buen_trabajo_pro', 'comision_exigible_sbx'];
+  'buen_trabajo_pro', 'comision_exigible_sbx', 'acuerdo_cliente', 'recordatorio_acuerdo', 'fin_cliente', 'recordatorio_fin', 'acuerdo_confirmado_pro',
+  'acuerdo_no_confirmado_pro', 'aun_no_pro', 'recordatorio_acuerdo_pro'];
+var PRIORIDAD_BAJA = ['recordatorio_comision', 'valorar_cliente', 'valoracion_pro', 'condiciones_pro', 'alta_activada', 'resumen_diario', 'incidencia_resuelta'];
+function prioridadCorreo_(tipo, datos) {
+  if (tipo === 'seguimiento') return datos && datos.n > 0 && datos.plantilla === 'vencimiento' ? 2 : 1;
+  return PRIORIDAD_BAJA.indexOf(tipo) >= 0 ? 2 : 1;
+}
 
 function datosProTxt_(p) { return p ? p['Nombre'] + (p['Empresa / autónomo'] ? ' · ' + p['Empresa / autónomo'] : '') : ''; }
 function fechaAcordadaTxt_(v) { var f = fechaIso_(v); return /^\d{4}-\d{2}-\d{2}$/.test(f) ? f.split('-').reverse().join('/') : 'Sin fecha concreta'; }
 function prefijoPrueba_(c) { return c && c['Ambiente'] === 'SANDBOX' ? '[PRUEBA / SANDBOX] ' : ''; }
 
-/** Compone un correo a partir de los datos ACTUALES de la hoja. Devuelve null si ya no aplica (acción hecha → no se envía). */
+/** Correo corto estándar. */
+function corto_(asunto, titulo, pasa, haz, url, boton, nota, color) {
+  var b = [p_(pasa)];
+  if (haz) b.push('<p><b>' + esc_(haz) + '</b></p>');
+  if (url) b.push('<div style="text-align:center;margin:18px 0">' + boton_(url, boton, color) + '</div>');
+  if (nota) b.push('<p style="color:#586374;font-size:14px">' + esc_(nota) + '</p>');
+  var html = plantilla_(titulo, '', b);
+  return { asunto: asunto, html: html, texto: texto_(html), adjuntos: [] };
+}
+
+/** Compone un correo a partir de los datos ACTUALES de la hoja. Devuelve null si ya no aplica (acción hecha → no sale). */
 function componer_(tipo, oc, pro, d) {
   if (CORREOS_RETIRADOS_V16.indexOf(tipo) >= 0) return null;
   var sol = oc ? solicitud_(oc) : null, p = pro ? profesional_(pro) : null;
-  var A = '[OficioCerca] ', AP = '[OficioCerca Profesionales] ', asunto, titulo, saludo, b = [], adj = [], btnSeg = '';
-  var com = oc ? comisionDeOC_(oc) : null;
+  var A = '[OficioCerca] ', AP = '[OficioCerca Profesionales] ';
+  var com = oc ? comisionDeOC_(oc) : null, seg = d.urlSeg, gest = d.url;
   switch (tipo) {
-    /* ---------------- CLIENTE (4 avisos) ---------------- */
-    case 'confirmacion_cliente': // 1
-      asunto = A + 'Hemos recibido tu solicitud ' + oc;
-      titulo = 'Hemos recibido tu solicitud ' + oc; saludo = 'Hola ' + sol['Nombre'] + ',';
-      b.push(tabla_html_([['Código', oc], ['Servicio', servicioTxt_(sol)], ['Zona', sol['Zona']], ['Plazo solicitado', plazoTxt_(sol)],
-        ['Resumen', String(sol['Descripción']).slice(0, 400) + (String(sol['Descripción']).length > 400 ? '…' : '')]]));
-      b.push(p_('Qué pasa ahora: buscamos un profesional compatible con tu trabajo, zona y plazo y le enviamos la información sin tus datos de contacto. Te avisaremos por correo cuando haya un profesional disponible.'));
-      b.push(p_('Guarda este correo: el botón te lleva a tu página privada de seguimiento (sin cuenta ni contraseña). Desde ahí puedes ver el estado, añadir otro servicio, pedir ayuda o cancelar. No ofrecemos servicio de urgencias 24 horas.'));
-      btnSeg = 'VER MI SOLICITUD';
-      break;
-    case 'asignado_cliente': // 2
+    /* ---------------- CLIENTE ---------------- */
+    case 'confirmacion_cliente':
+      return corto_('Recibimos tu solicitud ' + oc, 'Recibimos tu solicitud ' + oc,
+        'Recibimos tu solicitud de ' + servicioTxt_(sol) + ' y estamos buscando un profesional compatible.', '', seg, 'VER SEGUIMIENTO',
+        'Guarda este correo: el botón abre tu seguimiento privado (sin cuenta). No ofrecemos urgencias 24 h.');
+    case 'asignado_cliente':
       if (!p) return null;
-      asunto = A + 'Tienes un profesional disponible · ' + oc;
-      titulo = 'Hemos encontrado un profesional para tu solicitud'; saludo = 'Hola ' + sol['Nombre'] + ',';
-      b.push(tabla_html_([['Solicitud', oc + ' · ' + servicioTxt_(sol)], ['Profesional', datosProTxt_(p)], ['Disponibilidad indicada', d.disp || sol['Disponibilidad profesional']],
-        ['WhatsApp del profesional', limpio_(p['WhatsApp'])], ['Correo del profesional', p['Email']]]));
-      b.push(p_('Qué pasa ahora: el profesional te contactará (' + sol['Contacto preferido (para el profesional)'] + ') para valorar el trabajo. Cuando os pongáis de acuerdo, registrará el acuerdo y te pediremos que lo confirmes. El pago del trabajo se acuerda directamente con el profesional.'));
-      btnSeg = 'VER MI SOLICITUD';
-      break;
-    case 'respaldo_cliente': // 2 (variante: solo hay disponibilidad posterior)
+      return corto_('Ya encontramos un profesional · ' + oc, 'Ya encontramos un profesional',
+        datosProTxt_(p) + ' se pondrá en contacto contigo directamente. Los acuerdos se realizan directamente entre vosotros.',
+        'Conserva tu seguimiento para confirmar el cierre o reportar cualquier problema.', seg, 'VER MI SEGUIMIENTO');
+    case 'respaldo_cliente':
       var of = tabla_('Ofertas').buscar('ID', d.token.ref);
       if (!of || sol['Estado'] !== 'Esperando decisión cliente') return null;
-      asunto = A + 'Hay un profesional disponible más adelante · ' + oc;
-      titulo = 'Necesitamos tu decisión'; saludo = 'Hola ' + sol['Nombre'] + ',';
-      b.push(p_('Pediste: ' + plazoTxt_(sol) + '. El profesional más próximo puede atenderte aproximadamente: ' + of['Disponibilidad'] + '.'));
-      b.push(p_('Elige: continuar con este profesional, seguir buscando o cancelar. Hasta que respondas no compartimos tus datos de contacto con nadie.'));
-      b.push('<div style="text-align:center">' + boton_(d.url, 'ELEGIR UNA OPCIÓN') + '</div>');
-      break;
-    case 'acuerdo_cliente': // 3
-    case 'recordatorio_acuerdo':
-      var pr = tabla_('Presupuestos').buscar('ID', d.presupuesto);
-      if (!pr || pr['Estado'] !== 'Pendiente del cliente' || sol['Presupuesto vigente'] !== pr['ID']) return null;
-      var rec = tipo === 'recordatorio_acuerdo';
-      asunto = A + (rec ? 'Recordatorio: ' : '') + (d.cambio ? 'El acuerdo ha cambiado: confírmalo · ' : 'Confirma el acuerdo con tu profesional · ') + oc;
-      titulo = d.cambio ? 'El profesional ha modificado el acuerdo' : 'Confirma el acuerdo con tu profesional'; saludo = 'Hola ' + sol['Nombre'] + ',';
-      b.push(tabla_html_([['Servicio', oc + ' · ' + servicioTxt_(sol)], ['Profesional', datosProTxt_(p)], ['Mano de obra', euros_(pr['Mano de obra (€)'])],
-        ['Materiales', euros_(pr['Materiales (€)'])], ['Total', euros_(pr['Total (€)'])], ['Fecha acordada', fechaAcordadaTxt_(pr['Fecha acordada'])], ['Nota', pr['Observaciones'] || '—']]));
-      b.push(p_('Revisa que coincide con lo que hablasteis y pulsa «Confirmar acuerdo» o «No estoy de acuerdo». Confirmar es gratuito para ti. El pago del trabajo se hace directamente al profesional.'));
-      btnSeg = 'REVISAR Y CONFIRMAR EL ACUERDO';
-      break;
-    case 'fin_cliente': // 4
-    case 'recordatorio_fin':
-      if (sol['Estado'] !== 'Finalización por confirmar') return null;
-      asunto = A + (tipo === 'recordatorio_fin' ? 'Recordatorio: ' : '') + '¿Ha terminado el trabajo? · ' + oc;
-      titulo = 'El profesional indica que el trabajo ha terminado'; saludo = 'Hola ' + sol['Nombre'] + ',';
-      b.push(p_('¿Puedes confirmarlo? Solo cerramos el servicio ' + oc + ' (' + servicioTxt_(sol) + ') cuando tú lo confirmas. Opciones: «Sí, terminó» · «Todavía no» · «Hay un problema». Después podrás valorar el servicio en la misma página.'));
-      btnSeg = 'CONFIRMAR Y VALORAR';
-      break;
+      return corto_('Hay un profesional disponible más adelante · ' + oc, 'Necesitamos tu decisión',
+        'El profesional más próximo puede atenderte aproximadamente: ' + of['Disponibilidad'] + '.', 'Elige si continúas, seguimos buscando o cancelas.', d.url, 'ELEGIR UNA OPCIÓN');
+    case 'sin_profesional':
+      if (sol['Estado'] !== 'Sin profesional disponible') return null;
+      return corto_('Aún no hay profesional disponible · ' + oc, 'Por ahora no encontramos profesional',
+        'Por ahora no encontramos un profesional compatible para tu solicitud ' + oc + '.', 'Puedes conservarla y volver a intentar la búsqueda desde tu seguimiento.', seg, 'VOLVER A BUSCAR');
+    case 'valorar_cliente':
+      if (ESTADOS_TRAS_CONFIRMAR_FIN.indexOf(sol['Estado']) < 0 || tabla_('Valoraciones').todas().some(function (v) { return v['Código OC'] === oc; })) return null;
+      return corto_('¿Qué tal fue el servicio? · ' + oc, 'Valora el servicio', 'El servicio ' + oc + ' está cerrado.', 'Valóralo en un minuto (de 1 a 5 estrellas).', seg, 'VALORAR');
 
-    /* ---------------- PROFESIONAL (solo cuando debe actuar) ---------------- */
+    /* ---------------- SEGUIMIENTO (cliente o profesional según «Acción pendiente de») ---------------- */
+    case 'seguimiento':
+      if (!sol['Acción desde'] || new Date(sol['Acción desde']).getTime() !== Number(d.desde) || sol['Plantilla seguimiento'] !== d.plantilla) return null; // ya respondieron
+      var esCli = !pro || !gest, url = esCli ? seg : gest, ult = d.ultimo ? 'Último recordatorio: ' : (d.n > 0 ? 'Recordatorio: ' : '');
+      var notaUlt = d.ultimo ? (sol['Acción pendiente de'] === 'ambos' ? 'Si no recibimos respuesta, el seguimiento quedará archivado por inactividad.' : 'Si no recibimos respuesta, el servicio pasará a revisión manual.') : '';
+      if (d.plantilla === 'vencimiento') return corto_((d.ultimo ? 'Último recordatorio: ' : '') + 'Indica el estado del servicio ' + oc, 'Llegó la fecha estimada',
+        d.ultimo ? 'Último recordatorio: necesitamos conocer el estado del servicio ' + oc + '.' : 'Llegó la fecha estimada de finalización del servicio ' + oc + '.',
+        esCli ? 'Indica su estado: terminado, sigue en proceso o hay un problema.' : 'Indica su estado: terminado o sigue en proceso (con el nuevo plazo).', url, 'INDICAR ESTADO', notaUlt);
+      if (d.plantilla === 'actualizar_plazo') return corto_(ult + 'Actualiza el plazo de ' + oc, 'El cliente indica que sigue en proceso',
+        'El cliente indica que el servicio ' + oc + ' sigue en proceso.', 'Registra la nueva duración estimada.', url, 'ACTUALIZAR PLAZO', notaUlt);
+      if (d.plantilla === 'confirmar_cierre') return corto_(ult + 'Confirma el cierre de ' + oc, 'Confirma el cierre',
+        'El profesional indicó que el servicio ' + oc + ' terminó.', 'Confirma el cierre (o indica «Todavía no» o «Hay un problema»).', url, 'CONFIRMAR CIERRE', notaUlt);
+      if (d.plantilla === 'registrar_cierre') return corto_(ult + 'Registra el valor final de ' + oc, 'El cliente indica que el trabajo terminó',
+        'El cliente indicó que el trabajo de ' + oc + ' terminó.', 'Registra el valor final de la mano de obra para completar el cierre.', url, 'REGISTRAR VALOR FINAL', notaUlt);
+      if (d.plantilla === 'registrar_acuerdo') return corto_(ult + 'Registra el acuerdo de ' + oc, '¿Ya acordaste el trabajo?',
+        'Tienes el contacto del cliente de ' + oc + ' desde el ' + dia_(sol['Fecha asignación']) + '.', 'Cuando lleguéis a un acuerdo, registra la mano de obra y la duración estimada.', url, 'REGISTRAR ACUERDO ALCANZADO', notaUlt);
+      return null;
+
+    /* ---------------- PROFESIONAL ---------------- */
     case 'oferta_profesional':
       if (!p) return null;
-      asunto = AP + 'Nueva oportunidad ' + oc + ' · ' + servicioTxt_(sol) + ' · ' + sol['Zona'];
-      titulo = 'Nueva oportunidad de trabajo · ' + oc; saludo = 'Hola ' + p['Nombre'] + ',';
-      adj = fotos_(sol['Carpeta fotos (ID)']);
-      b.push(p_(/mismo profesional/i.test(sol['Origen servicio'] || '') ? 'Un cliente con el que ya trabajaste te pide otro servicio. Revisa la ficha y dinos si puedes atenderlo.' :
-        'Tenemos un trabajo compatible con tu oficio y zona. Revisa la ficha (sin datos del cliente) y dinos si puedes atenderlo. Recibir la oportunidad es gratis.'));
-      b.push(tabla_html_([['Solicitud', oc], ['Servicio', servicioTxt_(sol)], ['Zona / barrio', sol['Zona'] + ' (Córdoba)'],
-        ['Plazo que pide el cliente', plazoTxt_(sol)], ['Cliente', sol['Tipo solicitante'] || 'Particular'],
-        ['Fotos', adj.length ? adj.length + ' adjunta(s) a este correo' : 'Sin fotos'], ['Descripción', sol['Descripción']]]));
-      b.push('<div style="text-align:center;margin:18px 0">' + boton_(d.url, 'RESPONDER A ESTA OPORTUNIDAD') + '</div>');
-      b.push(p_('Responde antes del ' + fecha_(d.expira) + '; después la ofreceremos a otro profesional. Rechazarla no tiene ningún coste. Esta ficha es confidencial.'));
-      break;
+      var adj = fotos_(sol['Carpeta fotos (ID)']);
+      var b = [p_(/mismo profesional/i.test(sol['Origen servicio'] || '') ? 'Un cliente con el que ya trabajaste te pide otro servicio.' : 'Tienes una oportunidad compatible con tu oficio y zona.'),
+        tabla_html_([['Solicitud', oc], ['Servicio', servicioTxt_(sol)], ['Zona', sol['Zona'] + ' (Córdoba)'], ['Plazo del cliente', plazoTxt_(sol)],
+          ['Cliente', sol['Tipo solicitante'] || 'Particular'], ['Fotos', adj.length ? adj.length + ' adjunta(s)' : 'Sin fotos'], ['Descripción', String(sol['Descripción']).slice(0, 600)]]),
+        '<p><b>Responde antes del ' + esc_(fecha_(d.expira)) + '.</b></p>',
+        '<div style="text-align:center;margin:18px 0">' + boton_(d.url, 'RESPONDER A ESTA OPORTUNIDAD') + '</div>',
+        '<p style="color:#586374;font-size:14px">Sin datos del cliente hasta que aceptes. Rechazarla no tiene coste. Ficha confidencial.</p>'];
+      var hO = plantilla_('Nueva oportunidad · ' + oc, '', b);
+      return { asunto: AP + 'Nueva oportunidad ' + oc + ' · ' + servicioTxt_(sol) + ' · ' + sol['Zona'], html: hO, texto: texto_(hO), adjuntos: adj };
     case 'contacto_profesional':
       if (!p) return null;
-      asunto = AP + 'Cliente asignado: datos de contacto · ' + oc;
-      titulo = 'Te hemos asignado la solicitud ' + oc; saludo = 'Hola ' + p['Nombre'] + ',';
-      b.push(tabla_html_([['Solicitud', oc], ['Servicio', servicioTxt_(sol)], ['Cliente', sol['Nombre'] + (sol['Tipo solicitante'] && sol['Tipo solicitante'] !== 'Particular' ? ' (' + sol['Tipo solicitante'] + ')' : '')], ['Empresa', sol['Empresa'] || '—'], ['WhatsApp', limpio_(sol['WhatsApp'])]]
-        .concat(limpio_(sol['Teléfono alt.']) ? [['Teléfono alternativo', limpio_(sol['Teléfono alt.'])]] : []).concat([['Correo', sol['Email']], ['Prefiere que le contactes por', sol['Contacto preferido (para el profesional)']],
-        ['Zona', sol['Zona']], ['Código postal', limpio_(sol['Código postal']) || '—'], ['Tu disponibilidad indicada', sol['Disponibilidad profesional']]])));
-      b.push(destacado_('Qué haces ahora: contacta con el cliente. Cuando acordéis precio y fecha, pulsa «Ya hablé con el cliente / Registrar acuerdo».'));
-      b.push('<div style="text-align:center">' + boton_(d.url, 'GESTIONAR ESTE TRABAJO') + '</div>');
-      b.push(p_('El cliente ve tu nombre, empresa, WhatsApp y correo para comunicarse contigo. Usa sus datos solo para este servicio.'));
-      break;
-    case 'recordatorio_acuerdo_pro':
-      if (!p || sol['Estado'] !== 'Profesional asignado' || sol['Profesional asignado (PRO)'] !== pro) return null;
-      asunto = AP + 'Recordatorio: registra el acuerdo · ' + oc;
-      titulo = '¿Ya hablaste con el cliente?'; saludo = 'Hola ' + p['Nombre'] + ',';
-      b.push(p_('Cuando acordéis mano de obra, materiales y fecha para ' + oc + ' (' + servicioTxt_(sol) + '), regístralo para que el cliente lo confirme. Si no vas a hacer el trabajo, avísanos desde la misma página.'));
-      b.push('<div style="text-align:center">' + boton_(d.url, 'REGISTRAR ACUERDO') + '</div>');
-      break;
-    case 'acuerdo_confirmado_pro':
-      if (!p) return null;
-      asunto = AP + 'El cliente confirmó el acuerdo · ' + oc;
-      titulo = 'Acuerdo confirmado por el cliente'; saludo = 'Hola ' + p['Nombre'] + ',';
-      b.push(p_('El cliente ha confirmado el acuerdo de ' + oc + '. Cuando termines el trabajo, pulsa «Trabajo terminado»: el cliente lo confirmará.'));
-      b.push('<div style="text-align:center">' + boton_(d.url, 'GESTIONAR ESTE TRABAJO') + '</div>');
-      break;
-    case 'acuerdo_no_confirmado_pro':
-      if (!p || sol['Estado'] !== 'Acuerdo no confirmado') return null;
-      asunto = AP + 'El cliente no está de acuerdo · ' + oc;
-      titulo = 'El cliente no ha confirmado el acuerdo'; saludo = 'Hola ' + p['Nombre'] + ',';
-      b.push(p_('Habla con el cliente. Si llegáis a otro acuerdo, regístralo de nuevo: el cliente tendrá que confirmarlo.'));
-      b.push('<div style="text-align:center">' + boton_(d.url, 'REGISTRAR NUEVO ACUERDO') + '</div>');
-      break;
-    case 'aun_no_pro':
-      if (!p) return null;
-      asunto = AP + 'El cliente indica que el trabajo aún no ha terminado · ' + oc;
-      titulo = 'El cliente indica que aún no ha terminado'; saludo = 'Hola ' + p['Nombre'] + ',';
-      b.push(p_('Cuando el trabajo esté terminado, vuelve a indicarlo:'));
-      b.push('<div style="text-align:center">' + boton_(d.url, 'TRABAJO TERMINADO') + '</div>');
-      break;
+      var bc = [p_('Te asignamos ' + oc + ' (' + servicioTxt_(sol) + '). Estos son los datos del cliente:'),
+        tabla_html_([['Cliente', sol['Nombre'] + (sol['Empresa'] ? ' · ' + sol['Empresa'] : '')], ['WhatsApp', limpio_(sol['WhatsApp'])]]
+          .concat(limpio_(sol['Teléfono alt.']) ? [['Otro teléfono', limpio_(sol['Teléfono alt.'])]] : [])
+          .concat([['Correo', sol['Email']], ['Prefiere', sol['Contacto preferido (para el profesional)']], ['Zona / CP', sol['Zona'] + (limpio_(sol['Código postal']) ? ' · ' + limpio_(sol['Código postal']) : '')]])),
+        destacado_('Recibir el contacto inicia el trabajo en OficioCerca. Después de hablar con el cliente y llegar a un acuerdo, vuelve a la plataforma para registrar el valor acordado y la duración estimada. Mantener actualizado el seguimiento hasta el cierre forma parte del proceso.'),
+        '<div style="text-align:center;margin:18px 0">' + boton_(d.url, 'GESTIONAR ESTE TRABAJO') + '</div>',
+        '<p style="color:#586374;font-size:14px">Usa estos datos solo para este servicio.</p>'];
+      var hC = plantilla_('Cliente asignado · ' + oc, '', bc);
+      return { asunto: AP + 'Cliente asignado: datos de contacto · ' + oc, html: hC, texto: texto_(hC), adjuntos: [] };
     case 'comision_exigible':
     case 'recordatorio_comision':
-      if (!p || !com || ESTADOS_COMISION_BLOQUEAN.indexOf(com['Estado']) < 0 || com['Estado'] === 'MANUAL_REVIEW') return null;
-      asunto = AP + prefijoPrueba_(com) + (tipo === 'recordatorio_comision' ? 'Recordatorio: ' : '') + 'Comisión pendiente · ' + oc;
-      titulo = prefijoPrueba_(com) + 'El cliente confirmó el trabajo: comisión pendiente'; saludo = 'Hola ' + p['Nombre'] + ',';
-      if (com['Ambiente'] === 'SANDBOX') b.push(destacado_('PRUEBA / SANDBOX: correo de prueba. No se cobra dinero real.'));
-      b.push(tabla_html_([['Trabajo', oc + ' · ' + servicioTxt_(sol)], ['Mano de obra confirmada', euros_(com['Mano de obra (€)'])], ['Materiales (no cuentan)', euros_(com['Materiales (€)'])],
-        ['10 % de los primeros 2.000 €', euros_(com['Tramo 10 % (€)'])], ['5 % del exceso', euros_(com['Tramo 5 % (€)'])], ['Comisión', euros_(com['Importe comisión (€)'])]]));
-      b.push('<div style="text-align:center">' + boton_(urlPagoComision_(oc, pro), com['Ambiente'] === 'SANDBOX' ? 'PAGAR COMISIÓN (SANDBOX)' : 'PAGAR COMISIÓN', com['Ambiente'] === 'SANDBOX' ? '#7B1FA2' : '') + '</div>');
-      b.push(p_('Mientras esté pendiente no recibirás NUEVAS oportunidades. Tu cuenta, tu historial y tus trabajos en curso no cambian. Al confirmarse el pago vuelves a recibirlas automáticamente.'));
-      break;
+      if (!p || !com || ['DUE', 'PAYMENT_FAILED', 'PAYMENT_PENDING'].indexOf(com['Estado']) < 0) return null;
+      return corto_(AP + prefijoPrueba_(com) + (tipo === 'recordatorio_comision' ? 'Recordatorio: ' : '') + 'Comisión pendiente · ' + oc, prefijoPrueba_(com) + 'Comisión pendiente',
+        'El cliente confirmó el cierre de ' + oc + '. Comisión: ' + euros_(com['Importe comisión (€)']) + ' (sobre ' + euros_(com['Mano de obra (€)']) + ' de mano de obra; materiales excluidos).',
+        'Págala para seguir recibiendo nuevas oportunidades.', urlPagoComision_(oc, pro), com['Ambiente'] === 'SANDBOX' ? 'PAGAR COMISIÓN (SANDBOX)' : 'PAGAR COMISIÓN',
+        com['Ambiente'] === 'SANDBOX' ? 'PRUEBA / SANDBOX: sin dinero real.' : 'Tu cuenta, tu historial y tus trabajos en curso no cambian.', com['Ambiente'] === 'SANDBOX' ? '#7B1FA2' : '');
     case 'pago_aprobado_pro':
       if (!p || !com || com['Estado'] !== 'PAID') return null;
-      asunto = AP + prefijoPrueba_(com) + 'Pago recibido · ' + oc;
-      titulo = 'Pago de la comisión confirmado'; saludo = 'Hola ' + p['Nombre'] + ',';
-      b.push(p_('Hemos recibido el pago de la comisión de ' + oc + ' (' + euros_(com['Importe comisión (€)']) + ', referencia ' + com['Referencia vigente'] + '). El servicio queda cerrado y vuelves a recibir oportunidades.'));
-      b.push('<div style="text-align:center">' + boton_(d.url, 'VER EL TRABAJO') + '</div>');
-      break;
+      return corto_(AP + prefijoPrueba_(com) + 'Pago recibido · ' + oc, 'Pago confirmado', 'Recibimos el pago de la comisión de ' + oc + ' (' + euros_(com['Importe comisión (€)']) + ').',
+        'Vuelves a recibir oportunidades.', d.url, 'VER EL TRABAJO');
     case 'pago_rechazado_pro':
       if (!p || !com || com['Estado'] !== 'PAYMENT_FAILED') return null;
-      asunto = AP + prefijoPrueba_(com) + 'El pago no se completó · ' + oc;
-      titulo = 'El pago de la comisión no se completó'; saludo = 'Hola ' + p['Nombre'] + ',';
-      b.push(p_('Wompi no aprobó el pago de la comisión de ' + oc + '. No se ha cobrado nada. Puedes intentarlo de nuevo:'));
-      b.push('<div style="text-align:center">' + boton_(urlPagoComision_(oc, pro), 'INTENTAR DE NUEVO') + '</div>');
-      break;
+      return corto_(AP + prefijoPrueba_(com) + 'El pago no se completó · ' + oc, 'El pago no se completó', 'Wompi no aprobó el pago de la comisión de ' + oc + '. No se cobró nada.',
+        'Puedes intentarlo de nuevo.', urlPagoComision_(oc, pro), 'INTENTAR DE NUEVO');
+    case 'valoracion_pro':
+      if (!p) return null;
+      return corto_(AP + 'Nueva valoración · ' + oc, 'Nueva valoración', 'Recibiste una nueva valoración de ' + d.estrellas + ' estrella' + (d.estrellas === 1 ? '' : 's') + ' en ' + oc + '.',
+        '', d.url, 'VER MI REPUTACIÓN');
     case 'condiciones_pro':
       if (!p || condAlDia_(p)) return null;
-      asunto = AP + 'Nuevas condiciones ' + condVigente_() + ': acéptalas para seguir recibiendo oportunidades';
-      titulo = 'Hemos actualizado las condiciones'; saludo = 'Hola ' + p['Nombre'] + ',';
-      b.push(p_('Novedades: la comisión pasa a ser el 10 % de los primeros 2.000 € de mano de obra y el 5 % del exceso, sin tope y sin contar materiales. Solo se genera cuando el cliente confirma que el trabajo terminó. Registrarte, recibir oportunidades, rechazarlas o no cerrar un acuerdo no tiene coste.'));
-      b.push('<div style="text-align:center">' + boton_(d.url, 'LEER Y ACEPTAR LAS CONDICIONES') + '</div>');
-      b.push(p_('Tus trabajos e historial no cambian. Hasta que las aceptes no recibirás nuevas oportunidades.'));
-      break;
+      return corto_(AP + 'Nuevas condiciones ' + condVigente_(), 'Nuevas condiciones para profesionales',
+        'Actualizamos las condiciones: acuerdo y precio fuera de OficioCerca, seguimiento hasta el cierre y comisión sobre la mano de obra final (10 % hasta 2.000 € + 5 % del exceso, sin materiales).',
+        'Acéptalas para seguir recibiendo nuevas oportunidades.', d.url, 'LEER Y ACEPTAR', 'Tus trabajos e historial no cambian.');
     case 'registro_profesional':
       if (!p) return null;
-      asunto = AP + 'Hemos recibido tu registro ' + pro;
-      titulo = 'Registro recibido · ' + pro; saludo = 'Hola ' + p['Nombre'] + ',';
-      b.push(tabla_html_([['Código', pro], ['Tipo de proveedor', p['Tipo de proveedor'] || '—'], ['Servicios', p['Servicios'] + (p['Servicio otro'] ? ' (' + p['Servicio otro'] + ')' : '')], ['Condiciones aceptadas', p['Condiciones (versión)']]]));
-      b.push(p_('Revisaremos tus datos. Cuando tu alta quede activa te avisaremos y empezarás a recibir oportunidades compatibles con tus servicios y tu zona.'));
-      break;
+      return corto_(AP + 'Hemos recibido tu registro ' + pro, 'Registro recibido · ' + pro, 'Recibimos tu registro (' + p['Servicios'] + ').', 'Te avisaremos cuando tu alta esté activa.', '', '', 'Condiciones aceptadas: ' + p['Condiciones (versión)']);
     case 'alta_activada':
       if (!p) return null;
-      asunto = AP + 'Tu alta está activa · ' + pro;
-      titulo = 'Ya puedes recibir oportunidades'; saludo = 'Hola ' + p['Nombre'] + ',';
-      b.push(p_('Tu alta en OficioCerca está activa. Te enviaremos a este correo las oportunidades compatibles con tus servicios (' + p['Servicios'] + ') y tu zona. Cada una trae un botón para responder.'));
-      break;
+      return corto_(AP + 'Tu alta está activa · ' + pro, 'Ya puedes recibir oportunidades', 'Tu alta en OficioCerca está activa.', 'Las oportunidades compatibles te llegarán a este correo con un botón para responder.', urlAyuda_('profesional'), 'CÓMO FUNCIONA');
+
+    /* ---------------- INCIDENCIAS ---------------- */
+    case 'incidencia_parte':
+      return corto_((pro ? AP : A) + 'Incidencia registrada · ' + oc, 'Incidencia registrada', 'Se registró una incidencia en el servicio ' + oc + '. El servicio queda en revisión.',
+        'Soporte la revisará y os contactará. No hace falta que hagas nada ahora.', pro ? d.url : seg, 'VER EL SERVICIO');
+    case 'incidencia_resuelta':
+      return corto_((pro ? AP : A) + 'Incidencia resuelta · ' + oc, 'Incidencia resuelta', 'Soporte registró el resultado de la incidencia de ' + oc + ': ' + String(d.resultado || '').replace(/ — /g, ': ').toLowerCase() + '.',
+        '', pro ? d.url : seg, 'VER EL SERVICIO');
+    case 'incidencia_admin':
+      var urlHoja = ''; try { urlHoja = ss_().getUrl() + '#gid=' + hoja_('Incidencias').getSheetId(); } catch (e) { }
+      var hI = plantilla_('Nueva incidencia — ' + (oc || d.id), '', [tabla_html_([['Incidencia', d.id], ['Solicitud', oc || '—'], ['Tipo', d.categoria], ['Prioridad', d.prioridad],
+        ['Reportó', d.quien], ['Resumen', d.texto]]), urlHoja ? '<div style="text-align:center">' + boton_(urlHoja, 'REVISAR INCIDENCIA') + '</div>' : '',
+        p_('Resultado: rellena «Resultado» en la pestaña Incidencias (y «Mano de obra reconocida (€)» si fue parcial).')], 'Aviso interno de OficioCerca');
+      return { asunto: '⚠ Nueva incidencia — ' + (oc || d.id), html: hI, texto: texto_(hI), adjuntos: [] };
+
+    /* ---------------- ADMINISTRADOR ---------------- */
     case 'alerta_admin':
       return { asunto: '[OficioCerca · ' + d.categoria + '] ' + d.asunto, html: plantilla_(d.asunto, '', ['<pre style="white-space:pre-wrap;font-family:inherit">' + esc_(d.texto) + '</pre>'], 'Alerta automática de OficioCerca'), texto: d.asunto + '\n\n' + d.texto };
     case 'resumen_diario':
@@ -1580,10 +1800,6 @@ function componer_(tipo, oc, pro, d) {
     default:
       throw new Error('Plantilla desconocida: ' + tipo);
   }
-  if (btnSeg && d.urlSeg) b.push('<div style="text-align:center;margin:18px 0">' + boton_(d.urlSeg, btnSeg) + '</div>');
-  else if (d.urlSeg) b.push('<div style="text-align:center;margin-top:18px">' + boton_(d.urlSeg, 'VER MI SOLICITUD', '#1C3352') + '</div>');
-  var html = plantilla_(titulo, saludo, b);
-  return { asunto: asunto, html: html, texto: texto_(html), adjuntos: adj };
 }
 
 /** Fotos de ESA solicitud (carpeta privada) como adjuntos. No cambia permisos. */
@@ -1634,7 +1850,7 @@ function html_(titulo, cuerpo, token, script) {
     '.stars input:checked+span{background:#13253D;color:#F2A65A;border-color:#13253D}.hide{display:none}' +
     '.prog{list-style:none;padding:0;margin:14px 0}.prog li{padding:8px 10px;border-left:4px solid #DED6C8;margin:4px 0}.prog .hecho{border-color:#2E7D4F}.prog .ahora{border-color:#F2A65A;font-weight:bold;background:#FFF4E5}.prog .pend{color:#8B95A3}a.btn{text-decoration:none}' +
     '.panel4{background:#F6F2EB;border-radius:12px;padding:10px 16px;margin:10px 0}.panel4 p{margin:6px 0}.servicios{padding-left:18px}.servicios li{margin:6px 0}.servicios .actual{font-weight:bold}' +
-    '.mini{border:2px solid #13253D;background:#fff;color:#13253D;border-radius:8px;padding:4px 10px;font-weight:bold;cursor:pointer}details.hist{margin:10px 0}details.hist summary{cursor:pointer;font-weight:bold}';
+    '.mini{border:2px solid #13253D;background:#fff;color:#13253D;border-radius:8px;padding:4px 10px;font-weight:bold;cursor:pointer}details.hist{margin:10px 0}details.hist summary{cursor:pointer;font-weight:bold}.fila2{display:flex;gap:10px;align-items:center}.fila2>*{flex:1}';
   var js = '<script>var T=' + JSON.stringify(token || '') + ';' +
     'function enviar(p,btn){var bs=document.querySelectorAll("button");bs.forEach(function(b){b.disabled=true});' +
     'var m=document.getElementById("msg");m.className="";m.textContent="Enviando…";' +
@@ -1669,7 +1885,7 @@ function pagina_(t) {
     var opts = Object.keys(DISP_PRO).filter(function (k) { return k !== 'OTRA_FECHA'; }).map(function (k) { return '<option value="' + k + '">' + esc_(DISP_PRO[k].t) + '</option>'; }).join('');
     return html_('Oportunidad ' + oc, filas_([['Servicio', servicioTxt_(sol)], ['Zona / barrio', sol['Zona'] + ' (Córdoba)'],
       ['Plazo que pide el cliente', plazoTxt_(sol)], ['Descripción', sol['Descripción']], ['Responde antes de', fecha_(of['Expira'])]]) +
-      '<p class="nota">Aceptar significa: «Estoy interesado y tengo disponibilidad para contactar al cliente y valorar el trabajo». No te compromete todavía a ejecutar la obra. Recibir o rechazar oportunidades no tiene coste.</p>' +
+      '<p class="nota">Aceptar significa: «Estoy interesado y tengo disponibilidad para contactar al cliente». Al aceptar recibirás su contacto: eso inicia el trabajo en OficioCerca. Precio y condiciones los acordáis directamente. Recibir o rechazar oportunidades no tiene coste.</p>' +
       '<button class="btn" onclick="ver(\'pa\')">✔ PUEDO ATENDERLO</button>' +
       '<div id="pa" class="panel opc hide"><label for="disp">¿Cuándo podrías empezar?</label><select id="disp">' + opts + '</select>' +
       '<button class="btn" onclick="enviar({a:\'si\',disp:val(\'disp\')})">Confirmar: puedo atenderlo</button></div>' +
@@ -1717,9 +1933,10 @@ function pagina_(t) {
     var pc = profesional_(pro), urlCond = String(cfg_('URL_WEB') || 'https://oficiocerca.pages.dev/').replace(/\/?$/, '/') + 'condiciones-profesionales/';
     if (!pc) return html_('Enlace no válido', '<p>Profesional no encontrado.</p>');
     if (condAlDia_(pc)) return html_('Condiciones aceptadas', '<div class="ok">Ya aceptaste la versión vigente (' + esc_(condVigente_()) + '). No tienes que hacer nada más.</div>');
-    return html_('Nuevas condiciones ' + condVigente_(), '<div class="panel4"><p><b>¿Qué cambia?</b> La comisión pasa a ser el <b>10 % de los primeros 2.000 € de mano de obra y el 5 % del exceso</b>, sin tope. Los materiales nunca cuentan.</p>' +
-      '<p><b>¿Cuándo se genera?</b> Solo cuando el cliente confirma que el trabajo terminó. Registrarte, recibir una oportunidad, rechazarla o un acuerdo que no se confirma: <b>sin coste</b>.</p>' +
-      '<p><b>¿Y si queda pendiente?</b> Una comisión exigible sin pagar impide recibir NUEVAS oportunidades hasta pagarla. No borra tu cuenta ni cambia tu historial ni tus trabajos.</p></div>' +
+    return html_('Nuevas condiciones ' + condVigente_(), '<div class="panel4"><p><b>Precio y acuerdo:</b> los negocias directamente con el cliente, fuera de OficioCerca. Después registras aquí el acuerdo alcanzado (mano de obra y duración estimada).</p>' +
+      '<p><b>Seguimiento:</b> recibir el contacto inicia el trabajo en OficioCerca; mantenerlo actualizado hasta el cierre forma parte del proceso. Si no se actualiza de forma reiterada, puede influir en tu prioridad para nuevas oportunidades.</p>' +
+      '<p><b>Comisión:</b> 10 % de los primeros 2.000 € de mano de obra y 5 % del exceso, sin tope, sobre la mano de obra FINAL confirmada por el cliente. Los materiales nunca cuentan. Registrarte, recibir o rechazar oportunidades: sin coste.</p>' +
+      '<p><b>Incidencias y comisión pendiente:</b> una incidencia no te bloquea automáticamente. Una comisión exigible sin pagar impide recibir NUEVAS oportunidades hasta pagarla, sin borrar tu cuenta, tu historial ni tus trabajos.</p></div>' +
       '<p><a href="' + esc_(urlCond) + '" target="_blank" rel="noopener">Leer las condiciones completas</a></p>' +
       '<button class="btn" onclick="enviar({a:\'aceptar\'})">✔ He leído y acepto las condiciones ' + esc_(condVigente_()) + '</button>', t);
   }
@@ -1763,47 +1980,72 @@ function accion(t, p) {
 function paginaGestion_(t, oc, pro) {
   var sol = solicitud_(oc), estado = sol['Estado'], com = comisionDeOC_(oc);
   if (sol['Profesional asignado (PRO)'] !== pro) return html_('Trabajo ' + oc, '<p>Este trabajo ya no está asignado a ti.</p>');
+  var p = profesional_(pro);
   var h = resumenV16_(sol, com, 'pro') + lineaProgresoV16_(sol, com, 'pro');
-  var estPro = { 'Profesional asignado': 'Contacto habilitado · falta registrar el acuerdo', 'Acuerdo pendiente del cliente': 'Acuerdo pendiente de que el cliente lo confirme',
-    'Finalización por confirmar': 'Terminado · pendiente de la confirmación del cliente', 'Comisión pendiente': 'Terminado · comisión pendiente' }[estado];
+  var estPro = { 'Profesional asignado': 'Contacto habilitado · falta registrar el acuerdo alcanzado', 'Finalización por confirmar': 'Cierre registrado · pendiente de la confirmación del cliente',
+    'Comisión pendiente': 'Terminado · comisión pendiente', 'Cierre pendiente del profesional': 'El cliente indica que terminó · registra el valor final' }[estado];
   h += '<h2>Datos del trabajo</h2>' + filas_([['Servicio', servicioTxt_(sol)], ['Cliente', sol['Nombre']], ['WhatsApp del cliente', limpio_(sol['WhatsApp'])],
     ['Correo del cliente', sol['Email']], ['Zona', sol['Zona']], ['Estado', estPro || ESTADO_HUMANO[estado] || estado]]);
-  var pres = sol['Presupuesto vigente'] ? tabla_('Presupuestos').buscar('ID', sol['Presupuesto vigente']) : null;
-  if (pres) h += bloqueAcuerdoCliente_(pres).replace('Acuerdo con el profesional', 'Acuerdo registrado').replace('Pendiente de tu confirmación', 'Pendiente de que el cliente lo confirme');
-  h += historialAcuerdo_(oc, 'pro');
-  if (ESTADOS_PERMITEN_ACUERDO.indexOf(estado) >= 0) {
-    var modificar = ['Acuerdo confirmado', 'Trabajo en proceso', 'Acuerdo pendiente del cliente'].indexOf(estado) >= 0;
-    var hoy = Utilities.formatDate(new Date(), ZONA_HORARIA, 'yyyy-MM-dd');
-    h += '<button class="btn' + (modificar ? ' sec' : '') + '" onclick="ver(\'pa\')">' + (modificar ? 'Modificar el acuerdo (el cliente deberá reconfirmarlo)' : 'Ya hablé con el cliente / Registrar acuerdo') + '</button>' +
-      '<div id="pa" class="panel opc' + (modificar ? ' hide' : '') + '">' +
-      '<label for="mo">Mano de obra (€) *</label><input id="mo" inputmode="decimal" placeholder="Ej.: 350" oninput="tot()">' +
-      '<label for="mat">Materiales (€) <span class="nota">(si los hay; no cuentan para la comisión)</span></label><input id="mat" inputmode="decimal" placeholder="0" oninput="tot()">' +
-      '<p>Total para el cliente: <b id="tt">0,00 €</b></p>' +
-      '<label for="fa">Fecha acordada</label><input type="date" id="fa" min="' + hoy + '">' +
-      '<label for="obs">Nota (opcional)</label><textarea id="obs" maxlength="1000" placeholder="Qué incluye, cómo os organizáis…"></textarea>' +
-      '<button class="btn" onclick="if(!val(\'mo\').trim()){alert(\'Indica la mano de obra\');return}if(confirm(\'¿Enviar este acuerdo al cliente para que lo confirme?\'))enviar({a:\'acuerdo\',mo:val(\'mo\'),mat:val(\'mat\'),fecha:val(\'fa\'),nota:val(\'obs\')})">Enviar acuerdo al cliente</button>' +
-      '<p class="nota">Comisión de OficioCerca: ' + esc_(POLITICA_COMISION.texto) + '. Solo se genera cuando el cliente confirma que el trabajo terminó. Declara importes reales.</p></div>';
+  h += bloqueAcuerdo_(sol, 'Acuerdo registrado').replace('<p class="nota">Lo acordasteis directamente entre vosotros. Si algo no coincide con lo hablado, usa «Hay un problema».</p>', '') + bloqueCierre_(sol);
+  if (estado === 'En revisión' || incidenciaAbierta_(oc)) h += '<div class="ok"><b>Soporte está revisando este trabajo.</b> Se han detenido el cierre y el cobro automáticos.</div>' + botonSoporteWA_(oc);
+  var unidades = '<option value="horas">horas</option><option value="dias" selected>días</option><option value="semanas">semanas</option>';
+  if (estado === 'Profesional asignado' || (estado === 'Trabajo en proceso' && !sol['Fecha registro acuerdo'])) {
+    h += '<div class="ok">Recibir el contacto inicia el trabajo en OficioCerca. Después de hablar con el cliente y llegar a un acuerdo, vuelve aquí para registrar el valor acordado y la duración estimada. Mantener actualizado el seguimiento hasta el cierre forma parte del proceso.</div>' +
+      '<h2>REGISTRAR ACUERDO ALCANZADO</h2><div id="pa" class="panel opc">' +
+      '<label for="mo">Mano de obra acordada (€) *</label><input id="mo" inputmode="decimal" placeholder="Ej.: 350">' +
+      '<label>Duración estimada del trabajo *</label><div class="fila2"><input id="dn" type="number" min="1" max="365" inputmode="numeric" placeholder="Ej.: 7"><select id="du">' + unidades + '</select></div>' +
+      '<label for="mat">Materiales estimados — opcional / informativo</label><input id="mat" inputmode="decimal" placeholder="0">' +
+      '<p class="nota">Los materiales no generan comisión de OficioCerca.</p>' +
+      '<label for="obs">Nota (opcional)</label><textarea id="obs" maxlength="1000" placeholder="Lo que incluye, cómo os organizáis…"></textarea>' +
+      '<button class="btn" onclick="if(!val(\'mo\').trim()){alert(\'Indica la mano de obra acordada\');return}if(!val(\'dn\').trim()){alert(\'Indica la duración estimada\');return}enviar({a:\'acuerdo\',mo:val(\'mo\'),mat:val(\'mat\'),dn:val(\'dn\'),du:val(\'du\'),nota:val(\'obs\')})">Registrar acuerdo alcanzado</button></div>';
   }
-  if (estado === 'Acuerdo confirmado' || estado === 'Trabajo en proceso')
-    h += '<button class="btn" onclick="if(confirm(\'¿Confirmas que el trabajo está terminado?\'))enviar({a:\'finalizado\'})">✔ Trabajo terminado</button><p class="nota">El cliente deberá confirmarlo.</p>';
-  if (com) {
-    var filas = [['Mano de obra confirmada', euros_(com['Mano de obra (€)'])], ['Materiales (no cuentan)', euros_(com['Materiales (€)'])],
+  var cierre = '<label for="mf">Valor FINAL de la mano de obra (€) *</label><input id="mf" inputmode="decimal" value="' + esc_(sol['Mano de obra inicial (€)'] === '' ? '' : String(sol['Mano de obra inicial (€)']).replace('.', ',')) + '">' +
+    '<label>¿Hubo trabajos adicionales?</label><div class="fila2"><label><input type="radio" name="ad" value="no" checked style="width:auto"> No</label><label><input type="radio" name="ad" value="si" style="width:auto"> Sí</label></div>' +
+    '<label for="mm">Si el valor final cambia frente al inicial, explica brevemente por qué</label><textarea id="mm" maxlength="500"></textarea>' +
+    '<label for="mtf">Materiales finales — opcional / informativo (no generan comisión)</label><input id="mtf" inputmode="decimal">' +
+    '<button class="btn" onclick="if(!val(\'mf\').trim()){alert(\'Indica el valor final de la mano de obra\');return}if(confirm(\'¿Marcar el trabajo como terminado? El cliente deberá confirmarlo.\'))enviar({a:\'finalizado\',mo:val(\'mf\'),adicionales:(document.querySelector(\'input[name=ad]:checked\')||{}).value,motivo:val(\'mm\'),mat:val(\'mtf\')})">Enviar cierre al cliente</button>';
+  if (['Trabajo en proceso', 'Archivado por inactividad'].indexOf(estado) >= 0 && sol['Fecha registro acuerdo']) {
+    h += '<h2>' + (estado === 'Archivado por inactividad' ? 'Indica el estado para reabrir el seguimiento' : '¿Cómo va el trabajo?') + '</h2>' +
+      '<button class="btn" onclick="ver(\'pf\')">✔ MARCAR TRABAJO COMO TERMINADO</button><div id="pf" class="panel opc hide">' + cierre + '</div>' +
+      '<button class="btn sec" onclick="ver(\'pp\')">Sigue en proceso · actualizar plazo</button><div id="pp" class="panel opc hide">' +
+      '<label>¿Cuánto tiempo más necesitas? *</label><div class="fila2"><input id="pn2" type="number" min="1" max="365" inputmode="numeric"><select id="pu2">' + unidades + '</select></div>' +
+      '<label for="pno">Nota (opcional)</label><input id="pno" maxlength="200">' +
+      '<button class="btn sec" onclick="if(!val(\'pn2\').trim()){alert(\'Indica el nuevo plazo\');return}enviar({a:\'plazo\',dn:val(\'pn2\'),du:val(\'pu2\'),nota:val(\'pno\')})">Actualizar plazo</button></div>';
+  }
+  if (estado === 'Cierre pendiente del profesional') h += '<h2>Registra el valor final para completar el cierre</h2><div class="panel opc">' + cierre + '</div>';
+  if (com && ['ANULADA'].indexOf(com['Estado']) < 0) {
+    var filas = [['Mano de obra final confirmada', euros_(com['Mano de obra (€)'])], ['Materiales (no cuentan)', euros_(com['Materiales (€)'])],
       ['10 % de los primeros 2.000 €', euros_(com['Tramo 10 % (€)'])], ['5 % del exceso', euros_(com['Tramo 5 % (€)'])], ['Comisión', euros_(com['Importe comisión (€)'])]];
-    var estTxt = { NO_HABILITADA: 'Calculada · en el piloto no se cobra', DUE: 'Pendiente de pago', PAYMENT_PENDING: 'Pago en proceso', PAID: 'Pagada', PAYMENT_FAILED: 'Pago no completado', MANUAL_REVIEW: 'En revisión' }[com['Estado']] || com['Estado'];
+    var estTxt = { NO_HABILITADA: 'Calculada · en el piloto no se cobra', DUE: 'Pendiente de pago', PAYMENT_PENDING: 'Pago en proceso', PAID: 'Pagada', PAYMENT_FAILED: 'Pago no completado', MANUAL_REVIEW: 'En revisión', EN_REVISION: 'Congelada por una incidencia' }[com['Estado']] || com['Estado'];
     filas.push(['Estado', estTxt + (com['Ambiente'] === 'SANDBOX' ? ' (PRUEBA / SANDBOX)' : '')]);
     if (com['Estado'] === 'PAID') filas.push(['Referencia de pago', com['Referencia vigente']]);
     h += '<h2>Comisión de OficioCerca</h2>' + filas_(filas);
     if (['DUE', 'PAYMENT_FAILED'].indexOf(com['Estado']) >= 0) h += '<button class="btn" onclick="enviar({a:\'pagar\'})">' + (com['Ambiente'] === 'SANDBOX' ? 'PAGAR COMISIÓN (SANDBOX)' : 'PAGAR COMISIÓN') + '</button>' +
       '<p class="nota">Mientras esté pendiente no recibirás nuevas oportunidades. Tu cuenta, tu historial y tus trabajos en curso no cambian.</p>';
   }
-  return html_('Trabajo ' + oc + ' · ' + servicioTxt_(sol), h, t, 'function n(v){v=(v||"").replace(/\\s|€/g,"");if(/,\\d{1,2}$/.test(v))v=v.replace(/\\./g,"").replace(",",".");else v=v.replace(/,/g,"");var x=parseFloat(v);return isNaN(x)?0:x}' +
-    'function tot(){var t=n(val("mo"))+n(val("mat"));document.getElementById("tt").textContent=t.toFixed(2).replace(".",",")+" €"}');
+  if (ESTADOS_ACTIVOS_SERVICIO.indexOf(estado) >= 0) h += formIncidencia_('pi');
+  if (p) h += bloqueReputacion_(p);
+  h += historialBasico_(oc);
+  h += '<p class="nota">Comisión: ' + esc_(POLITICA_COMISION.texto) + ', sobre la mano de obra final confirmada por el cliente. <a href="' + esc_(urlAyuda_('profesional')) + '" target="_blank" rel="noopener">Centro de ayuda y políticas</a></p>';
+  return html_('Trabajo ' + oc + ' · ' + servicioTxt_(sol), h, t);
+}
+
+/** «TU REPUTACIÓN EN OFICIOCERCA» (datos agregados; sin detalles de incidencias). */
+function bloqueReputacion_(p) {
+  var f = [['Valoración promedio', Number(p['Nº valoraciones']) ? String(p['Valoración media']).replace('.', ',') + ' / 5' : 'Aún sin valoraciones'],
+    ['Trabajos cerrados', String(Number(p['Completados']) || 0)], ['Valoraciones recibidas', String(Number(p['Nº valoraciones']) || 0)]];
+  if (p['Tasa respuesta (%)'] !== '' && p['Tasa respuesta (%)'] !== undefined) f.push(['Respuesta a oportunidades', p['Tasa respuesta (%)'] + ' %']);
+  if (p['Cumplimiento seguimiento (%)'] !== '' && p['Cumplimiento seguimiento (%)'] !== undefined) f.push(['Seguimiento al día', p['Cumplimiento seguimiento (%)'] + ' %']);
+  return '<details class="hist"><summary>Tu reputación en OficioCerca</summary>' + filas_(f) +
+    '<p class="nota">Las buenas valoraciones, el cumplimiento del seguimiento y una buena respuesta pueden ayudarte a ser tenido en cuenta con mayor prioridad para futuras oportunidades. Primero cuentan siempre el servicio, la zona y la disponibilidad.</p></details>';
 }
 
 function accionGestion_(oc, pro, p) {
   switch (p.a) {
-    case 'acuerdo': case 'presupuesto': return registrarAcuerdo_(oc, pro, p.mo, p.mat, p.fecha, p.nota !== undefined ? p.nota : p.obs);
-    case 'finalizado': return marcarFinalizado_(oc, pro);
+    case 'acuerdo': case 'presupuesto': return registrarAcuerdo_(oc, pro, p.mo, p.mat, p.dn, p.du, p.nota !== undefined ? p.nota : p.obs);
+    case 'plazo': return actualizarPlazo_(oc, pro, p.dn, p.du, p.nota);
+    case 'finalizado': return marcarFinalizado_(oc, pro, p.mo, p.adicionales, p.motivo, p.mat);
+    case 'incidencia': return reportarIncidencia_(oc, 'profesional', p.categoria, p.texto);
     case 'pagar':
       var sol = solicitud_(oc);
       if (sol['Profesional asignado (PRO)'] !== pro) return { ok: false, msg: 'Este trabajo no está asignado a ti.' };
@@ -1822,7 +2064,7 @@ function cicloAutomatico() {
       procesarCola_();
       altasPendientes_();
       revisarOfertas_();
-      recordatoriosV16_();
+      motorSeguimiento_();
       recalcularMetricas_();
       estadisticasCorreo_();
     });
@@ -1854,11 +2096,12 @@ function intervenciones_(sol, pros, incs, correos, registro) {
   var out = [];
   sol.forEach(function (s) {
     if (s['Estado'] === 'Revisión manual') out.push(['Otro servicio', s['Código'], (s['Servicio (otro)'] || 'Otro') + ' · ' + s['Zona'], 'Solicitudes: ofrece con «Ofrecer a (PRO manual)», cambia el servicio o cancela']);
-    if (s['Estado'] === 'Sin profesional compatible') out.push(['Sin profesional compatible', s['Código'], servicioTxt_(s) + ' · ' + s['Zona'] + ' · ' + s['Plazo'], 'Capta/activa un profesional (se reintenta solo) o contacta al cliente']);
+    if (s['Estado'] === 'Sin profesional disponible') out.push(['Sin profesional disponible', s['Código'], servicioTxt_(s) + ' · ' + s['Zona'] + ' · ' + s['Plazo'], 'Capta/activa un profesional (se reintenta solo; el cliente puede «Volver a buscar»)']);
+    if (s['Estado'] === 'En revisión') out.push(['Servicio en revisión', s['Código'], String(s['Requiere intervención'] || ''), 'Incidencias: rellena «Resultado» (o contacta a las partes)']);
   });
-  incs.filter(function (i) { return i['Tipo'] === 'Incidencia' && (i['Estado'] === 'Abierta' || i['Estado'] === 'En revisión'); })
-    .sort(function (a, b) { return (a['Gravedad'] === 'Grave' ? 0 : 1) - (b['Gravedad'] === 'Grave' ? 0 : 1); })
-    .forEach(function (i) { out.push([(i['Gravedad'] === 'Grave' ? 'INCIDENCIA GRAVE' : /ayuda/.test(i['Origen']) ? 'Cliente pide ayuda' : 'Incidencia'), i['ID'] + ' ' + i['Código OC'] + ' ' + i['Código PRO'], String(i['Categoría']) + ': ' + String(i['Descripción']).slice(0, 90), 'Incidencias: revisa y cambia el estado']); });
+  incs.filter(function (i) { return (i['Tipo'] === 'Incidencia' || i['Tipo'] === 'Ayuda') && (i['Estado'] === 'Abierta' || i['Estado'] === 'En revisión'); })
+    .sort(function (a, b) { var g = { Grave: 0, Alta: 1 }; return (g[a['Gravedad']] === undefined ? 2 : g[a['Gravedad']]) - (g[b['Gravedad']] === undefined ? 2 : g[b['Gravedad']]); })
+    .forEach(function (i) { out.push([(i['Gravedad'] === 'Grave' ? 'INCIDENCIA GRAVE' : i['Tipo'] === 'Ayuda' ? 'Cliente pide ayuda' : 'Incidencia ' + i['Gravedad']), i['ID'] + ' ' + i['Código OC'] + ' ' + i['Código PRO'], String(i['Categoría']) + ': ' + String(i['Descripción']).slice(0, 90), 'Incidencias: rellena «Resultado»']); });
   pros.filter(function (p) { return p['Estado'] === 'Pendiente de revisar'; }).forEach(function (p) {
     out.push(['Profesional por revisar', p['Código'], p['Nombre'] + ' · ' + p['Servicios'] + ' · ' + p['Ciudad'], 'Profesionales: revisa y pon «Activo» (o Baja)']);
   });
@@ -1890,11 +2133,12 @@ function actualizarPanel() {
     ['Buscando profesional', cuenta(['Buscando profesional'])],
     ['Esperando respuesta profesional', cuenta(['Esperando respuesta profesional'])],
     ['Con candidato de respaldo', conRespaldo],
-    ['Esperando respuesta cliente', cuenta(['Esperando decisión cliente', 'Acuerdo pendiente del cliente', 'Finalización por confirmar'])],
-    ['Profesional asignado (sin acuerdo)', cuenta(['Profesional asignado', 'Acuerdo no confirmado'])],
-    ['Acuerdos pendientes del cliente', cuenta(['Acuerdo pendiente del cliente'])],
-    ['Acuerdos confirmados / trabajo en proceso', cuenta(['Acuerdo confirmado', 'Trabajo en proceso'])],
-    ['Finalización declarada · pendiente del cliente', cuenta(['Finalización por confirmar'])],
+    ['Esperando respuesta cliente', cuenta(['Esperando decisión cliente', 'Finalización por confirmar'])],
+    ['Profesional asignado (sin acuerdo registrado)', cuenta(['Profesional asignado'])],
+    ['Trabajos en proceso', cuenta(['Trabajo en proceso'])],
+    ['Cierres pendientes (cliente o profesional)', cuenta(['Finalización por confirmar', 'Cierre pendiente del profesional'])],
+    ['En revisión (incidencia o sin respuesta)', cuenta(['En revisión'])],
+    ['Archivados por inactividad', cuenta(['Archivado por inactividad'])],
     ['Trabajos terminados (confirmados por el cliente)', cuenta(['Comisión pendiente', 'Cerrado'])],
     ['Profesionales pendientes de revisar', pros.filter(function (p) { return p['Estado'] === 'Pendiente de revisar'; }).length],
     ['Profesionales activos', pros.filter(function (p) { return p['Estado'] === 'Activo'; }).length],
@@ -1939,7 +2183,8 @@ function actualizarPanel() {
     ['Activar un profesional', 'Profesionales → Estado = «Activo» (exige condiciones aceptadas). Desde ese momento entra solo en el matching.'],
     ['Pausar / dar de baja', 'Profesionales → Estado = «Pausado», «En revisión» o «Baja». Sus ofertas abiertas se cierran solas.'],
     ['«Otro servicio»', 'Solicitudes → «Ofrecer a (PRO manual)» con un código PRO activo, o cambia «Servicio (código)» y pon Estado «Buscando profesional».'],
-    ['Incidencia grave', 'Incidencias → marca «Pausa preventiva» (pausa al profesional y lo registra). La decisión final siempre es manual.'],
+    ['Incidencias', 'Te llega un correo «⚠ Nueva incidencia». Resuélvela en Incidencias → «Resultado» (completo / parcial con «Mano de obra reconocida (€)» / sin trabajo / sin acuerdo / otro).'],
+    ['Pausa temporal', 'Incidencias → «Pausa preventiva» o Profesionales → Estado «Pausado»: sin NUEVAS oportunidades; no borra cuenta, historial ni trabajos actuales. Anota el motivo.'],
     ['Cancelar una solicitud', 'Solicitudes → Estado «Cancelada» y escribe el motivo en «Motivo cierre».'],
     ['Cobro de comisiones', 'Configuración → COMMISSION_COLLECTION_ENABLED sigue en FALSE hasta la aprobación de Wompi, la cuenta de abono, la tasa EUR→COP real, la revisión legal/fiscal y la autorización de Steven.'],
     ['Nuevas condiciones', 'Ejecutar pedirAceptacionCondiciones() desde el editor para pedir la versión vigente a los profesionales activos que tengan una anterior.']
@@ -2000,6 +2245,10 @@ function alEditar(e) {
           if (valor === 'Buscando profesional') { t.poner(fila, { 'Requiere intervención': '', 'Decisión cliente': '' }); motor_(reg['Código']); }
         }
       }
+      if (nombre === 'Incidencias' && col === 'Resultado' && valor) {
+        var res = resolverIncidencia_(reg['ID'], String(valor), usuario);
+        t.poner(fila, { 'Notas': fecha_(new Date()) + ' ' + res + (reg['Notas'] ? '\n' + reg['Notas'] : '') });
+      }
       if (nombre === 'Incidencias') {
         if (col === 'Pausa preventiva' && valor === true && reg['Código PRO']) {
           var p = profesional_(reg['Código PRO']);
@@ -2034,7 +2283,7 @@ function resumenDiario() {
     var filas = [
       ['Nuevas solicitudes', sol.filter(function (s) { return en(s, 'Fecha'); }).length],
       ['Asignadas', acc('Asignación automática y contacto compartido')],
-      ['Sin profesional compatible (ahora)', sol.filter(function (s) { return s['Estado'] === 'Sin profesional compatible'; }).length],
+      ['Sin profesional disponible (ahora)', sol.filter(function (s) { return s['Estado'] === 'Sin profesional disponible'; }).length],
       ['Acuerdos confirmados', acc('Cliente confirma el acuerdo')],
       ['Trabajos terminados', acc('Cliente confirma finalización')],
       ['Incidencias nuevas', incs.filter(function (i) { return en(i, 'Fecha') && i['Tipo'] === 'Incidencia'; }).length],
@@ -2050,84 +2299,79 @@ function resumenDiario() {
     encolarCorreo_('admin-resumen-' + hoy, 'resumen_diario', 'Administrador', cfg_('ADMIN_EMAIL'), '', '', { fecha: hoy, html: html });
   } catch (err) { errorSistema_('resumenDiario', err); }
 }
-/* ============================================================ V1.6 · SEGUIMIENTO (cliente sin cuenta) Y RUTA VISUAL
+/* ============================================================ V1.7 · SEGUIMIENTO (centro del servicio) Y RUTA VISUAL
  * - Enlace privado por correo (/seguimiento/#TOKEN): aleatorio (64 hex), solo se guarda su SHA-256, ligado a UNA solicitud,
  *   válido 365 días y revocable. El navegador nunca elige la solicitud: el servidor la toma del token.
- * - Varios servicios del mismo cliente: cada uno es una OC independiente; se agrupan por «Grupo cliente» (creado SOLO
- *   en el servidor desde el seguimiento del propio cliente). Nunca se muestran solicitudes de otras personas.
- * - El cliente NO ve la comisión. Sin tokens en WhatsApp ni en textos públicos.
+ * - Varios servicios del mismo cliente = OC independientes agrupadas por «Grupo cliente» (solo lo crea el servidor).
+ * - El cliente NO ve la comisión ni fórmulas. Sin tokens en WhatsApp ni en textos públicos.
+ * - Cada pantalla responde: ¿dónde estoy? ¿qué está pasando? ¿qué hago ahora? ¿qué pasa después?
  */
 
-var PASOS_V16 = ['Solicitud enviada', 'Profesional encontrado', 'Contacto habilitado', 'Acuerdo pendiente', 'Acuerdo confirmado',
-  'Trabajo en proceso', 'Profesional indica finalización', 'Cliente confirma', 'Comisión pendiente', 'Comisión pagada', 'Cerrado'];
-var PASOS_SOLO_PRO = [8, 9]; // el cliente no ve la comisión
+var PASOS_V17 = ['Solicitud enviada', 'Profesional encontrado', 'Contacto habilitado', 'Acuerdo registrado', 'Trabajo en proceso',
+  'Cierre iniciado', 'Cliente confirma', 'Comisión pendiente', 'Comisión pagada', 'Cerrado'];
+var PASOS_SOLO_PRO = [7, 8]; // el cliente no ve la comisión
 
 var ESTADO_HUMANO = {
   'Nueva': 'Buscando un profesional compatible', 'Buscando profesional': 'Buscando un profesional compatible',
   'Esperando respuesta profesional': 'Buscando un profesional compatible', 'Revisión manual': 'Estamos revisando tu solicitud',
-  'Esperando decisión cliente': 'Necesitamos tu decisión', 'Sin profesional compatible': 'Seguimos buscando un profesional disponible',
-  'Profesional asignado': 'Profesional encontrado · contacto habilitado', 'Acuerdo pendiente del cliente': 'Acuerdo pendiente de tu confirmación',
-  'Acuerdo no confirmado': 'Acuerdo no confirmado', 'Acuerdo confirmado': 'Acuerdo confirmado', 'Trabajo en proceso': 'Trabajo en proceso',
-  'Finalización por confirmar': 'El profesional indica que terminó · pendiente de tu confirmación',
-  'Comisión pendiente': 'Trabajo terminado', 'Cerrado': 'Trabajo terminado · servicio cerrado', 'Cancelada': 'Solicitud cancelada'
+  'Esperando decisión cliente': 'Necesitamos tu decisión', 'Sin profesional disponible': 'Sin profesional disponible por ahora',
+  'Profesional asignado': 'Profesional encontrado · contacto habilitado', 'Trabajo en proceso': 'Trabajo en proceso',
+  'Cierre pendiente del profesional': 'Cierre iniciado · falta el valor final del profesional',
+  'Finalización por confirmar': 'Cierre iniciado · falta la confirmación del cliente',
+  'Comisión pendiente': 'Trabajo terminado', 'Cerrado': 'Servicio cerrado', 'En revisión': 'En revisión por soporte',
+  'Archivado por inactividad': 'Archivado por inactividad (cierre no confirmado)', 'Cancelada': 'Solicitud cancelada'
 };
-var ESTADOS_CANCELABLES = ['Nueva', 'Revisión manual', 'Buscando profesional', 'Esperando respuesta profesional', 'Esperando decisión cliente', 'Sin profesional compatible'];
+var ESTADOS_CANCELABLES = ['Nueva', 'Revisión manual', 'Buscando profesional', 'Esperando respuesta profesional', 'Esperando decisión cliente', 'Sin profesional disponible'];
 
-/** Índice del paso ACTUAL (los anteriores están hechos). 11 = todo hecho. */
-function pasoActualV16_(sol, com) {
+function pasoActualV17_(sol) {
   var e = sol['Estado'];
   if (ESTADOS_CANCELABLES.indexOf(e) >= 0) return 1;
-  return ({ 'Profesional asignado': 3, 'Acuerdo pendiente del cliente': 3, 'Acuerdo no confirmado': 3, 'Acuerdo confirmado': 5, 'Trabajo en proceso': 5,
-    'Finalización por confirmar': 7, 'Comisión pendiente': 8, 'Cerrado': 11 })[e] || 0;
+  return ({ 'Profesional asignado': 3, 'Trabajo en proceso': 4, 'Cierre pendiente del profesional': 5, 'Finalización por confirmar': 6,
+    'Comisión pendiente': 7, 'Cerrado': 10 })[e] || (sol['Presupuesto vigente'] ? 4 : 3);
 }
 
 function lineaProgresoV16_(sol, com, vista) {
-  var actual = pasoActualV16_(sol, com), sinCobro = !com || com['Estado'] === 'NO_HABILITADA';
-  if (vista === 'cliente' && sol['Estado'] === 'Comisión pendiente') actual = 11; // para el cliente su servicio ya está terminado
-  if (sol['Estado'] === 'Comisión pendiente' && com && com['Estado'] === 'PAYMENT_PENDING') actual = 9;
-  return '<ol class="prog">' + PASOS_V16.map(function (txt, i) {
+  var actual = pasoActualV17_(sol), sinCobro = !com || ['NO_HABILITADA', 'ANULADA'].indexOf(com['Estado']) >= 0;
+  if (vista === 'cliente' && sol['Estado'] === 'Comisión pendiente') actual = 10; // para el cliente su servicio ya está terminado
+  if (sol['Estado'] === 'Comisión pendiente' && com && com['Estado'] === 'PAYMENT_PENDING') actual = 8;
+  var pausa = sol['Estado'] === 'En revisión' ? ' (en revisión)' : sol['Estado'] === 'Archivado por inactividad' ? ' (archivado)' : '';
+  return '<ol class="prog">' + PASOS_V17.map(function (txt, i) {
     if (vista === 'cliente' && PASOS_SOLO_PRO.indexOf(i) >= 0) return '';
-    var na = PASOS_SOLO_PRO.indexOf(i) >= 0 && sinCobro && actual > 7;
+    var na = PASOS_SOLO_PRO.indexOf(i) >= 0 && sinCobro && actual > 6;
     var cls = na ? 'pend' : i < actual ? 'hecho' : i === actual ? 'ahora' : 'pend';
     var ico = na ? '–' : i < actual ? '✓' : i === actual ? '◉' : '○';
     if (na) txt += ' (no aplica: cobro no habilitado en el piloto)';
-    if (i === 5 && sol['Estado'] === 'Acuerdo confirmado' && fechaIso_(sol['Fecha acordada'])) txt += ' · previsto el ' + fechaAcordadaTxt_(sol['Fecha acordada']);
+    if (i === 4 && sol['Fecha estimada fin'] && actual <= 4) txt += ' · fin estimado ' + fecha_(sol['Fecha estimada fin']);
+    if (i === actual) txt += pausa;
     return '<li class="' + cls + '"><span aria-hidden="true">' + ico + '</span> ' + esc_(txt) + '</li>';
   }).join('') + '</ol>';
 }
 
-/** Las cuatro preguntas de cada pantalla: ¿dónde estoy? ¿qué pasa? ¿qué hago? ¿qué sigue? */
+/** Las cuatro preguntas de cada pantalla. */
 function resumenV16_(sol, com, vista) {
-  var e = sol['Estado'], cli = vista === 'cliente';
+  var e = sol['Estado'], cli = vista === 'cliente', vencido = sol['Fecha estimada fin'] && new Date(sol['Fecha estimada fin']).getTime() <= Date.now();
   var R = function (pasa, haces, sigue) { return { pasa: pasa, haces: haces, sigue: sigue }; };
-  var m = {
-    busca: cli ? R('Estamos buscando un profesional compatible con tu trabajo, zona y plazo.', 'Nada por ahora. Te avisaremos por correo.', 'Cuando un profesional pueda atenderte, verás aquí sus datos de contacto.')
-      : R('Búsqueda de profesional en curso.', '—', '—'),
-    decide: R('Solo hay disponibilidad posterior a la que pediste.', 'Elige una opción más abajo.', 'Según elijas, asignamos al profesional o seguimos buscando.'),
-    asignado: cli ? R('Ya tienes profesional. Vais a hablar para valorar el trabajo.', 'Habla con el profesional (sus datos están más abajo).', 'Cuando acordéis precio y fecha, el profesional lo registrará y te pediremos que lo confirmes.')
-      : R('Tienes el contacto del cliente.', 'Habla con el cliente y pulsa «Ya hablé con el cliente / Registrar acuerdo».', 'El cliente confirmará el acuerdo.'),
-    pendCli: cli ? R('El profesional ha registrado el acuerdo.', 'Revisa el acuerdo y pulsa «Confirmar acuerdo» o «No estoy de acuerdo».', 'Con tu confirmación empieza el trabajo en la fecha acordada.')
-      : R('Has registrado el acuerdo. Falta que el cliente lo confirme.', 'Nada, salvo que necesites modificarlo.', 'Te avisaremos cuando el cliente lo confirme.'),
-    noConf: cli ? R('Indicaste que no estás de acuerdo.', 'Habla con el profesional si queréis llegar a otro acuerdo.', 'Si registra uno nuevo, te pediremos que lo confirmes.')
-      : R('El cliente no está de acuerdo con lo registrado.', 'Habla con el cliente y registra un nuevo acuerdo si llegáis a uno.', 'El cliente tendrá que confirmarlo.'),
-    conf: cli ? R('Acuerdo confirmado.', 'Nada. El profesional hará el trabajo en la fecha acordada.', 'Cuando termine, te pediremos que lo confirmes.')
-      : R('El cliente confirmó el acuerdo.', 'Haz el trabajo y, al terminar, pulsa «Trabajo terminado».', 'El cliente confirmará que terminó.'),
-    fin: cli ? R('El profesional indica que el trabajo ha terminado.', 'Confirma si terminó: «Sí», «Todavía no» o «Hay un problema».', 'Si confirmas, cerramos el servicio y podrás valorarlo.')
-      : R('Has indicado que terminaste. Falta la confirmación del cliente.', 'Nada por ahora.', 'Cuando el cliente confirme, se cerrará el servicio (y, si aplica, se generará la comisión).'),
-    comPend: cli ? R('Confirmaste que el trabajo terminó. ¡Gracias!', 'Si quieres, valora el servicio.', 'Nada más: tu servicio está terminado.')
-      : R('El cliente confirmó el trabajo. La comisión está pendiente de pago.', 'Paga la comisión con el botón «Pagar comisión».', 'Al confirmarse el pago el servicio se cierra y vuelves a recibir oportunidades.'),
-    cerrado: cli ? R('Servicio terminado y cerrado.', 'Si quieres, valora el servicio o pide otro.', 'Nada más.')
-      : R('Servicio cerrado.', 'Nada.', 'Seguirás recibiendo oportunidades compatibles.'),
-    cancel: R('Esta solicitud está cancelada.', 'Si lo necesitas, pide un servicio nuevo.', 'Nada más.')
-  };
-  var k = ESTADOS_CANCELABLES.indexOf(e) >= 0 ? (e === 'Esperando decisión cliente' ? 'decide' : 'busca') :
-    ({ 'Profesional asignado': 'asignado', 'Acuerdo pendiente del cliente': 'pendCli', 'Acuerdo no confirmado': 'noConf', 'Acuerdo confirmado': 'conf', 'Trabajo en proceso': 'conf',
-      'Finalización por confirmar': 'fin', 'Comisión pendiente': 'comPend', 'Cerrado': 'cerrado', 'Cancelada': 'cancel' })[e] || 'busca';
-  var r = m[k];
-  if (cli && k === 'busca' && /mismo profesional/i.test(sol['Origen servicio'] || '') && sol['Estado'] === 'Esperando respuesta profesional')
-    r = R('Hemos pedido este servicio a tu profesional y esperamos su respuesta.', 'Nada por ahora. Te avisaremos por correo.', 'Si acepta, verás aquí sus datos; si no puede, buscaremos otro profesional compatible.');
-  if (!cli && k === 'comPend' && com && com['Estado'] === 'PAYMENT_PENDING') r = R('Wompi está procesando tu pago.', 'Nada: espera la confirmación.', 'Al aprobarse, el servicio se cierra y vuelves a recibir oportunidades.');
-  if (!cli && k === 'comPend' && com && com['Estado'] === 'MANUAL_REVIEW') r = R('El pago de la comisión está en revisión.', 'Nada: te escribiremos.', '—');
+  var r;
+  if (e === 'Esperando decisión cliente') r = R('Solo hay disponibilidad posterior a la que pediste.', 'Elige una opción más abajo.', 'Según elijas, asignamos al profesional o seguimos buscando.');
+  else if (e === 'Sin profesional disponible') r = R('Por ahora no encontramos un profesional compatible.', 'Puedes pulsar «Volver a buscar» cuando quieras: no tienes que rellenar nada otra vez.', 'Si aparece un profesional, te avisaremos por correo.');
+  else if (ESTADOS_CANCELABLES.indexOf(e) >= 0) r = /mismo profesional/i.test(sol['Origen servicio'] || '') && e === 'Esperando respuesta profesional' ?
+    R('Hemos pedido este servicio a tu profesional y esperamos su respuesta.', 'Nada por ahora. Te avisaremos por correo.', 'Si acepta, verás aquí sus datos; si no puede, buscaremos otro profesional compatible.') :
+    R('Estamos buscando un profesional compatible con tu trabajo, zona y plazo.', 'Nada por ahora. Te avisaremos por correo.', 'Cuando un profesional acepte, verás aquí sus datos de contacto.');
+  else if (e === 'Profesional asignado') r = cli ? R('Ya tienes profesional. Se pondrá en contacto contigo directamente.', 'Hablad, y si hace falta que visite el trabajo. El precio y las condiciones los acordáis entre vosotros.', 'Cuando lleguéis a un acuerdo, el profesional lo registrará aquí con la duración estimada.')
+    : R('Tienes el contacto del cliente.', 'Habla con el cliente (y visítalo si hace falta). Cuando lleguéis a un acuerdo, pulsa «Registrar acuerdo alcanzado».', 'La duración que indiques será la fecha en la que te preguntaremos cómo va.');
+  else if (e === 'Trabajo en proceso') r = cli ? R(vencido ? 'Llegó la fecha estimada de finalización.' : 'El trabajo está en proceso. Fin estimado: ' + fecha_(sol['Fecha estimada fin']) + '.', vencido ? 'Indica el estado: «El trabajo terminó», «Sigue en proceso» o «Hay un problema».' : 'Nada. Si el trabajo termina antes o hay un problema, indícalo aquí.', 'Al terminar, el profesional registrará el valor final y tú confirmarás el cierre.')
+    : R(vencido ? 'Llegó la fecha estimada de finalización.' : 'Trabajo en proceso. Fin estimado: ' + fecha_(sol['Fecha estimada fin']) + '.', vencido ? 'Indica el estado: «Marcar trabajo como terminado» o «Sigue en proceso» (con el nuevo plazo).' : 'Al terminar, pulsa «Marcar trabajo como terminado». Si necesitas más tiempo, actualiza el plazo.', 'El cliente confirmará el cierre.');
+  else if (e === 'Cierre pendiente del profesional') r = cli ? R('Indicaste que el trabajo terminó.', 'Nada por ahora.', 'El profesional registrará el valor final y te pediremos que confirmes el cierre.')
+    : R('El cliente indica que el trabajo terminó.', 'Registra el valor final de la mano de obra para completar el cierre.', 'El cliente confirmará el cierre.');
+  else if (e === 'Finalización por confirmar') r = cli ? R('El profesional indicó que el trabajo terminó y registró el valor final.', 'Revisa el cierre y confírmalo, o indica «Todavía no» o «Hay un problema».', 'Con tu confirmación el servicio queda cerrado y podrás valorarlo.')
+    : R('Has registrado el cierre. Falta la confirmación del cliente.', 'Nada por ahora.', 'Cuando el cliente confirme, se cerrará el servicio (y, si aplica, se generará la comisión).');
+  else if (e === 'Comisión pendiente') r = cli ? R('Confirmaste el cierre. ¡Gracias!', 'Si quieres, valora el servicio.', 'Nada más: tu servicio está terminado.')
+    : (com && com['Estado'] === 'PAYMENT_PENDING' ? R('Wompi está procesando tu pago.', 'Nada: espera la confirmación.', 'Al aprobarse, el servicio se cierra y vuelves a recibir oportunidades.')
+      : R('El cliente confirmó el cierre. La comisión está pendiente de pago.', 'Paga la comisión con el botón «Pagar comisión».', 'Al confirmarse el pago el servicio se cierra y vuelves a recibir oportunidades.'));
+  else if (e === 'Cerrado') r = cli ? R('Servicio cerrado.', 'Si quieres, valora el servicio o pide otro.', 'Nada más.') : R('Servicio cerrado.', 'Nada.', 'Seguirás recibiendo oportunidades compatibles.');
+  else if (e === 'En revisión') r = R('Hay una incidencia o falta una respuesta: soporte está revisando el servicio. Se han detenido el cierre y el cobro automáticos.', 'Si necesitas añadir algo, escríbenos por WhatsApp.', 'Soporte te contactará y registrará el resultado aquí.');
+  else if (e === 'Archivado por inactividad') r = R('No recibimos respuesta y el seguimiento quedó archivado. No se ha cerrado ni cobrado nada.', 'Si el servicio sigue vivo, indica su estado más abajo para reabrirlo.', 'Al indicar el estado, el seguimiento continúa donde estaba.');
+  else r = R('Esta solicitud está cancelada.', 'Si lo necesitas, pide un servicio nuevo.', 'Nada más.');
   return '<div class="panel4"><p><b>¿Dónde estoy?</b> ' + esc_((cli ? 'Seguimiento de tu servicio ' : 'Trabajo ') + sol['Código'] + ' · ' + servicioTxt_(sol)) + '</p>' +
     '<p><b>¿Qué está pasando?</b> ' + esc_(r.pasa) + '</p><p><b>¿Qué hago ahora?</b> ' + esc_(r.haces) + '</p><p><b>¿Qué pasa después?</b> ' + esc_(r.sigue) + '</p></div>';
 }
@@ -2136,31 +2380,54 @@ function incidenciaAbierta_(oc) {
   return tabla_('Incidencias').todas().some(function (i) { return i['Código OC'] === oc && i['Tipo'] === 'Incidencia' && (i['Estado'] === 'Abierta' || i['Estado'] === 'En revisión'); });
 }
 
-function historialAcuerdo_(oc, vista) {
-  var vs = tabla_('Presupuestos').todas().filter(function (r) { return r['Código OC'] === oc; });
-  if (vs.length < 2) return '';
-  return '<details class="hist"><summary>Historial del acuerdo (' + vs.length + ' versiones)</summary>' + filas_(vs.map(function (r) {
-    return ['Versión ' + r['Versión'] + ' · ' + dia_(r['Fecha']), euros_(r['Total (€)']) + ' (mano de obra ' + euros_(r['Mano de obra (€)']) + ' + materiales ' + euros_(r['Materiales (€)']) + ') · ' +
-      fechaAcordadaTxt_(r['Fecha acordada']) + ' · ' + r['Estado'] + (r['Respuesta cliente (fecha)'] ? ' (' + fecha_(r['Respuesta cliente (fecha)']) + ')' : '')];
-  })) + '</details>';
+/** Acuerdo registrado por el profesional (solo lectura; sin comisión). */
+function bloqueAcuerdo_(sol, titulo) {
+  if (!sol['Fecha registro acuerdo']) return '';
+  var f = [['Mano de obra acordada', euros_(sol['Mano de obra inicial (€)'])], ['Duración estimada', sol['Duración estimada'] || '—'],
+    ['Fin estimado', fecha_(sol['Fecha estimada fin'])]];
+  if (Number(sol['Materiales aceptados (€)']) > 0) f.push(['Materiales estimados (informativo)', euros_(sol['Materiales aceptados (€)'])]);
+  return '<h2>' + esc_(titulo || 'Acuerdo registrado por el profesional') + '</h2>' + filas_(f) +
+    '<p class="nota">Lo acordasteis directamente entre vosotros. Si algo no coincide con lo hablado, usa «Hay un problema».</p>';
+}
+function bloqueCierre_(sol) {
+  if (sol['Mano de obra final (€)'] === '' || sol['Mano de obra final (€)'] === undefined) return '';
+  var f = [['Mano de obra inicial', sol['Mano de obra inicial (€)'] === '' ? '—' : euros_(sol['Mano de obra inicial (€)'])], ['Mano de obra final', euros_(sol['Mano de obra final (€)'])],
+    ['Trabajos adicionales', sol['Trabajos adicionales'] || 'No']];
+  if (sol['Motivo cambio valor']) f.push(['Motivo del cambio', sol['Motivo cambio valor']]);
+  if (sol['Materiales finales (€)'] !== '' && sol['Materiales finales (€)'] !== undefined) f.push(['Materiales (informativo)', euros_(sol['Materiales finales (€)'])]);
+  return '<h2>Cierre registrado</h2>' + filas_(f);
+}
+/** Historial básico en lenguaje humano (sin datos internos). */
+var HISTORIAL_HUMANO = {
+  'Solicitud recibida': 'Solicitud recibida', 'Asignación automática y contacto compartido': 'Profesional asignado · contacto habilitado',
+  'Acuerdo alcanzado registrado': 'Acuerdo registrado', 'Acuerdo corregido': 'Acuerdo corregido', 'Plazo actualizado': 'Plazo actualizado',
+  'Llegó la fecha estimada de finalización': 'Llegó la fecha estimada', 'Cliente: el trabajo sigue en proceso': 'El cliente indica que sigue en proceso',
+  'Profesional indica trabajo finalizado': 'El profesional registra el cierre', 'Cliente indica que el trabajo terminó': 'El cliente indica que terminó',
+  'Cliente confirma el cierre': 'Cierre confirmado', 'Servicio reabierto': 'Servicio reabierto', 'Archivado por inactividad (cierre no confirmado)': 'Archivado por inactividad',
+  'Escalado a revisión manual': 'En revisión por soporte', 'Valoración recibida': 'Valoración recibida', 'Solicitud cancelada': 'Solicitud cancelada'
+};
+function historialBasico_(oc) {
+  var ev = tabla_('Registro').todas().filter(function (r) { return r['Código OC'] === oc && (HISTORIAL_HUMANO[r['Acción']] || /^Incidencia (creada|resuelta)/.test(r['Acción'])); });
+  if (!ev.length) return '';
+  return '<details class="hist"><summary>Historial (' + ev.length + ')</summary><ul class="servicios">' + ev.map(function (r) {
+    var t = HISTORIAL_HUMANO[r['Acción']] || (/creada/.test(r['Acción']) ? 'Incidencia registrada' : 'Incidencia resuelta');
+    return '<li>' + esc_(fecha_(r['Fecha']) + ' · ' + t) + '</li>';
+  }).join('') + '</ul></details>';
 }
 
-function bloqueAcuerdoCliente_(pres) {
-  if (!pres) return '';
-  var est = pres['Estado'] === 'Pendiente del cliente' ? 'Pendiente de tu confirmación' : pres['Estado'];
-  return '<h2>Acuerdo con el profesional</h2>' + filas_([['Mano de obra', euros_(pres['Mano de obra (€)'])], ['Materiales', euros_(pres['Materiales (€)'])],
-    ['Total', euros_(pres['Total (€)'])], ['Fecha acordada', fechaAcordadaTxt_(pres['Fecha acordada'])], ['Nota', pres['Observaciones'] || '—'],
-    ['Versión', String(pres['Versión'])], ['Estado', est]]);
-}
+function urlAyuda_(ancla) { return String(cfg_('URL_WEB') || 'https://oficiocerca.pages.dev/').replace(/\/?$/, '/') + 'ayuda/' + (ancla ? '#' + ancla : ''); }
 
-function bloqueFin_(prefijo) {
-  var a = prefijo || '';
-  return '<button class="btn" onclick="enviar({a:\'' + a + 'si\'})">✔ Sí, el trabajo terminó</button>' +
-    '<button class="btn sec" onclick="enviar({a:\'' + a + 'aun_no\'})">Todavía no ha terminado</button>' +
-    '<button class="btn rojo" onclick="ver(\'pp\')">Hay un problema</button>' +
-    '<div id="pp" class="panel opc hide"><label for="txt">Cuéntanos qué ha pasado</label><textarea id="txt" maxlength="1500"></textarea>' +
-    '<label><input type="checkbox" id="grave" style="width:auto"> Es grave (seguridad, fraude, acoso o uso indebido de mis datos)</label>' +
-    '<button class="btn rojo" onclick="if(!val(\'txt\').trim()){alert(\'Describe el problema\');return}enviar({a:\'' + a + 'problema\',texto:val(\'txt\'),grave:document.getElementById(\'grave\').checked})">Enviar problema</button></div>';
+/** Botón de soporte por WhatsApp: la web rellena el número oficial (config.js); sin tokens ni datos privados. */
+function botonSoporteWA_(oc) {
+  return '<a class="btn sec wa-soporte" data-wa-soporte="' + esc_(oc) + '" target="_blank" rel="noopener" hidden>HABLAR CON SOPORTE POR WHATSAPP</a>';
+}
+function formIncidencia_(id) {
+  var cats = CATEGORIAS_INCIDENCIA.map(function (c) { return '<option>' + esc_(c) + '</option>'; }).join('');
+  return '<button class="btn rojo" onclick="ver(\'' + id + '\')">HAY UN PROBLEMA / REPORTAR INCIDENCIA</button>' +
+    '<div id="' + id + '" class="panel opc hide"><label for="' + id + 'c">Tipo de problema</label><select id="' + id + 'c">' + cats + '</select>' +
+    '<label for="' + id + 't">Cuéntanos qué ha pasado</label><textarea id="' + id + 't" maxlength="1500"></textarea>' +
+    '<p class="nota">Al reportarlo, el servicio queda en revisión: se detienen el cierre y el cobro automáticos y soporte recibe un aviso. No decidimos automáticamente quién tiene razón.</p>' +
+    '<button class="btn rojo" onclick="if(!val(\'' + id + 't\').trim()){alert(\'Cuéntanos qué ha pasado\');return}enviar({a:\'incidencia\',categoria:val(\'' + id + 'c\'),texto:val(\'' + id + 't\')})">Enviar incidencia</button></div>';
 }
 
 function bloqueValorar_() {
@@ -2170,9 +2437,7 @@ function bloqueValorar_() {
     '<button class="btn" onclick="var s=document.querySelector(\'input[name=st]:checked\');if(!s){alert(\'Elige de 1 a 5 estrellas\');return}enviar({a:\'valorar\',estrellas:s.value,comentario:val(\'com\')})">Enviar valoración</button>';
 }
 
-function opcionesServicio_(lista) {
-  return lista.map(function (c) { return '<option value="' + c + '">' + esc_(SERVICIOS[c]) + '</option>'; }).join('');
-}
+function opcionesServicio_(lista) { return lista.map(function (c) { return '<option value="' + c + '">' + esc_(SERVICIOS[c]) + '</option>'; }).join(''); }
 function formServicio_(id, accion, servicios, titulo, nota) {
   var plazos = Object.keys(PLAZOS_CLIENTE).map(function (k) { return '<option value="' + k + '">' + esc_(PLAZOS_CLIENTE[k].t) + '</option>'; }).join('');
   var hoy = Utilities.formatDate(new Date(), ZONA_HORARIA, 'yyyy-MM-dd');
@@ -2200,35 +2465,36 @@ function paginaSeguimiento_(t, oc) {
   h += estado === 'Cancelada' ? '<div class="err">Esta solicitud está cancelada.</div>' : lineaProgresoV16_(sol, com, 'cliente');
 
   var info = [['Servicio', servicioTxt_(sol)], ['Zona', sol['Zona']], ['Plazo solicitado', plazoTxt_(sol)]];
-  if (p) {
-    info.push(['Profesional', datosProTxt_(p)]);
-    if (sol['Disponibilidad profesional']) info.push(['Disponibilidad indicada', sol['Disponibilidad profesional']]);
-    info.push(['WhatsApp del profesional', limpio_(p['WhatsApp'])], ['Correo del profesional', p['Email']]);
-  }
+  if (p) info.push(['Profesional', datosProTxt_(p)], ['WhatsApp del profesional', limpio_(p['WhatsApp'])], ['Correo del profesional', p['Email']]);
   h += '<h2>Datos del servicio</h2>' + filas_(info);
-
-  var pres = sol['Presupuesto vigente'] ? tabla_('Presupuestos').buscar('ID', sol['Presupuesto vigente']) : null;
-  h += bloqueAcuerdoCliente_(pres) + historialAcuerdo_(oc, 'cliente');
-  if (incidenciaAbierta_(oc)) h += '<div class="ok"><b>Estamos revisando tu incidencia.</b> Una persona de OficioCerca te escribirá.</div>';
+  h += bloqueAcuerdo_(sol) + bloqueCierre_(sol);
+  if (estado === 'En revisión' || incidenciaAbierta_(oc)) h += '<div class="ok"><b>Soporte está revisando este servicio.</b> Te contactaremos.</div>' + botonSoporteWA_(oc);
 
   // Solo los botones válidos para el estado actual
+  var vencido = sol['Fecha estimada fin'] && new Date(sol['Fecha estimada fin']).getTime() <= Date.now();
   if (estado === 'Esperando decisión cliente') {
     h += '<h2>¿Qué prefieres?</h2><p>El profesional más próximo puede atenderte aproximadamente: <b>' + esc_(sol['Respaldo disponibilidad'] || '') + '</b>.</p>' +
       '<button class="btn" onclick="enviar({a:\'respaldo\',d:\'continuar\'})">Sí, continuar con este profesional</button>' +
       '<button class="btn sec" onclick="enviar({a:\'respaldo\',d:\'seguir\'})">Seguir buscando</button>' +
       '<button class="btn rojo" onclick="if(confirm(\'¿Seguro que quieres cancelar la solicitud?\'))enviar({a:\'respaldo\',d:\'cancelar\'})">Cancelar solicitud</button>';
   }
-  if (estado === 'Acuerdo pendiente del cliente' && pres && pres['Estado'] === 'Pendiente del cliente') {
-    h += '<h2>¿Confirmas el acuerdo?</h2>' +
-      '<button class="btn" onclick="enviar({a:\'acuerdo\',d:\'confirmar\'})">✔ Confirmar acuerdo</button>' +
-      '<button class="btn rojo" onclick="if(confirm(\'¿No estás de acuerdo con lo registrado?\'))enviar({a:\'acuerdo\',d:\'no_de_acuerdo\'})">No estoy de acuerdo</button>' +
-      '<p class="nota">Confirmar es gratuito para ti. El pago del trabajo se hace directamente al profesional.</p>';
+  if (estado === 'Sin profesional disponible') h += '<button class="btn" onclick="enviar({a:\'volver_a_buscar\'})">VOLVER A BUSCAR</button><p class="nota">Usamos los mismos datos: no tienes que rellenar nada otra vez.</p>';
+  if ((estado === 'Trabajo en proceso' || estado === 'Archivado por inactividad') || (estado === 'Profesional asignado' && sol['Fecha registro acuerdo'])) {
+    h += '<h2>' + (estado === 'Archivado por inactividad' ? '¿Cómo está el servicio? (se reabrirá el seguimiento)' : vencido ? 'Llegó la fecha estimada: ¿cómo va?' : '¿Novedades del trabajo?') + '</h2>' +
+      '<button class="btn" onclick="if(confirm(\'¿El trabajo ha terminado?\'))enviar({a:\'termino\'})">✔ El trabajo terminó</button>' +
+      (vencido || estado === 'Archivado por inactividad' ? '<button class="btn sec" onclick="enviar({a:\'sigue\'})">Sigue en proceso</button>' : '');
   }
-  if (estado === 'Finalización por confirmar') h += '<h2>¿Ha terminado el trabajo?</h2>' + bloqueFin_('fin_');
-  if (sol['Cliente confirmó fin (fecha)']) {
+  if (estado === 'Finalización por confirmar') {
+    h += '<h2>¿Confirmas el cierre?</h2>' +
+      '<button class="btn" onclick="if(confirm(\'¿Confirmas que el trabajo terminó y el valor final?\'))enviar({a:\'fin_si\'})">✔ Sí, el trabajo terminó y confirmo</button>' +
+      '<button class="btn sec" onclick="enviar({a:\'fin_aun_no\'})">Todavía no está terminado</button>';
+  }
+  if (ESTADOS_TRAS_CONFIRMAR_FIN.indexOf(estado) >= 0 && sol['Cliente confirmó fin (fecha)']) {
     var ya = tabla_('Valoraciones').todas().some(function (v) { return v['Código OC'] === oc; });
     h += '<h2>Valoración</h2>' + (ya ? '<div class="ok">Gracias, ya recibimos tu valoración.</div>' : bloqueValorar_());
   }
+  if (ESTADOS_ACTIVOS_SERVICIO.indexOf(estado) >= 0) h += formIncidencia_('pi');
+  h += historialBasico_(oc);
 
   h += '<h2>Otras opciones</h2>';
   h += '<button class="btn sec" onclick="ver(\'pn\')">+ Añadir otro servicio</button>' +
@@ -2238,15 +2504,12 @@ function paginaSeguimiento_(t, oc) {
     if (susServ.length) h += '<button class="btn sec" onclick="ver(\'pm\')">Solicitar este servicio al mismo profesional</button>' +
       formServicio_('pm', 'mismo_pro', susServ, 'Pedírselo a ' + p['Nombre'], 'Se lo pediremos a ' + p['Nombre'] + '; debe aceptarlo. Será un servicio nuevo e independiente. Si no puede, buscaremos otro profesional compatible.');
   }
-  h += '<button class="btn sec" onclick="ver(\'ph\')">Necesito ayuda</button>' +
-    '<div id="ph" class="panel opc hide"><label for="th">¿En qué te ayudamos?</label><textarea id="th" maxlength="1500"></textarea>' +
-    '<label><input type="checkbox" id="gh" style="width:auto"> Es grave (seguridad, fraude, acoso o uso indebido de mis datos)</label>' +
-    '<button class="btn sec" onclick="if(!val(\'th\').trim()){alert(\'Escribe tu consulta\');return}enviar({a:\'ayuda\',texto:val(\'th\'),grave:document.getElementById(\'gh\').checked})">Enviar</button></div>' +
-    (ESTADOS_CANCELABLES.indexOf(estado) >= 0 ? '<button class="btn rojo" onclick="if(confirm(\'¿Seguro que quieres cancelar esta solicitud?\'))enviar({a:\'cancelar\'})">Cancelar esta solicitud</button>' : '');
+  if (ESTADOS_CANCELABLES.indexOf(estado) >= 0) h += '<button class="btn rojo" onclick="if(confirm(\'¿Seguro que quieres cancelar esta solicitud?\'))enviar({a:\'cancelar\'})">Cancelar esta solicitud</button>';
+  h += '<p class="nota"><a href="' + esc_(urlAyuda_('cliente')) + '" target="_blank" rel="noopener">Centro de ayuda y políticas</a></p>';
   return html_('Seguimiento · ' + oc, h, t);
 }
 
-/** Acciones del portal: siempre sobre la OC del token (o una de SU grupo, validada en el servidor). */
+/** Acciones del portal del cliente: siempre sobre la OC del token (o una de SU grupo, validada en el servidor). */
 function accionSeguimiento_(oc, p) {
   var sol = solicitud_(oc);
   switch (p.a) {
@@ -2254,13 +2517,12 @@ function accionSeguimiento_(oc, p) {
       var of = tabla_('Ofertas').todas().filter(function (o) { return o['Código OC'] === oc && o['Estado'] === 'Respaldo' && o['Código PRO'] === sol['Respaldo (PRO)']; })[0];
       if (!of) return { ok: false, msg: 'Esa opción ya no está disponible.' };
       return procesarDecisionRespaldo_(of['ID'], p.d);
-    case 'acuerdo':
-    case 'presupuesto':
-      if (!sol['Presupuesto vigente']) return { ok: false, msg: 'No hay ningún acuerdo pendiente.' };
-      return procesarRespuestaPresupuesto_(sol['Presupuesto vigente'], p.d);
+    case 'volver_a_buscar': return volverABuscar_(oc);
+    case 'termino': return clienteTerminado_(oc);
+    case 'sigue': return clienteSigueEnProceso_(oc);
     case 'fin_si': return procesarFinCliente_(oc, 'si');
     case 'fin_aun_no': return procesarFinCliente_(oc, 'aun_no');
-    case 'fin_problema': return procesarFinCliente_(oc, 'problema', p.texto, p.grave === true);
+    case 'fin_problema': case 'incidencia': return reportarIncidencia_(oc, 'cliente', p.categoria || (p.grave ? 'Situación grave' : 'Otro'), p.texto);
     case 'valorar': return procesarValoracion_(oc, p.estrellas, p.comentario);
     case 'ayuda': return procesarComentarioCliente_(oc, 'ayuda', 'Otro', p.texto, p.grave === true);
     case 'nuevo_servicio': return anadirServicio_(oc, { servicio: p.servicio, descripcion: p.descripcion, plazo: p.plazo, fecha: p.fecha, otro: p.otro }, false);
@@ -2275,7 +2537,7 @@ function accionSeguimiento_(oc, p) {
       return conLock_(function () {
         var s = solicitud_(oc);
         if (s['Estado'] === 'Cancelada') return { ok: true, ya: true, msg: 'Esta solicitud ya estaba cancelada.' };
-        if (ESTADOS_CANCELABLES.indexOf(s['Estado']) < 0) return { ok: false, msg: 'Esta solicitud ya tiene profesional asignado. Si quieres cancelarla, usa «Necesito ayuda».' };
+        if (ESTADOS_CANCELABLES.indexOf(s['Estado']) < 0) return { ok: false, msg: 'Esta solicitud ya tiene profesional. Si hay un problema, usa «Hay un problema».' };
         cancelarSolicitud_(s, 'Cancelada por el cliente');
         return { ok: true, msg: 'Hemos cancelado esta solicitud.' };
       });
@@ -2292,25 +2554,26 @@ function revocarSeguimiento(oc) {
   });
 }
 
-/** Compatibilidad: los recordatorios viven ahora en recordatoriosV16_ (máx. uno por acción). */
-function recordatoriosFinalizacion_() { recordatoriosV16_(); }
+function recordatoriosFinalizacion_() { motorSeguimiento_(); } // compatibilidad
 
 /* ---------- procesador rápido (cada minuto; sale al instante si no hay nada) ---------- */
 function marcarPendiente_() { PropertiesService.getScriptProperties().setProperty('PENDIENTE', String(Date.now())); }
 
 function procesarPendientes() {
   var props = PropertiesService.getScriptProperties();
-  if (!props.getProperty('PENDIENTE')) return;
+  var pendiente = !!props.getProperty('PENDIENTE'), vence = seguimientoVencido_();
+  if (!pendiente && !vence) return;
   try {
     conLock_(function () {
-      props.deleteProperty('PENDIENTE');
+      if (pendiente) props.deleteProperty('PENDIENTE');
+      if (vence) motorSeguimiento_(); // fecha estimada / recordatorio programado: se atiende en el minuto
       procesarCola_();
       tabla_('Solicitudes').todas().filter(function (s) { return s['Estado'] === 'Nueva'; })
         .forEach(function (s) { try { motor_(s['Código']); } catch (e) { errorSistema_('motor ' + s['Código'], e); } });
       procesarCola_();
     });
   } catch (err) { errorSistema_('procesarPendientes', err); }
-  try { actualizarPanel(); } catch (e) { }
+  try { if (pendiente) actualizarPanel(); } catch (e) { }
 }
 /* ============================================================ COBRO DE COMISIONES CON WOMPI (V1.6)
  *
@@ -2653,13 +2916,13 @@ function sbxE2E_preparar() {
   conLock_(function () {
     if (!sbxActivo_()) throw new Error('Activa WOMPI_SANDBOX_ENABLED = TRUE (sbxE2E_activar).');
     var pro = sbxE2E_nuevoPro_('A'), oc = sbxE2E_nuevaSol_('A', pro);
-    var r1 = registrarAcuerdo_(oc, pro, 3000, 800, '', 'PRUEBA');
-    var r2 = procesarRespuestaPresupuesto_(solicitud_(oc)['Presupuesto vigente'], 'confirmar');
-    var r3 = marcarFinalizado_(oc, pro);
+    var r1 = registrarAcuerdo_(oc, pro, 3000, 800, 7, 'dias', 'PRUEBA');
+    var r2 = { ok: true };
+    var r3 = marcarFinalizado_(oc, pro, 3200, 'si', 'PRUEBA: un punto de luz adicional', 800);
     var r4 = procesarFinCliente_(oc, 'si', '', false);
     var c = comisionDeOC_(oc);
     PropertiesService.getScriptProperties().setProperty('SBX_E2E_OC', oc);
-    Logger.log(oc + ' / ' + pro + ' · MO 3000 € + materiales 800 € → comisión ' + c['Importe comisión (€)'] + ' € (10 %: ' + c['Tramo 10 % (€)'] + ' + 5 %: ' + c['Tramo 5 % (€)'] +
+    Logger.log(oc + ' / ' + pro + ' · MO inicial 3000 € → final 3200 € + materiales 800 € → comisión ' + c['Importe comisión (€)'] + ' € (10 %: ' + c['Tramo 10 % (€)'] + ' + 5 %: ' + c['Tramo 5 % (€)'] +
       ') · ' + c['Estado'] + ' · pasos ' + [r1.ok, r2.ok, r3.ok, r4.ok].join('/') + ' · bloqueado: ' + proBloqueado_(pro));
   });
   sbxE2E_checkout();
@@ -2771,16 +3034,17 @@ function tasaTrmBce_() {
 }
 
 /* ---------- 3. OBLIGACIÓN DE COMISIÓN (nace SOLO cuando el cliente confirma el fin) ---------- */
-function crearObligacionComision_(sol, p) {
+/** moFinal = mano de obra FINAL confirmada (cierre del cliente o resolución de soporte). Nunca materiales. */
+function crearObligacionComision_(sol, p, moFinal) {
   var oc = sol['Código'], pro = sol['Profesional asignado (PRO)'];
   var ya = comisionDeOC_(oc);
   if (ya) return { estado: ya['Estado'], importe: Number(ya['Importe comisión (€)']) }; // idempotente
-  var pres = sol['Presupuesto vigente'] ? tabla_('Presupuestos').buscar('ID', sol['Presupuesto vigente']) : null;
-  if (!pres || (pres['Estado'] !== 'Confirmado' && pres['Estado'] !== 'Aceptado')) {
-    alertaAdmin_('sin-acuerdo-' + oc, 'Excepción', 'Fin confirmado sin acuerdo confirmado · ' + oc, 'No se ha generado comisión. Revisa la solicitud.');
+  if (!(Number(moFinal) > 0)) {
+    alertaAdmin_('sin-mo-' + oc, 'Excepción', 'Cierre confirmado sin mano de obra final · ' + oc, 'No se ha generado comisión. Revisa la solicitud.');
     return null;
   }
-  var c = comisionV16_(pres['Mano de obra (€)']), amb = ambienteCobro_(sol, p), ahora = new Date();
+  var pres = { 'ID': sol['Presupuesto vigente'] || '', 'Materiales (€)': sol['Materiales finales (€)'] !== '' ? sol['Materiales finales (€)'] : sol['Materiales aceptados (€)'] };
+  var c = comisionV16_(moFinal), amb = ambienteCobro_(sol, p), ahora = new Date();
   var estado = amb ? 'DUE' : 'NO_HABILITADA';
   if (c.importe <= 0) estado = 'NO_HABILITADA';
   tabla_('Comisiones').agregar({ 'Código OC': oc, 'Código PRO': pro, 'Profesional': p ? p['Nombre'] : '', 'Presupuesto': pres['ID'],
@@ -2898,29 +3162,107 @@ function anadirServicio_(ocBase, d, mismoPro) {
   });
 }
 
-/* ---------- 6. RECORDATORIOS (como máximo UNO por acción pendiente; si la acción ya se hizo, no se envía) ---------- */
-function recordatoriosV16_() {
-  var reg = tabla_('Registro').todas(), ahora = Date.now();
-  var desdeAccion = function (oc, accion) { var m = reg.filter(function (r) { return r['Código OC'] === oc && r['Acción'] === accion; }); return m.length ? new Date(m[m.length - 1]['Fecha']).getTime() : 0; };
+/* ---------- 6. SEGUIMIENTO AUTOMÁTICO (un único motor de avisos y recordatorios) ----------
+ * Cada servicio tiene como mucho UNA acción pendiente: «Acción pendiente de» (cliente / profesional / ambos),
+ * «Acción desde» (inicio del ciclo), «Plantilla seguimiento» y «Recordatorios enviados» (0–3).
+ * Calendario (configurable): aviso 1 al inicio · aviso 2 a las SEG_RECORDATORIO_2_HORAS · último aviso a las
+ * SEG_RECORDATORIO_3_HORAS · SEG_CIERRE_HORAS después: si NADIE respondió → «Archivado por inactividad»;
+ * si faltaba una sola parte → «En revisión» (soporte avisado). Nunca se cierra, se cobra ni se valora solo.
+ * Cualquier acción de las partes detiene el ciclo (pararAccion_). Los correos se recomponen al enviarse:
+ * si la acción ya se hizo, no salen. El procesador de cada minuto solo trabaja cuando llega una fecha programada.
+ */
+var PLANTILLAS_SEGUIMIENTO = ['vencimiento', 'actualizar_plazo', 'confirmar_cierre', 'registrar_cierre', 'registrar_acuerdo'];
+
+function horasSeg_() {
+  return [0, cfgNum_('SEG_RECORDATORIO_2_HORAS', 48), cfgNum_('SEG_RECORDATORIO_3_HORAS', 120), cfgNum_('SEG_RECORDATORIO_3_HORAS', 120) + cfgNum_('SEG_CIERRE_HORAS', 48)];
+}
+function iniciarAccion_(sol, quien, plantilla, cuando) {
+  var ahora = cuando ? new Date(cuando) : new Date();
+  actualizarSol_(sol, { 'Acción pendiente de': quien, 'Acción desde': ahora, 'Plantilla seguimiento': plantilla, 'Recordatorios enviados': 0, 'Último aviso': '' });
+  programarRevision_(ahora);
+}
+function pararAccion_(sol) {
+  if (sol['Acción pendiente de'] || sol['Acción desde']) actualizarSol_(sol, { 'Acción pendiente de': '', 'Acción desde': '', 'Plantilla seguimiento': '', 'Recordatorios enviados': '', 'Último aviso': '' });
+}
+/** Próxima fecha en la que el motor tiene trabajo (Propiedad PROX_SEGUIMIENTO, en ms). */
+function programarRevision_(fecha) {
+  var props = PropertiesService.getScriptProperties(), t = new Date(fecha).getTime(), act = Number(props.getProperty('PROX_SEGUIMIENTO')) || Infinity;
+  if (t < act) props.setProperty('PROX_SEGUIMIENTO', String(t));
+}
+function seguimientoVencido_() {
+  var t = Number(PropertiesService.getScriptProperties().getProperty('PROX_SEGUIMIENTO'));
+  return t > 0 && t <= Date.now();
+}
+
+function enviarSeguimiento_(sol, n) {
+  var oc = sol['Código'], pro = sol['Profesional asignado (PRO)'], p = pro ? profesional_(pro) : null, quien = sol['Acción pendiente de'];
+  var desde = new Date(sol['Acción desde']).getTime(), plantilla = sol['Plantilla seguimiento'];
+  var datos = { plantilla: plantilla, n: n, desde: desde, ultimo: n === 2 };
+  if (/cliente|ambos/.test(quien)) encolarCorreo_('seg-' + oc + '-' + desde + '-' + n + '-c', 'seguimiento', 'Cliente', sol['Email'], oc, pro, datos, true);
+  if (/profesional|ambos/.test(quien) && p) encolarCorreo_('seg-' + oc + '-' + desde + '-' + n + '-p', 'seguimiento', 'Profesional', p['Email'], oc, pro,
+    Object.assign({ token: { tipo: 'gestion', dias: 180 } }, datos), true);
+}
+
+/** Motor: vencimientos, recordatorios, archivo por inactividad y escalado a revisión manual. Idempotente. */
+function motorSeguimiento_() {
+  var ahora = Date.now(), H = horasSeg_(), prox = Infinity;
+  var acuerdoMs = cfgNum_('SEG_ACUERDO_DIAS', 3) * 86400000;
+  var hayPres = {};
+  tabla_('Presupuestos').todas().forEach(function (r) { hayPres[r['Código OC']] = 1; });
   tabla_('Solicitudes').todas().forEach(function (s) {
-    var oc = s['Código'], est = s['Estado'], pro = s['Profesional asignado (PRO)'], p = pro ? profesional_(pro) : null;
-    if (est === 'Acuerdo pendiente del cliente') {
-      var vig = s['Presupuesto vigente'];
-      var pr = vig ? tabla_('Presupuestos').buscar('ID', vig) : null;
-      if (pr && ahora - new Date(pr['Fecha']).getTime() > 2 * 86400000) encolarCorreo_('cli-rec-acuerdo-' + vig, 'recordatorio_acuerdo', 'Cliente', s['Email'], oc, pro, { presupuesto: vig }, true);
+    var est = s['Estado'], oc = s['Código'];
+    if (!s['Acción pendiente de']) {
+      // Nuevos ciclos: llega la fecha estimada · profesional asignado que aún no registró el acuerdo
+      if (est === 'Trabajo en proceso' && s['Fecha estimada fin']) {
+        var fin = new Date(s['Fecha estimada fin']).getTime();
+        if (fin <= ahora) { iniciarAccion_(s, 'ambos', 'vencimiento', ahora); registrar_('Sistema', 'Llegó la fecha estimada de finalización', oc, s['Profesional asignado (PRO)'], fecha_(fin)); }
+        else { prox = Math.min(prox, fin); return; }
+      } else if (est === 'Profesional asignado' && !hayPres[oc] && s['Fecha asignación']) {
+        var lim = new Date(s['Fecha asignación']).getTime() + acuerdoMs;
+        if (lim <= ahora) iniciarAccion_(s, 'profesional', 'registrar_acuerdo', ahora);
+        else { prox = Math.min(prox, lim); return; }
+      } else return;
     }
-    if (est === 'Finalización por confirmar') {
-      var d = desdeAccion(oc, 'Profesional indica trabajo finalizado');
-      if (d && ahora - d > 3 * 86400000) encolarCorreo_('cli-rec-fin-' + oc + '-' + d, 'recordatorio_fin', 'Cliente', s['Email'], oc, pro, {}, true);
+    if (ESTADOS_ACTIVOS_SERVICIO.indexOf(est) < 0 || est === 'Archivado por inactividad') { pararAccion_(s); return; }
+    var desde = new Date(s['Acción desde']).getTime(), n = Number(s['Recordatorios enviados']) || 0;
+    if (n < 3) {
+      var cuando = desde + H[n] * 3600000;
+      if (cuando <= ahora) {
+        enviarSeguimiento_(s, n);
+        actualizarSol_(s, { 'Recordatorios enviados': n + 1, 'Último aviso': new Date(ahora) });
+        n++;
+        // Nunca se escala en la misma pasada en que sale un aviso: la parte siempre conserva su margen tras el último.
+        prox = Math.min(prox, n < 3 ? desde + H[n] * 3600000 : Math.max(desde + H[3] * 3600000, ahora + (H[3] - H[2]) * 3600000));
+        return;
+      }
+      prox = Math.min(prox, desde + H[n] * 3600000); return;
     }
-    if (est === 'Profesional asignado' && p && s['Fecha asignación'] && ahora - new Date(s['Fecha asignación']).getTime() > 3 * 86400000)
-      encolarCorreo_('pro-rec-acuerdo-' + oc + '-' + pro, 'recordatorio_acuerdo_pro', 'Profesional', p['Email'], oc, pro, { token: { tipo: 'gestion', dias: 180 } }, true);
-    // Trabajo en proceso: llega la fecha acordada
-    if (est === 'Acuerdo confirmado') {
-      var f = fechaIso_(s['Fecha acordada']);
-      if (f && f <= Utilities.formatDate(new Date(), ZONA_HORARIA, 'yyyy-MM-dd')) { actualizarSol_(s, { 'Estado': 'Trabajo en proceso' }); registrar_('Sistema', 'Trabajo en proceso (fecha acordada)', oc, pro, f); }
+    var ultAviso = s['Último aviso'] ? new Date(s['Último aviso']).getTime() : desde + H[2] * 3600000;
+    var limite = Math.max(desde + H[3] * 3600000, ultAviso + (H[3] - H[2]) * 3600000);
+    if (limite > ahora) { prox = Math.min(prox, limite); return; }
+    // Agotados los avisos
+    var quien = s['Acción pendiente de'];
+    if (quien === 'ambos') {
+      actualizarSol_(s, { 'Estado previo': est, 'Estado': 'Archivado por inactividad', 'Escalado por': 'ambos', 'Requiere intervención': '' });
+      pararAccion_(s);
+      registrar_('Sistema', 'Archivado por inactividad (cierre no confirmado)', oc, s['Profesional asignado (PRO)'], 'Nadie respondió a 3 avisos');
+    } else {
+      actualizarSol_(s, { 'Estado previo': est, 'Estado': 'En revisión', 'Escalado por': quien, 'Requiere intervención': 'Sin respuesta del ' + quien + ' tras 3 avisos' });
+      pararAccion_(s);
+      registrar_('Sistema', 'Escalado a revisión manual', oc, s['Profesional asignado (PRO)'], 'Sin respuesta del ' + quien);
+      alertaAdmin_('esc-' + oc + '-' + desde, 'Revisión', 'Revisión manual · ' + oc + ' (sin respuesta del ' + quien + ')',
+        'El servicio ' + oc + ' necesitaba una acción del ' + quien + ' y no hubo respuesta tras 3 avisos. Queda «En revisión». No se ha cerrado ni cobrado nada.');
     }
   });
+  var props = PropertiesService.getScriptProperties();
+  if (prox < Infinity) props.setProperty('PROX_SEGUIMIENTO', String(prox)); else props.deleteProperty('PROX_SEGUIMIENTO');
+  // Valoración: UN aviso si el cliente confirmó el cierre hace > 24 h y no ha valorado
+  var vals = {}; tabla_('Valoraciones').todas().forEach(function (v) { vals[v['Código OC']] = 1; });
+  tabla_('Solicitudes').todas().forEach(function (s) {
+    if (ESTADOS_TRAS_CONFIRMAR_FIN.indexOf(s['Estado']) < 0 || !s['Cliente confirmó fin (fecha)'] || vals[s['Código']]) return;
+    if (ahora - new Date(s['Cliente confirmó fin (fecha)']).getTime() > 86400000) encolarCorreo_('cli-valorar-' + s['Código'], 'valorar_cliente', 'Cliente', s['Email'], s['Código'], s['Profesional asignado (PRO)'], {}, true);
+  });
+  // Comisión exigible: un recordatorio a los 3 días
   tabla_('Comisiones').todas().forEach(function (c) {
     if (c['Estado'] !== 'DUE' || !c['Fecha exigible'] || ahora - new Date(c['Fecha exigible']).getTime() < 3 * 86400000) return;
     var p = profesional_(c['Código PRO']);
@@ -2929,6 +3271,7 @@ function recordatoriosV16_() {
     encolarCorreo_('pro-rec-comision-' + c['Código OC'], 'recordatorio_comision', 'Profesional', destino, c['Código OC'], c['Código PRO'], { token: { tipo: 'gestion', dias: 180 } }, true);
   });
 }
+function recordatoriosV16_() { motorSeguimiento_(); } // compatibilidad
 
 /* ---------- 7. INSTALACIÓN / MIGRACIÓN V1.6 (idempotente; no borra datos) ---------- */
 var MIGRACION_ESTADOS_V16 = {
@@ -2959,4 +3302,18 @@ function instalarV16() {
     cfgPoner_('COMISION_POLITICA', POLITICA_COMISION.version);
   });
   Logger.log('V1.6 instalada. Condiciones vigentes: ' + condVigente_() + ' · política ' + POLITICA_COMISION.version);
+}
+
+/* ---------- 8. INSTALACIÓN / MIGRACIÓN V1.7 (idempotente; no borra datos) ---------- */
+var MIGRACION_ESTADOS_V17 = { 'Acuerdo pendiente del cliente': 'Trabajo en proceso', 'Acuerdo no confirmado': 'Profesional asignado',
+  'Acuerdo confirmado': 'Trabajo en proceso', 'Sin profesional compatible': 'Sin profesional disponible' };
+function instalarV17() {
+  instalarV16();
+  conLock_(function () {
+    var ts = tabla_('Solicitudes');
+    ts.todas().forEach(function (s) { var n = MIGRACION_ESTADOS_V17[s['Estado']]; if (n) ts.poner(s._fila, { 'Estado': n }); });
+    var tp = tabla_('Presupuestos');
+    tp.todas().forEach(function (r) { if (['Pendiente del cliente', 'Confirmado', 'No confirmado'].indexOf(r['Estado']) >= 0) tp.poner(r._fila, { 'Estado': 'Registrado' }); });
+  });
+  Logger.log('V1.7 instalada. Condiciones vigentes: ' + condVigente_() + ' · seguimiento: ' + JSON.stringify(horasSeg_()) + ' h');
 }
