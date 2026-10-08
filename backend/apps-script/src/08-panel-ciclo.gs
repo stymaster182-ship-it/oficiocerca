@@ -7,7 +7,7 @@ function cicloAutomatico() {
       procesarCola_();
       altasPendientes_();
       revisarOfertas_();
-      recordatoriosV16_();
+      motorSeguimiento_();
       recalcularMetricas_();
       estadisticasCorreo_();
     });
@@ -39,11 +39,12 @@ function intervenciones_(sol, pros, incs, correos, registro) {
   var out = [];
   sol.forEach(function (s) {
     if (s['Estado'] === 'Revisión manual') out.push(['Otro servicio', s['Código'], (s['Servicio (otro)'] || 'Otro') + ' · ' + s['Zona'], 'Solicitudes: ofrece con «Ofrecer a (PRO manual)», cambia el servicio o cancela']);
-    if (s['Estado'] === 'Sin profesional compatible') out.push(['Sin profesional compatible', s['Código'], servicioTxt_(s) + ' · ' + s['Zona'] + ' · ' + s['Plazo'], 'Capta/activa un profesional (se reintenta solo) o contacta al cliente']);
+    if (s['Estado'] === 'Sin profesional disponible') out.push(['Sin profesional disponible', s['Código'], servicioTxt_(s) + ' · ' + s['Zona'] + ' · ' + s['Plazo'], 'Capta/activa un profesional (se reintenta solo; el cliente puede «Volver a buscar»)']);
+    if (s['Estado'] === 'En revisión') out.push(['Servicio en revisión', s['Código'], String(s['Requiere intervención'] || ''), 'Incidencias: rellena «Resultado» (o contacta a las partes)']);
   });
-  incs.filter(function (i) { return i['Tipo'] === 'Incidencia' && (i['Estado'] === 'Abierta' || i['Estado'] === 'En revisión'); })
-    .sort(function (a, b) { return (a['Gravedad'] === 'Grave' ? 0 : 1) - (b['Gravedad'] === 'Grave' ? 0 : 1); })
-    .forEach(function (i) { out.push([(i['Gravedad'] === 'Grave' ? 'INCIDENCIA GRAVE' : /ayuda/.test(i['Origen']) ? 'Cliente pide ayuda' : 'Incidencia'), i['ID'] + ' ' + i['Código OC'] + ' ' + i['Código PRO'], String(i['Categoría']) + ': ' + String(i['Descripción']).slice(0, 90), 'Incidencias: revisa y cambia el estado']); });
+  incs.filter(function (i) { return (i['Tipo'] === 'Incidencia' || i['Tipo'] === 'Ayuda') && (i['Estado'] === 'Abierta' || i['Estado'] === 'En revisión'); })
+    .sort(function (a, b) { var g = { Grave: 0, Alta: 1 }; return (g[a['Gravedad']] === undefined ? 2 : g[a['Gravedad']]) - (g[b['Gravedad']] === undefined ? 2 : g[b['Gravedad']]); })
+    .forEach(function (i) { out.push([(i['Gravedad'] === 'Grave' ? 'INCIDENCIA GRAVE' : i['Tipo'] === 'Ayuda' ? 'Cliente pide ayuda' : 'Incidencia ' + i['Gravedad']), i['ID'] + ' ' + i['Código OC'] + ' ' + i['Código PRO'], String(i['Categoría']) + ': ' + String(i['Descripción']).slice(0, 90), 'Incidencias: rellena «Resultado»']); });
   pros.filter(function (p) { return p['Estado'] === 'Pendiente de revisar'; }).forEach(function (p) {
     out.push(['Profesional por revisar', p['Código'], p['Nombre'] + ' · ' + p['Servicios'] + ' · ' + p['Ciudad'], 'Profesionales: revisa y pon «Activo» (o Baja)']);
   });
@@ -75,11 +76,12 @@ function actualizarPanel() {
     ['Buscando profesional', cuenta(['Buscando profesional'])],
     ['Esperando respuesta profesional', cuenta(['Esperando respuesta profesional'])],
     ['Con candidato de respaldo', conRespaldo],
-    ['Esperando respuesta cliente', cuenta(['Esperando decisión cliente', 'Acuerdo pendiente del cliente', 'Finalización por confirmar'])],
-    ['Profesional asignado (sin acuerdo)', cuenta(['Profesional asignado', 'Acuerdo no confirmado'])],
-    ['Acuerdos pendientes del cliente', cuenta(['Acuerdo pendiente del cliente'])],
-    ['Acuerdos confirmados / trabajo en proceso', cuenta(['Acuerdo confirmado', 'Trabajo en proceso'])],
-    ['Finalización declarada · pendiente del cliente', cuenta(['Finalización por confirmar'])],
+    ['Esperando respuesta cliente', cuenta(['Esperando decisión cliente', 'Finalización por confirmar'])],
+    ['Profesional asignado (sin acuerdo registrado)', cuenta(['Profesional asignado'])],
+    ['Trabajos en proceso', cuenta(['Trabajo en proceso'])],
+    ['Cierres pendientes (cliente o profesional)', cuenta(['Finalización por confirmar', 'Cierre pendiente del profesional'])],
+    ['En revisión (incidencia o sin respuesta)', cuenta(['En revisión'])],
+    ['Archivados por inactividad', cuenta(['Archivado por inactividad'])],
     ['Trabajos terminados (confirmados por el cliente)', cuenta(['Comisión pendiente', 'Cerrado'])],
     ['Profesionales pendientes de revisar', pros.filter(function (p) { return p['Estado'] === 'Pendiente de revisar'; }).length],
     ['Profesionales activos', pros.filter(function (p) { return p['Estado'] === 'Activo'; }).length],
@@ -124,7 +126,8 @@ function actualizarPanel() {
     ['Activar un profesional', 'Profesionales → Estado = «Activo» (exige condiciones aceptadas). Desde ese momento entra solo en el matching.'],
     ['Pausar / dar de baja', 'Profesionales → Estado = «Pausado», «En revisión» o «Baja». Sus ofertas abiertas se cierran solas.'],
     ['«Otro servicio»', 'Solicitudes → «Ofrecer a (PRO manual)» con un código PRO activo, o cambia «Servicio (código)» y pon Estado «Buscando profesional».'],
-    ['Incidencia grave', 'Incidencias → marca «Pausa preventiva» (pausa al profesional y lo registra). La decisión final siempre es manual.'],
+    ['Incidencias', 'Te llega un correo «⚠ Nueva incidencia». Resuélvela en Incidencias → «Resultado» (completo / parcial con «Mano de obra reconocida (€)» / sin trabajo / sin acuerdo / otro).'],
+    ['Pausa temporal', 'Incidencias → «Pausa preventiva» o Profesionales → Estado «Pausado»: sin NUEVAS oportunidades; no borra cuenta, historial ni trabajos actuales. Anota el motivo.'],
     ['Cancelar una solicitud', 'Solicitudes → Estado «Cancelada» y escribe el motivo en «Motivo cierre».'],
     ['Cobro de comisiones', 'Configuración → COMMISSION_COLLECTION_ENABLED sigue en FALSE hasta la aprobación de Wompi, la cuenta de abono, la tasa EUR→COP real, la revisión legal/fiscal y la autorización de Steven.'],
     ['Nuevas condiciones', 'Ejecutar pedirAceptacionCondiciones() desde el editor para pedir la versión vigente a los profesionales activos que tengan una anterior.']
@@ -185,6 +188,10 @@ function alEditar(e) {
           if (valor === 'Buscando profesional') { t.poner(fila, { 'Requiere intervención': '', 'Decisión cliente': '' }); motor_(reg['Código']); }
         }
       }
+      if (nombre === 'Incidencias' && col === 'Resultado' && valor) {
+        var res = resolverIncidencia_(reg['ID'], String(valor), usuario);
+        t.poner(fila, { 'Notas': fecha_(new Date()) + ' ' + res + (reg['Notas'] ? '\n' + reg['Notas'] : '') });
+      }
       if (nombre === 'Incidencias') {
         if (col === 'Pausa preventiva' && valor === true && reg['Código PRO']) {
           var p = profesional_(reg['Código PRO']);
@@ -219,7 +226,7 @@ function resumenDiario() {
     var filas = [
       ['Nuevas solicitudes', sol.filter(function (s) { return en(s, 'Fecha'); }).length],
       ['Asignadas', acc('Asignación automática y contacto compartido')],
-      ['Sin profesional compatible (ahora)', sol.filter(function (s) { return s['Estado'] === 'Sin profesional compatible'; }).length],
+      ['Sin profesional disponible (ahora)', sol.filter(function (s) { return s['Estado'] === 'Sin profesional disponible'; }).length],
       ['Acuerdos confirmados', acc('Cliente confirma el acuerdo')],
       ['Trabajos terminados', acc('Cliente confirma finalización')],
       ['Incidencias nuevas', incs.filter(function (i) { return en(i, 'Fecha') && i['Tipo'] === 'Incidencia'; }).length],

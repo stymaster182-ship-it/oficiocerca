@@ -58,16 +58,17 @@ function tasaTrmBce_() {
 }
 
 /* ---------- 3. OBLIGACIÓN DE COMISIÓN (nace SOLO cuando el cliente confirma el fin) ---------- */
-function crearObligacionComision_(sol, p) {
+/** moFinal = mano de obra FINAL confirmada (cierre del cliente o resolución de soporte). Nunca materiales. */
+function crearObligacionComision_(sol, p, moFinal) {
   var oc = sol['Código'], pro = sol['Profesional asignado (PRO)'];
   var ya = comisionDeOC_(oc);
   if (ya) return { estado: ya['Estado'], importe: Number(ya['Importe comisión (€)']) }; // idempotente
-  var pres = sol['Presupuesto vigente'] ? tabla_('Presupuestos').buscar('ID', sol['Presupuesto vigente']) : null;
-  if (!pres || (pres['Estado'] !== 'Confirmado' && pres['Estado'] !== 'Aceptado')) {
-    alertaAdmin_('sin-acuerdo-' + oc, 'Excepción', 'Fin confirmado sin acuerdo confirmado · ' + oc, 'No se ha generado comisión. Revisa la solicitud.');
+  if (!(Number(moFinal) > 0)) {
+    alertaAdmin_('sin-mo-' + oc, 'Excepción', 'Cierre confirmado sin mano de obra final · ' + oc, 'No se ha generado comisión. Revisa la solicitud.');
     return null;
   }
-  var c = comisionV16_(pres['Mano de obra (€)']), amb = ambienteCobro_(sol, p), ahora = new Date();
+  var pres = { 'ID': sol['Presupuesto vigente'] || '', 'Materiales (€)': sol['Materiales finales (€)'] !== '' ? sol['Materiales finales (€)'] : sol['Materiales aceptados (€)'] };
+  var c = comisionV16_(moFinal), amb = ambienteCobro_(sol, p), ahora = new Date();
   var estado = amb ? 'DUE' : 'NO_HABILITADA';
   if (c.importe <= 0) estado = 'NO_HABILITADA';
   tabla_('Comisiones').agregar({ 'Código OC': oc, 'Código PRO': pro, 'Profesional': p ? p['Nombre'] : '', 'Presupuesto': pres['ID'],
@@ -185,29 +186,107 @@ function anadirServicio_(ocBase, d, mismoPro) {
   });
 }
 
-/* ---------- 6. RECORDATORIOS (como máximo UNO por acción pendiente; si la acción ya se hizo, no se envía) ---------- */
-function recordatoriosV16_() {
-  var reg = tabla_('Registro').todas(), ahora = Date.now();
-  var desdeAccion = function (oc, accion) { var m = reg.filter(function (r) { return r['Código OC'] === oc && r['Acción'] === accion; }); return m.length ? new Date(m[m.length - 1]['Fecha']).getTime() : 0; };
+/* ---------- 6. SEGUIMIENTO AUTOMÁTICO (un único motor de avisos y recordatorios) ----------
+ * Cada servicio tiene como mucho UNA acción pendiente: «Acción pendiente de» (cliente / profesional / ambos),
+ * «Acción desde» (inicio del ciclo), «Plantilla seguimiento» y «Recordatorios enviados» (0–3).
+ * Calendario (configurable): aviso 1 al inicio · aviso 2 a las SEG_RECORDATORIO_2_HORAS · último aviso a las
+ * SEG_RECORDATORIO_3_HORAS · SEG_CIERRE_HORAS después: si NADIE respondió → «Archivado por inactividad»;
+ * si faltaba una sola parte → «En revisión» (soporte avisado). Nunca se cierra, se cobra ni se valora solo.
+ * Cualquier acción de las partes detiene el ciclo (pararAccion_). Los correos se recomponen al enviarse:
+ * si la acción ya se hizo, no salen. El procesador de cada minuto solo trabaja cuando llega una fecha programada.
+ */
+var PLANTILLAS_SEGUIMIENTO = ['vencimiento', 'actualizar_plazo', 'confirmar_cierre', 'registrar_cierre', 'registrar_acuerdo'];
+
+function horasSeg_() {
+  return [0, cfgNum_('SEG_RECORDATORIO_2_HORAS', 48), cfgNum_('SEG_RECORDATORIO_3_HORAS', 120), cfgNum_('SEG_RECORDATORIO_3_HORAS', 120) + cfgNum_('SEG_CIERRE_HORAS', 48)];
+}
+function iniciarAccion_(sol, quien, plantilla, cuando) {
+  var ahora = cuando ? new Date(cuando) : new Date();
+  actualizarSol_(sol, { 'Acción pendiente de': quien, 'Acción desde': ahora, 'Plantilla seguimiento': plantilla, 'Recordatorios enviados': 0, 'Último aviso': '' });
+  programarRevision_(ahora);
+}
+function pararAccion_(sol) {
+  if (sol['Acción pendiente de'] || sol['Acción desde']) actualizarSol_(sol, { 'Acción pendiente de': '', 'Acción desde': '', 'Plantilla seguimiento': '', 'Recordatorios enviados': '', 'Último aviso': '' });
+}
+/** Próxima fecha en la que el motor tiene trabajo (Propiedad PROX_SEGUIMIENTO, en ms). */
+function programarRevision_(fecha) {
+  var props = PropertiesService.getScriptProperties(), t = new Date(fecha).getTime(), act = Number(props.getProperty('PROX_SEGUIMIENTO')) || Infinity;
+  if (t < act) props.setProperty('PROX_SEGUIMIENTO', String(t));
+}
+function seguimientoVencido_() {
+  var t = Number(PropertiesService.getScriptProperties().getProperty('PROX_SEGUIMIENTO'));
+  return t > 0 && t <= Date.now();
+}
+
+function enviarSeguimiento_(sol, n) {
+  var oc = sol['Código'], pro = sol['Profesional asignado (PRO)'], p = pro ? profesional_(pro) : null, quien = sol['Acción pendiente de'];
+  var desde = new Date(sol['Acción desde']).getTime(), plantilla = sol['Plantilla seguimiento'];
+  var datos = { plantilla: plantilla, n: n, desde: desde, ultimo: n === 2 };
+  if (/cliente|ambos/.test(quien)) encolarCorreo_('seg-' + oc + '-' + desde + '-' + n + '-c', 'seguimiento', 'Cliente', sol['Email'], oc, pro, datos, true);
+  if (/profesional|ambos/.test(quien) && p) encolarCorreo_('seg-' + oc + '-' + desde + '-' + n + '-p', 'seguimiento', 'Profesional', p['Email'], oc, pro,
+    Object.assign({ token: { tipo: 'gestion', dias: 180 } }, datos), true);
+}
+
+/** Motor: vencimientos, recordatorios, archivo por inactividad y escalado a revisión manual. Idempotente. */
+function motorSeguimiento_() {
+  var ahora = Date.now(), H = horasSeg_(), prox = Infinity;
+  var acuerdoMs = cfgNum_('SEG_ACUERDO_DIAS', 3) * 86400000;
+  var hayPres = {};
+  tabla_('Presupuestos').todas().forEach(function (r) { hayPres[r['Código OC']] = 1; });
   tabla_('Solicitudes').todas().forEach(function (s) {
-    var oc = s['Código'], est = s['Estado'], pro = s['Profesional asignado (PRO)'], p = pro ? profesional_(pro) : null;
-    if (est === 'Acuerdo pendiente del cliente') {
-      var vig = s['Presupuesto vigente'];
-      var pr = vig ? tabla_('Presupuestos').buscar('ID', vig) : null;
-      if (pr && ahora - new Date(pr['Fecha']).getTime() > 2 * 86400000) encolarCorreo_('cli-rec-acuerdo-' + vig, 'recordatorio_acuerdo', 'Cliente', s['Email'], oc, pro, { presupuesto: vig }, true);
+    var est = s['Estado'], oc = s['Código'];
+    if (!s['Acción pendiente de']) {
+      // Nuevos ciclos: llega la fecha estimada · profesional asignado que aún no registró el acuerdo
+      if (est === 'Trabajo en proceso' && s['Fecha estimada fin']) {
+        var fin = new Date(s['Fecha estimada fin']).getTime();
+        if (fin <= ahora) { iniciarAccion_(s, 'ambos', 'vencimiento', ahora); registrar_('Sistema', 'Llegó la fecha estimada de finalización', oc, s['Profesional asignado (PRO)'], fecha_(fin)); }
+        else { prox = Math.min(prox, fin); return; }
+      } else if (est === 'Profesional asignado' && !hayPres[oc] && s['Fecha asignación']) {
+        var lim = new Date(s['Fecha asignación']).getTime() + acuerdoMs;
+        if (lim <= ahora) iniciarAccion_(s, 'profesional', 'registrar_acuerdo', ahora);
+        else { prox = Math.min(prox, lim); return; }
+      } else return;
     }
-    if (est === 'Finalización por confirmar') {
-      var d = desdeAccion(oc, 'Profesional indica trabajo finalizado');
-      if (d && ahora - d > 3 * 86400000) encolarCorreo_('cli-rec-fin-' + oc + '-' + d, 'recordatorio_fin', 'Cliente', s['Email'], oc, pro, {}, true);
+    if (ESTADOS_ACTIVOS_SERVICIO.indexOf(est) < 0 || est === 'Archivado por inactividad') { pararAccion_(s); return; }
+    var desde = new Date(s['Acción desde']).getTime(), n = Number(s['Recordatorios enviados']) || 0;
+    if (n < 3) {
+      var cuando = desde + H[n] * 3600000;
+      if (cuando <= ahora) {
+        enviarSeguimiento_(s, n);
+        actualizarSol_(s, { 'Recordatorios enviados': n + 1, 'Último aviso': new Date(ahora) });
+        n++;
+        // Nunca se escala en la misma pasada en que sale un aviso: la parte siempre conserva su margen tras el último.
+        prox = Math.min(prox, n < 3 ? desde + H[n] * 3600000 : Math.max(desde + H[3] * 3600000, ahora + (H[3] - H[2]) * 3600000));
+        return;
+      }
+      prox = Math.min(prox, desde + H[n] * 3600000); return;
     }
-    if (est === 'Profesional asignado' && p && s['Fecha asignación'] && ahora - new Date(s['Fecha asignación']).getTime() > 3 * 86400000)
-      encolarCorreo_('pro-rec-acuerdo-' + oc + '-' + pro, 'recordatorio_acuerdo_pro', 'Profesional', p['Email'], oc, pro, { token: { tipo: 'gestion', dias: 180 } }, true);
-    // Trabajo en proceso: llega la fecha acordada
-    if (est === 'Acuerdo confirmado') {
-      var f = fechaIso_(s['Fecha acordada']);
-      if (f && f <= Utilities.formatDate(new Date(), ZONA_HORARIA, 'yyyy-MM-dd')) { actualizarSol_(s, { 'Estado': 'Trabajo en proceso' }); registrar_('Sistema', 'Trabajo en proceso (fecha acordada)', oc, pro, f); }
+    var ultAviso = s['Último aviso'] ? new Date(s['Último aviso']).getTime() : desde + H[2] * 3600000;
+    var limite = Math.max(desde + H[3] * 3600000, ultAviso + (H[3] - H[2]) * 3600000);
+    if (limite > ahora) { prox = Math.min(prox, limite); return; }
+    // Agotados los avisos
+    var quien = s['Acción pendiente de'];
+    if (quien === 'ambos') {
+      actualizarSol_(s, { 'Estado previo': est, 'Estado': 'Archivado por inactividad', 'Escalado por': 'ambos', 'Requiere intervención': '' });
+      pararAccion_(s);
+      registrar_('Sistema', 'Archivado por inactividad (cierre no confirmado)', oc, s['Profesional asignado (PRO)'], 'Nadie respondió a 3 avisos');
+    } else {
+      actualizarSol_(s, { 'Estado previo': est, 'Estado': 'En revisión', 'Escalado por': quien, 'Requiere intervención': 'Sin respuesta del ' + quien + ' tras 3 avisos' });
+      pararAccion_(s);
+      registrar_('Sistema', 'Escalado a revisión manual', oc, s['Profesional asignado (PRO)'], 'Sin respuesta del ' + quien);
+      alertaAdmin_('esc-' + oc + '-' + desde, 'Revisión', 'Revisión manual · ' + oc + ' (sin respuesta del ' + quien + ')',
+        'El servicio ' + oc + ' necesitaba una acción del ' + quien + ' y no hubo respuesta tras 3 avisos. Queda «En revisión». No se ha cerrado ni cobrado nada.');
     }
   });
+  var props = PropertiesService.getScriptProperties();
+  if (prox < Infinity) props.setProperty('PROX_SEGUIMIENTO', String(prox)); else props.deleteProperty('PROX_SEGUIMIENTO');
+  // Valoración: UN aviso si el cliente confirmó el cierre hace > 24 h y no ha valorado
+  var vals = {}; tabla_('Valoraciones').todas().forEach(function (v) { vals[v['Código OC']] = 1; });
+  tabla_('Solicitudes').todas().forEach(function (s) {
+    if (ESTADOS_TRAS_CONFIRMAR_FIN.indexOf(s['Estado']) < 0 || !s['Cliente confirmó fin (fecha)'] || vals[s['Código']]) return;
+    if (ahora - new Date(s['Cliente confirmó fin (fecha)']).getTime() > 86400000) encolarCorreo_('cli-valorar-' + s['Código'], 'valorar_cliente', 'Cliente', s['Email'], s['Código'], s['Profesional asignado (PRO)'], {}, true);
+  });
+  // Comisión exigible: un recordatorio a los 3 días
   tabla_('Comisiones').todas().forEach(function (c) {
     if (c['Estado'] !== 'DUE' || !c['Fecha exigible'] || ahora - new Date(c['Fecha exigible']).getTime() < 3 * 86400000) return;
     var p = profesional_(c['Código PRO']);
@@ -216,6 +295,7 @@ function recordatoriosV16_() {
     encolarCorreo_('pro-rec-comision-' + c['Código OC'], 'recordatorio_comision', 'Profesional', destino, c['Código OC'], c['Código PRO'], { token: { tipo: 'gestion', dias: 180 } }, true);
   });
 }
+function recordatoriosV16_() { motorSeguimiento_(); } // compatibilidad
 
 /* ---------- 7. INSTALACIÓN / MIGRACIÓN V1.6 (idempotente; no borra datos) ---------- */
 var MIGRACION_ESTADOS_V16 = {
@@ -246,4 +326,18 @@ function instalarV16() {
     cfgPoner_('COMISION_POLITICA', POLITICA_COMISION.version);
   });
   Logger.log('V1.6 instalada. Condiciones vigentes: ' + condVigente_() + ' · política ' + POLITICA_COMISION.version);
+}
+
+/* ---------- 8. INSTALACIÓN / MIGRACIÓN V1.7 (idempotente; no borra datos) ---------- */
+var MIGRACION_ESTADOS_V17 = { 'Acuerdo pendiente del cliente': 'Trabajo en proceso', 'Acuerdo no confirmado': 'Profesional asignado',
+  'Acuerdo confirmado': 'Trabajo en proceso', 'Sin profesional compatible': 'Sin profesional disponible' };
+function instalarV17() {
+  instalarV16();
+  conLock_(function () {
+    var ts = tabla_('Solicitudes');
+    ts.todas().forEach(function (s) { var n = MIGRACION_ESTADOS_V17[s['Estado']]; if (n) ts.poner(s._fila, { 'Estado': n }); });
+    var tp = tabla_('Presupuestos');
+    tp.todas().forEach(function (r) { if (['Pendiente del cliente', 'Confirmado', 'No confirmado'].indexOf(r['Estado']) >= 0) tp.poner(r._fila, { 'Estado': 'Registrado' }); });
+  });
+  Logger.log('V1.7 instalada. Condiciones vigentes: ' + condVigente_() + ' · seguimiento: ' + JSON.stringify(horasSeg_()) + ' h');
 }

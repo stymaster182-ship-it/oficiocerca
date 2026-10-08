@@ -23,7 +23,10 @@ function tabla_(nombre) {
   var t = {
     nombre: nombre, sh: sh, cols: cols,
     col: function (c) { var j = cols.indexOf(c); if (j < 0) throw new Error('Columna desconocida ' + nombre + '.' + c); return j + 1; },
+    _cache: null,
+    /** Lectura completa memorizada durante la ejecución (se invalida al escribir): evita releer la hoja en cada consulta. */
     todas: function () {
+      if (t._cache) return t._cache;
       var n = sh.getLastRow();
       if (n < 2) return [];
       var v = sh.getRange(2, 1, n - 1, cols.length).getValues();
@@ -34,7 +37,19 @@ function tabla_(nombre) {
         cols.forEach(function (c, j) { o[c] = r[j]; });
         out.push(o);
       });
+      t._cache = out;
       return out;
+    },
+    /** Búsqueda directa de UNA fila por valor exacto en una columna (TextFinder: no lee toda la hoja). */
+    buscarRapido: function (c, val) {
+      if (t._cache) return t.buscar(c, val);
+      var n = sh.getLastRow();
+      if (n < 2 || !val) return null;
+      var celda = sh.getRange(2, t.col(c), n - 1, 1).createTextFinder(String(val)).matchEntireCell(true).findNext();
+      if (!celda) return null;
+      var fila = celda.getRow(), v = sh.getRange(fila, 1, 1, cols.length).getValues()[0], o = { _fila: fila };
+      cols.forEach(function (k, j) { o[k] = v[j]; });
+      return o;
     },
     buscar: function (c, val) {
       var all = t.todas();
@@ -44,10 +59,17 @@ function tabla_(nombre) {
     agregar: function (o) {
       var fila = cols.map(function (c) { return o[c] === undefined ? '' : o[c]; });
       sh.appendRow(fila);
+      t._cache = null;
       return sh.getLastRow();
     },
     poner: function (fila, o) {
-      Object.keys(o).forEach(function (k) { sh.getRange(fila, t.col(k)).setValue(o[k]); });
+      var ks = Object.keys(o);
+      // Celdas contiguas en una sola escritura cuando es posible
+      var idx = ks.map(function (k) { return t.col(k); });
+      var contiguas = idx.every(function (c, i) { return i === 0 || c === idx[i - 1] + 1; });
+      if (ks.length > 1 && contiguas) sh.getRange(fila, idx[0], 1, ks.length).setValues([ks.map(function (k) { return o[k]; })]);
+      else ks.forEach(function (k, i) { sh.getRange(fila, idx[i]).setValue(o[k]); });
+      if (t._cache) { var reg = t._cache.filter(function (x) { return x._fila === fila; })[0]; if (reg) ks.forEach(function (k) { reg[k] = o[k]; }); }
     }
   };
   _tablas[nombre] = t;

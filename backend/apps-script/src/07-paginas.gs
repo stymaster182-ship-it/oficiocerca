@@ -35,7 +35,7 @@ function html_(titulo, cuerpo, token, script) {
     '.stars input:checked+span{background:#13253D;color:#F2A65A;border-color:#13253D}.hide{display:none}' +
     '.prog{list-style:none;padding:0;margin:14px 0}.prog li{padding:8px 10px;border-left:4px solid #DED6C8;margin:4px 0}.prog .hecho{border-color:#2E7D4F}.prog .ahora{border-color:#F2A65A;font-weight:bold;background:#FFF4E5}.prog .pend{color:#8B95A3}a.btn{text-decoration:none}' +
     '.panel4{background:#F6F2EB;border-radius:12px;padding:10px 16px;margin:10px 0}.panel4 p{margin:6px 0}.servicios{padding-left:18px}.servicios li{margin:6px 0}.servicios .actual{font-weight:bold}' +
-    '.mini{border:2px solid #13253D;background:#fff;color:#13253D;border-radius:8px;padding:4px 10px;font-weight:bold;cursor:pointer}details.hist{margin:10px 0}details.hist summary{cursor:pointer;font-weight:bold}';
+    '.mini{border:2px solid #13253D;background:#fff;color:#13253D;border-radius:8px;padding:4px 10px;font-weight:bold;cursor:pointer}details.hist{margin:10px 0}details.hist summary{cursor:pointer;font-weight:bold}.fila2{display:flex;gap:10px;align-items:center}.fila2>*{flex:1}';
   var js = '<script>var T=' + JSON.stringify(token || '') + ';' +
     'function enviar(p,btn){var bs=document.querySelectorAll("button");bs.forEach(function(b){b.disabled=true});' +
     'var m=document.getElementById("msg");m.className="";m.textContent="Enviando…";' +
@@ -70,7 +70,7 @@ function pagina_(t) {
     var opts = Object.keys(DISP_PRO).filter(function (k) { return k !== 'OTRA_FECHA'; }).map(function (k) { return '<option value="' + k + '">' + esc_(DISP_PRO[k].t) + '</option>'; }).join('');
     return html_('Oportunidad ' + oc, filas_([['Servicio', servicioTxt_(sol)], ['Zona / barrio', sol['Zona'] + ' (Córdoba)'],
       ['Plazo que pide el cliente', plazoTxt_(sol)], ['Descripción', sol['Descripción']], ['Responde antes de', fecha_(of['Expira'])]]) +
-      '<p class="nota">Aceptar significa: «Estoy interesado y tengo disponibilidad para contactar al cliente y valorar el trabajo». No te compromete todavía a ejecutar la obra. Recibir o rechazar oportunidades no tiene coste.</p>' +
+      '<p class="nota">Aceptar significa: «Estoy interesado y tengo disponibilidad para contactar al cliente». Al aceptar recibirás su contacto: eso inicia el trabajo en OficioCerca. Precio y condiciones los acordáis directamente. Recibir o rechazar oportunidades no tiene coste.</p>' +
       '<button class="btn" onclick="ver(\'pa\')">✔ PUEDO ATENDERLO</button>' +
       '<div id="pa" class="panel opc hide"><label for="disp">¿Cuándo podrías empezar?</label><select id="disp">' + opts + '</select>' +
       '<button class="btn" onclick="enviar({a:\'si\',disp:val(\'disp\')})">Confirmar: puedo atenderlo</button></div>' +
@@ -118,9 +118,10 @@ function pagina_(t) {
     var pc = profesional_(pro), urlCond = String(cfg_('URL_WEB') || 'https://oficiocerca.pages.dev/').replace(/\/?$/, '/') + 'condiciones-profesionales/';
     if (!pc) return html_('Enlace no válido', '<p>Profesional no encontrado.</p>');
     if (condAlDia_(pc)) return html_('Condiciones aceptadas', '<div class="ok">Ya aceptaste la versión vigente (' + esc_(condVigente_()) + '). No tienes que hacer nada más.</div>');
-    return html_('Nuevas condiciones ' + condVigente_(), '<div class="panel4"><p><b>¿Qué cambia?</b> La comisión pasa a ser el <b>10 % de los primeros 2.000 € de mano de obra y el 5 % del exceso</b>, sin tope. Los materiales nunca cuentan.</p>' +
-      '<p><b>¿Cuándo se genera?</b> Solo cuando el cliente confirma que el trabajo terminó. Registrarte, recibir una oportunidad, rechazarla o un acuerdo que no se confirma: <b>sin coste</b>.</p>' +
-      '<p><b>¿Y si queda pendiente?</b> Una comisión exigible sin pagar impide recibir NUEVAS oportunidades hasta pagarla. No borra tu cuenta ni cambia tu historial ni tus trabajos.</p></div>' +
+    return html_('Nuevas condiciones ' + condVigente_(), '<div class="panel4"><p><b>Precio y acuerdo:</b> los negocias directamente con el cliente, fuera de OficioCerca. Después registras aquí el acuerdo alcanzado (mano de obra y duración estimada).</p>' +
+      '<p><b>Seguimiento:</b> recibir el contacto inicia el trabajo en OficioCerca; mantenerlo actualizado hasta el cierre forma parte del proceso. Si no se actualiza de forma reiterada, puede influir en tu prioridad para nuevas oportunidades.</p>' +
+      '<p><b>Comisión:</b> 10 % de los primeros 2.000 € de mano de obra y 5 % del exceso, sin tope, sobre la mano de obra FINAL confirmada por el cliente. Los materiales nunca cuentan. Registrarte, recibir o rechazar oportunidades: sin coste.</p>' +
+      '<p><b>Incidencias y comisión pendiente:</b> una incidencia no te bloquea automáticamente. Una comisión exigible sin pagar impide recibir NUEVAS oportunidades hasta pagarla, sin borrar tu cuenta, tu historial ni tus trabajos.</p></div>' +
       '<p><a href="' + esc_(urlCond) + '" target="_blank" rel="noopener">Leer las condiciones completas</a></p>' +
       '<button class="btn" onclick="enviar({a:\'aceptar\'})">✔ He leído y acepto las condiciones ' + esc_(condVigente_()) + '</button>', t);
   }
@@ -164,47 +165,72 @@ function accion(t, p) {
 function paginaGestion_(t, oc, pro) {
   var sol = solicitud_(oc), estado = sol['Estado'], com = comisionDeOC_(oc);
   if (sol['Profesional asignado (PRO)'] !== pro) return html_('Trabajo ' + oc, '<p>Este trabajo ya no está asignado a ti.</p>');
+  var p = profesional_(pro);
   var h = resumenV16_(sol, com, 'pro') + lineaProgresoV16_(sol, com, 'pro');
-  var estPro = { 'Profesional asignado': 'Contacto habilitado · falta registrar el acuerdo', 'Acuerdo pendiente del cliente': 'Acuerdo pendiente de que el cliente lo confirme',
-    'Finalización por confirmar': 'Terminado · pendiente de la confirmación del cliente', 'Comisión pendiente': 'Terminado · comisión pendiente' }[estado];
+  var estPro = { 'Profesional asignado': 'Contacto habilitado · falta registrar el acuerdo alcanzado', 'Finalización por confirmar': 'Cierre registrado · pendiente de la confirmación del cliente',
+    'Comisión pendiente': 'Terminado · comisión pendiente', 'Cierre pendiente del profesional': 'El cliente indica que terminó · registra el valor final' }[estado];
   h += '<h2>Datos del trabajo</h2>' + filas_([['Servicio', servicioTxt_(sol)], ['Cliente', sol['Nombre']], ['WhatsApp del cliente', limpio_(sol['WhatsApp'])],
     ['Correo del cliente', sol['Email']], ['Zona', sol['Zona']], ['Estado', estPro || ESTADO_HUMANO[estado] || estado]]);
-  var pres = sol['Presupuesto vigente'] ? tabla_('Presupuestos').buscar('ID', sol['Presupuesto vigente']) : null;
-  if (pres) h += bloqueAcuerdoCliente_(pres).replace('Acuerdo con el profesional', 'Acuerdo registrado').replace('Pendiente de tu confirmación', 'Pendiente de que el cliente lo confirme');
-  h += historialAcuerdo_(oc, 'pro');
-  if (ESTADOS_PERMITEN_ACUERDO.indexOf(estado) >= 0) {
-    var modificar = ['Acuerdo confirmado', 'Trabajo en proceso', 'Acuerdo pendiente del cliente'].indexOf(estado) >= 0;
-    var hoy = Utilities.formatDate(new Date(), ZONA_HORARIA, 'yyyy-MM-dd');
-    h += '<button class="btn' + (modificar ? ' sec' : '') + '" onclick="ver(\'pa\')">' + (modificar ? 'Modificar el acuerdo (el cliente deberá reconfirmarlo)' : 'Ya hablé con el cliente / Registrar acuerdo') + '</button>' +
-      '<div id="pa" class="panel opc' + (modificar ? ' hide' : '') + '">' +
-      '<label for="mo">Mano de obra (€) *</label><input id="mo" inputmode="decimal" placeholder="Ej.: 350" oninput="tot()">' +
-      '<label for="mat">Materiales (€) <span class="nota">(si los hay; no cuentan para la comisión)</span></label><input id="mat" inputmode="decimal" placeholder="0" oninput="tot()">' +
-      '<p>Total para el cliente: <b id="tt">0,00 €</b></p>' +
-      '<label for="fa">Fecha acordada</label><input type="date" id="fa" min="' + hoy + '">' +
-      '<label for="obs">Nota (opcional)</label><textarea id="obs" maxlength="1000" placeholder="Qué incluye, cómo os organizáis…"></textarea>' +
-      '<button class="btn" onclick="if(!val(\'mo\').trim()){alert(\'Indica la mano de obra\');return}if(confirm(\'¿Enviar este acuerdo al cliente para que lo confirme?\'))enviar({a:\'acuerdo\',mo:val(\'mo\'),mat:val(\'mat\'),fecha:val(\'fa\'),nota:val(\'obs\')})">Enviar acuerdo al cliente</button>' +
-      '<p class="nota">Comisión de OficioCerca: ' + esc_(POLITICA_COMISION.texto) + '. Solo se genera cuando el cliente confirma que el trabajo terminó. Declara importes reales.</p></div>';
+  h += bloqueAcuerdo_(sol, 'Acuerdo registrado').replace('<p class="nota">Lo acordasteis directamente entre vosotros. Si algo no coincide con lo hablado, usa «Hay un problema».</p>', '') + bloqueCierre_(sol);
+  if (estado === 'En revisión' || incidenciaAbierta_(oc)) h += '<div class="ok"><b>Soporte está revisando este trabajo.</b> Se han detenido el cierre y el cobro automáticos.</div>' + botonSoporteWA_(oc);
+  var unidades = '<option value="horas">horas</option><option value="dias" selected>días</option><option value="semanas">semanas</option>';
+  if (estado === 'Profesional asignado' || (estado === 'Trabajo en proceso' && !sol['Fecha registro acuerdo'])) {
+    h += '<div class="ok">Recibir el contacto inicia el trabajo en OficioCerca. Después de hablar con el cliente y llegar a un acuerdo, vuelve aquí para registrar el valor acordado y la duración estimada. Mantener actualizado el seguimiento hasta el cierre forma parte del proceso.</div>' +
+      '<h2>REGISTRAR ACUERDO ALCANZADO</h2><div id="pa" class="panel opc">' +
+      '<label for="mo">Mano de obra acordada (€) *</label><input id="mo" inputmode="decimal" placeholder="Ej.: 350">' +
+      '<label>Duración estimada del trabajo *</label><div class="fila2"><input id="dn" type="number" min="1" max="365" inputmode="numeric" placeholder="Ej.: 7"><select id="du">' + unidades + '</select></div>' +
+      '<label for="mat">Materiales estimados — opcional / informativo</label><input id="mat" inputmode="decimal" placeholder="0">' +
+      '<p class="nota">Los materiales no generan comisión de OficioCerca.</p>' +
+      '<label for="obs">Nota (opcional)</label><textarea id="obs" maxlength="1000" placeholder="Lo que incluye, cómo os organizáis…"></textarea>' +
+      '<button class="btn" onclick="if(!val(\'mo\').trim()){alert(\'Indica la mano de obra acordada\');return}if(!val(\'dn\').trim()){alert(\'Indica la duración estimada\');return}enviar({a:\'acuerdo\',mo:val(\'mo\'),mat:val(\'mat\'),dn:val(\'dn\'),du:val(\'du\'),nota:val(\'obs\')})">Registrar acuerdo alcanzado</button></div>';
   }
-  if (estado === 'Acuerdo confirmado' || estado === 'Trabajo en proceso')
-    h += '<button class="btn" onclick="if(confirm(\'¿Confirmas que el trabajo está terminado?\'))enviar({a:\'finalizado\'})">✔ Trabajo terminado</button><p class="nota">El cliente deberá confirmarlo.</p>';
-  if (com) {
-    var filas = [['Mano de obra confirmada', euros_(com['Mano de obra (€)'])], ['Materiales (no cuentan)', euros_(com['Materiales (€)'])],
+  var cierre = '<label for="mf">Valor FINAL de la mano de obra (€) *</label><input id="mf" inputmode="decimal" value="' + esc_(sol['Mano de obra inicial (€)'] === '' ? '' : String(sol['Mano de obra inicial (€)']).replace('.', ',')) + '">' +
+    '<label>¿Hubo trabajos adicionales?</label><div class="fila2"><label><input type="radio" name="ad" value="no" checked style="width:auto"> No</label><label><input type="radio" name="ad" value="si" style="width:auto"> Sí</label></div>' +
+    '<label for="mm">Si el valor final cambia frente al inicial, explica brevemente por qué</label><textarea id="mm" maxlength="500"></textarea>' +
+    '<label for="mtf">Materiales finales — opcional / informativo (no generan comisión)</label><input id="mtf" inputmode="decimal">' +
+    '<button class="btn" onclick="if(!val(\'mf\').trim()){alert(\'Indica el valor final de la mano de obra\');return}if(confirm(\'¿Marcar el trabajo como terminado? El cliente deberá confirmarlo.\'))enviar({a:\'finalizado\',mo:val(\'mf\'),adicionales:(document.querySelector(\'input[name=ad]:checked\')||{}).value,motivo:val(\'mm\'),mat:val(\'mtf\')})">Enviar cierre al cliente</button>';
+  if (['Trabajo en proceso', 'Archivado por inactividad'].indexOf(estado) >= 0 && sol['Fecha registro acuerdo']) {
+    h += '<h2>' + (estado === 'Archivado por inactividad' ? 'Indica el estado para reabrir el seguimiento' : '¿Cómo va el trabajo?') + '</h2>' +
+      '<button class="btn" onclick="ver(\'pf\')">✔ MARCAR TRABAJO COMO TERMINADO</button><div id="pf" class="panel opc hide">' + cierre + '</div>' +
+      '<button class="btn sec" onclick="ver(\'pp\')">Sigue en proceso · actualizar plazo</button><div id="pp" class="panel opc hide">' +
+      '<label>¿Cuánto tiempo más necesitas? *</label><div class="fila2"><input id="pn2" type="number" min="1" max="365" inputmode="numeric"><select id="pu2">' + unidades + '</select></div>' +
+      '<label for="pno">Nota (opcional)</label><input id="pno" maxlength="200">' +
+      '<button class="btn sec" onclick="if(!val(\'pn2\').trim()){alert(\'Indica el nuevo plazo\');return}enviar({a:\'plazo\',dn:val(\'pn2\'),du:val(\'pu2\'),nota:val(\'pno\')})">Actualizar plazo</button></div>';
+  }
+  if (estado === 'Cierre pendiente del profesional') h += '<h2>Registra el valor final para completar el cierre</h2><div class="panel opc">' + cierre + '</div>';
+  if (com && ['ANULADA'].indexOf(com['Estado']) < 0) {
+    var filas = [['Mano de obra final confirmada', euros_(com['Mano de obra (€)'])], ['Materiales (no cuentan)', euros_(com['Materiales (€)'])],
       ['10 % de los primeros 2.000 €', euros_(com['Tramo 10 % (€)'])], ['5 % del exceso', euros_(com['Tramo 5 % (€)'])], ['Comisión', euros_(com['Importe comisión (€)'])]];
-    var estTxt = { NO_HABILITADA: 'Calculada · en el piloto no se cobra', DUE: 'Pendiente de pago', PAYMENT_PENDING: 'Pago en proceso', PAID: 'Pagada', PAYMENT_FAILED: 'Pago no completado', MANUAL_REVIEW: 'En revisión' }[com['Estado']] || com['Estado'];
+    var estTxt = { NO_HABILITADA: 'Calculada · en el piloto no se cobra', DUE: 'Pendiente de pago', PAYMENT_PENDING: 'Pago en proceso', PAID: 'Pagada', PAYMENT_FAILED: 'Pago no completado', MANUAL_REVIEW: 'En revisión', EN_REVISION: 'Congelada por una incidencia' }[com['Estado']] || com['Estado'];
     filas.push(['Estado', estTxt + (com['Ambiente'] === 'SANDBOX' ? ' (PRUEBA / SANDBOX)' : '')]);
     if (com['Estado'] === 'PAID') filas.push(['Referencia de pago', com['Referencia vigente']]);
     h += '<h2>Comisión de OficioCerca</h2>' + filas_(filas);
     if (['DUE', 'PAYMENT_FAILED'].indexOf(com['Estado']) >= 0) h += '<button class="btn" onclick="enviar({a:\'pagar\'})">' + (com['Ambiente'] === 'SANDBOX' ? 'PAGAR COMISIÓN (SANDBOX)' : 'PAGAR COMISIÓN') + '</button>' +
       '<p class="nota">Mientras esté pendiente no recibirás nuevas oportunidades. Tu cuenta, tu historial y tus trabajos en curso no cambian.</p>';
   }
-  return html_('Trabajo ' + oc + ' · ' + servicioTxt_(sol), h, t, 'function n(v){v=(v||"").replace(/\\s|€/g,"");if(/,\\d{1,2}$/.test(v))v=v.replace(/\\./g,"").replace(",",".");else v=v.replace(/,/g,"");var x=parseFloat(v);return isNaN(x)?0:x}' +
-    'function tot(){var t=n(val("mo"))+n(val("mat"));document.getElementById("tt").textContent=t.toFixed(2).replace(".",",")+" €"}');
+  if (ESTADOS_ACTIVOS_SERVICIO.indexOf(estado) >= 0) h += formIncidencia_('pi');
+  if (p) h += bloqueReputacion_(p);
+  h += historialBasico_(oc);
+  h += '<p class="nota">Comisión: ' + esc_(POLITICA_COMISION.texto) + ', sobre la mano de obra final confirmada por el cliente. <a href="' + esc_(urlAyuda_('profesional')) + '" target="_blank" rel="noopener">Centro de ayuda y políticas</a></p>';
+  return html_('Trabajo ' + oc + ' · ' + servicioTxt_(sol), h, t);
+}
+
+/** «TU REPUTACIÓN EN OFICIOCERCA» (datos agregados; sin detalles de incidencias). */
+function bloqueReputacion_(p) {
+  var f = [['Valoración promedio', Number(p['Nº valoraciones']) ? String(p['Valoración media']).replace('.', ',') + ' / 5' : 'Aún sin valoraciones'],
+    ['Trabajos cerrados', String(Number(p['Completados']) || 0)], ['Valoraciones recibidas', String(Number(p['Nº valoraciones']) || 0)]];
+  if (p['Tasa respuesta (%)'] !== '' && p['Tasa respuesta (%)'] !== undefined) f.push(['Respuesta a oportunidades', p['Tasa respuesta (%)'] + ' %']);
+  if (p['Cumplimiento seguimiento (%)'] !== '' && p['Cumplimiento seguimiento (%)'] !== undefined) f.push(['Seguimiento al día', p['Cumplimiento seguimiento (%)'] + ' %']);
+  return '<details class="hist"><summary>Tu reputación en OficioCerca</summary>' + filas_(f) +
+    '<p class="nota">Las buenas valoraciones, el cumplimiento del seguimiento y una buena respuesta pueden ayudarte a ser tenido en cuenta con mayor prioridad para futuras oportunidades. Primero cuentan siempre el servicio, la zona y la disponibilidad.</p></details>';
 }
 
 function accionGestion_(oc, pro, p) {
   switch (p.a) {
-    case 'acuerdo': case 'presupuesto': return registrarAcuerdo_(oc, pro, p.mo, p.mat, p.fecha, p.nota !== undefined ? p.nota : p.obs);
-    case 'finalizado': return marcarFinalizado_(oc, pro);
+    case 'acuerdo': case 'presupuesto': return registrarAcuerdo_(oc, pro, p.mo, p.mat, p.dn, p.du, p.nota !== undefined ? p.nota : p.obs);
+    case 'plazo': return actualizarPlazo_(oc, pro, p.dn, p.du, p.nota);
+    case 'finalizado': return marcarFinalizado_(oc, pro, p.mo, p.adicionales, p.motivo, p.mat);
+    case 'incidencia': return reportarIncidencia_(oc, 'profesional', p.categoria, p.texto);
     case 'pagar':
       var sol = solicitud_(oc);
       if (sol['Profesional asignado (PRO)'] !== pro) return { ok: false, msg: 'Este trabajo no está asignado a ti.' };

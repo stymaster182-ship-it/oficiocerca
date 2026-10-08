@@ -27,13 +27,13 @@ function sbxE2E_preparar() {
   conLock_(function () {
     if (!sbxActivo_()) throw new Error('Activa WOMPI_SANDBOX_ENABLED = TRUE (sbxE2E_activar).');
     var pro = sbxE2E_nuevoPro_('A'), oc = sbxE2E_nuevaSol_('A', pro);
-    var r1 = registrarAcuerdo_(oc, pro, 3000, 800, '', 'PRUEBA');
-    var r2 = procesarRespuestaPresupuesto_(solicitud_(oc)['Presupuesto vigente'], 'confirmar');
-    var r3 = marcarFinalizado_(oc, pro);
+    var r1 = registrarAcuerdo_(oc, pro, 3000, 800, 7, 'dias', 'PRUEBA');
+    var r2 = { ok: true };
+    var r3 = marcarFinalizado_(oc, pro, 3200, 'si', 'PRUEBA: un punto de luz adicional', 800);
     var r4 = procesarFinCliente_(oc, 'si', '', false);
     var c = comisionDeOC_(oc);
     PropertiesService.getScriptProperties().setProperty('SBX_E2E_OC', oc);
-    Logger.log(oc + ' / ' + pro + ' · MO 3000 € + materiales 800 € → comisión ' + c['Importe comisión (€)'] + ' € (10 %: ' + c['Tramo 10 % (€)'] + ' + 5 %: ' + c['Tramo 5 % (€)'] +
+    Logger.log(oc + ' / ' + pro + ' · MO inicial 3000 € → final 3200 € + materiales 800 € → comisión ' + c['Importe comisión (€)'] + ' € (10 %: ' + c['Tramo 10 % (€)'] + ' + 5 %: ' + c['Tramo 5 % (€)'] +
       ') · ' + c['Estado'] + ' · pasos ' + [r1.ok, r2.ok, r3.ok, r4.ok].join('/') + ' · bloqueado: ' + proBloqueado_(pro));
   });
   sbxE2E_checkout();

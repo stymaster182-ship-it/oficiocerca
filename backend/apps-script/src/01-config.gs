@@ -12,7 +12,7 @@
  * El código no contiene secretos: los IDs y credenciales se guardan en Propiedades del script.
  */
 
-var VERSION_BACKEND = 'V1.6';
+var VERSION_BACKEND = 'V1.7';
 var ZONA_HORARIA = 'Europe/Madrid';
 
 /** Valores por defecto de la pestaña «Configuración» (editables allí, salvo los de solo lectura). */
@@ -26,8 +26,16 @@ var CONFIG_DEFECTO = [
   ['HORAS_RESPUESTA_URGENTE', '4', 'Horas para responder a una oportunidad cuando el cliente pide «Hoy o mañana».'],
   ['HORAS_RESPUESTA_NORMAL', '24', 'Horas para responder a una oportunidad en el resto de casos.'],
   ['DIAS_VALIDEZ_ENLACES', '30', 'Días de validez de los enlaces enviados a clientes (presupuesto, finalización…).'],
-  ['CUOTA_RESERVA', '3', 'Correos que se reservan para alertas al administrador.'],
-  ['PRO_COND_VERSION', 'PRO-COND-2026-10-V3', 'Versión vigente de las condiciones para profesionales.'],
+  ['CUOTA_RESERVA', '3', 'Correos que se reservan SOLO para alertas al administrador.'],
+  ['CUOTA_RESERVA_BAJA', '15', 'Por debajo de esta cuota solo salen correos de prioridad alta; los demás esperan en cola (nunca se pierden).'],
+  ['SEG_RECORDATORIO_2_HORAS', '48', 'Seguimiento: horas desde el primer aviso hasta el segundo.'],
+  ['SEG_RECORDATORIO_3_HORAS', '120', 'Seguimiento: horas desde el primer aviso hasta el último recordatorio (5 días).'],
+  ['SEG_CIERRE_HORAS', '48', 'Seguimiento: horas tras el último recordatorio para archivar (nadie respondió) o pasar a revisión (faltó una parte).'],
+  ['SEG_ACUERDO_DIAS', '3', 'Días desde la asignación hasta recordar al profesional que registre el acuerdo alcanzado.'],
+  ['REP_PESO_VALORACION', '1', 'Prioridad: peso de la valoración media (señal secundaria; 0 = no influye).'],
+  ['REP_PESO_RESPUESTA', '1', 'Prioridad: peso de la tasa de respuesta a oportunidades (0 = no influye).'],
+  ['REP_PESO_SEGUIMIENTO', '1', 'Prioridad: peso del cumplimiento del seguimiento (0 = no influye).'],
+  ['PRO_COND_VERSION', 'PRO-COND-2026-10-V4', 'Versión vigente de las condiciones para profesionales.'],
   ['CONSENT_VERSION', 'C4-2026-10', 'Versión vigente del consentimiento de clientes.'],
   ['Cuota correo disponible', '', 'Solo lectura: MailApp.getRemainingDailyQuota() en la última comprobación.'],
   ['Última comprobación', '', 'Solo lectura.'],
@@ -73,17 +81,21 @@ var DISP_PRO = {
 };
 
 var ESTADOS_SOLICITUD = [
-  'Nueva', 'Revisión manual', 'Buscando profesional', 'Esperando respuesta profesional',
-  'Esperando decisión cliente', 'Sin profesional compatible', 'Profesional asignado', 'Acuerdo pendiente del cliente',
-  'Acuerdo no confirmado', 'Acuerdo confirmado', 'Trabajo en proceso', 'Finalización por confirmar', 'Comisión pendiente', 'Cerrado', 'Cancelada'
+  'Nueva', 'Revisión manual', 'Buscando profesional', 'Esperando respuesta profesional', 'Esperando decisión cliente',
+  'Sin profesional disponible', 'Profesional asignado', 'Trabajo en proceso', 'Cierre pendiente del profesional',
+  'Finalización por confirmar', 'Comisión pendiente', 'Cerrado', 'En revisión', 'Archivado por inactividad', 'Cancelada'
 ];
 var ESTADOS_PROFESIONAL = ['Pendiente de revisar', 'Activo', 'En revisión', 'Pausado', 'Baja'];
 var ESTADOS_OFERTA = ['Enviada', 'Seleccionada', 'Respaldo', 'Rechazada', 'Sin respuesta', 'Cerrada'];
-var ESTADOS_PRESUPUESTO = ['Pendiente del cliente', 'Sustituido', 'Confirmado', 'No confirmado'];
-/** Comisiones (códigos técnicos): NO_HABILITADA = calculada pero el cobro no está activo (no bloquea). */
-var ESTADOS_COMISION = ['NO_HABILITADA', 'DUE', 'PAYMENT_PENDING', 'PAID', 'PAYMENT_FAILED', 'MANUAL_REVIEW', 'ANULADA'];
-var ESTADOS_INCIDENCIA = ['Abierta', 'En revisión', 'Verificada', 'Descartada', 'Cerrada'];
-var CATEGORIAS_INCIDENCIA = ['Problema con el profesional', 'Problema con el trabajo', 'Comunicación', 'Sugerencia para OficioCerca', 'Valoración baja', 'Otro'];
+var ESTADOS_PRESUPUESTO = ['Registrado', 'Sustituido'];
+/** Comisiones (códigos técnicos): NO_HABILITADA = calculada sin cobro (no bloquea) · EN_REVISION = congelada por incidencia (no bloquea). */
+var ESTADOS_COMISION = ['NO_HABILITADA', 'DUE', 'PAYMENT_PENDING', 'PAID', 'PAYMENT_FAILED', 'MANUAL_REVIEW', 'EN_REVISION', 'ANULADA'];
+var ESTADOS_INCIDENCIA = ['Abierta', 'En revisión', 'Resuelta', 'Descartada', 'Cerrada'];
+var CATEGORIAS_INCIDENCIA = ['No se pudo contactar', 'Retraso', 'Trabajo abandonado', 'Trabajo parcial', 'Desacuerdo económico',
+  'Problema de calidad', 'Daños', 'Materiales / bienes', 'Falta de comunicación', 'Otro', 'Situación grave'];
+var RESULTADOS_INCIDENCIA = ['RESUELTO — TRABAJO COMPLETO', 'RESUELTO — TRABAJO PARCIAL', 'CANCELADO — NO HUBO TRABAJO',
+  'SIN ACUERDO / REVISIÓN MANUAL', 'OTRO'];
+var UNIDADES_DURACION = { horas: 3600000, dias: 86400000, semanas: 604800000 };
 
 var ESQUEMA = {
   'Solicitudes': ['Código', 'Fecha', 'Estado', 'Requiere intervención', 'Tipo solicitante', 'Nombre', 'Empresa', 'WhatsApp',
@@ -94,18 +106,23 @@ var ESQUEMA = {
     'Respaldo (PRO)', 'Respaldo disponibilidad', 'Decisión cliente', 'Contacto enviado (fecha)', 'Presupuesto vigente',
     'Mano de obra aceptada (€)', 'Total aceptado (€)', 'Comisión (€)', 'Fecha aceptación', 'Finalizado (fecha)',
     'Valoración (1-5)', 'Motivo cierre', 'Última actualización', 'Notas internas', 'Consentimiento operativo', 'Consentimiento (fecha)',
-    'Grupo cliente', 'Origen servicio', 'Fecha acordada', 'Materiales aceptados (€)', 'Versión acuerdo', 'Cliente confirmó fin (fecha)'],
+    'Grupo cliente', 'Origen servicio', 'Fecha acordada', 'Materiales aceptados (€)', 'Versión acuerdo', 'Cliente confirmó fin (fecha)',
+    'Fecha registro acuerdo', 'Duración estimada', 'Fecha estimada fin', 'Mano de obra inicial (€)', 'Mano de obra final (€)',
+    'Materiales finales (€)', 'Trabajos adicionales', 'Motivo cambio valor', 'Cierre iniciado por', 'Acción pendiente de', 'Acción desde',
+    'Plantilla seguimiento', 'Recordatorios enviados', 'Último aviso', 'Estado previo', 'Escalado por', 'Ronda búsqueda', 'Historial plazos'],
   'Profesionales': ['Código', 'Fecha', 'Estado', 'Nombre', 'Empresa / autónomo', 'Servicios (códigos)', 'Servicios',
     'Servicio otro', 'Especialidades', 'WhatsApp', 'Teléfono', 'Email', 'Ciudad', 'Código postal', 'Zonas', 'Distancia',
     'Experiencia', 'Disponibilidad habitual', 'Con particulares', 'Con empresas', 'Descripción', 'Consent. contacto (legacy)',
     'Consent. privacidad (legacy)', 'Condiciones (versión)', 'Condiciones aceptadas (fecha)', 'Origen', 'Prioridad',
     'Ofertas recibidas', 'Respuestas', 'Aceptadas', 'Asignaciones', 'Completados', 'Tiempo medio respuesta (h)',
-    'Valoración media', 'Nº valoraciones', 'Incidencias verificadas', 'Comisiones pendientes', 'Última oferta', 'Notas internas', 'Tipo de proveedor'],
+    'Valoración media', 'Nº valoraciones', 'Incidencias verificadas', 'Comisiones pendientes', 'Última oferta', 'Notas internas', 'Tipo de proveedor',
+    'Tasa respuesta (%)', 'Cumplimiento seguimiento (%)'],
   'Ofertas': ['ID', 'Fecha envío', 'Código OC', 'Código PRO', 'Profesional', 'Servicio', 'Puntuación', 'Motivo ranking',
     'Estado', 'Respuesta', 'Disponibilidad (código)', 'Disponibilidad', 'Días hasta disponibilidad', 'Fecha respuesta',
-    'Expira', 'Notas'],
+    'Expira', 'Notas', 'Ronda'],
   'Presupuestos': ['ID', 'Fecha', 'Código OC', 'Código PRO', 'Versión', 'Mano de obra (€)', 'Materiales (€)', 'Total (€)',
-    'Observaciones', 'Estado', 'Respuesta cliente (fecha)', 'Notas', 'Fecha acordada', 'Registrado por', 'Confirmado por', 'Política comisión'],
+    'Observaciones', 'Estado', 'Respuesta cliente (fecha)', 'Notas', 'Fecha acordada', 'Registrado por', 'Confirmado por', 'Política comisión',
+    'Duración (cantidad)', 'Duración (unidad)', 'Fecha estimada fin'],
   'Comisiones': ['Código OC', 'Código PRO', 'Profesional', 'Presupuesto', 'Mano de obra (€)', 'Porcentaje', 'Importe comisión (€)',
     'Fecha generación', 'Estado', 'Fecha pago', 'Notas', 'Materiales (€)', 'Política', 'Tramo 10 % (€)', 'Tramo 5 % (€)', 'Fecha exigible',
     'Referencia vigente', 'Transaction ID', 'Importe pagado (COP)', 'Tasa EUR→COP', 'Fuente tasa', 'Fecha tasa', 'Moneda', 'Ambiente'],
@@ -114,8 +131,9 @@ var ESQUEMA = {
   'Eventos Wompi': ['Clave', 'Recibido', 'Evento', 'Ambiente', 'Transaction ID', 'Referencia', 'Estado Wompi', 'Firma válida', 'Resultado', 'Repeticiones', 'Timestamp'],
   'Aceptaciones condiciones': ['Fecha', 'Código PRO', 'Versión', 'Origen', 'Notas'],
   'Incidencias': ['ID', 'Fecha', 'Tipo', 'Código OC', 'Código PRO', 'Origen', 'Categoría', 'Gravedad', 'Descripción', 'Estado',
-    'Pausa preventiva', 'Acción tomada', 'Administrador', 'Fecha resolución', 'Notas'],
-  'Valoraciones': ['Fecha', 'Código OC', 'Código PRO', 'Estrellas', 'Comentario', 'Publicable', 'Notas'],
+    'Pausa preventiva', 'Acción tomada', 'Administrador', 'Fecha resolución', 'Notas', 'Servicio', 'Cliente', 'Reportado por',
+    'Resultado', 'Mano de obra reconocida (€)', 'Estado previo servicio'],
+  'Valoraciones': ['Fecha', 'Código OC', 'Código PRO', 'Estrellas', 'Comentario', 'Publicable', 'Notas', 'Trabajo verificado'],
   'Historial envíos': ['ID', 'Fecha', 'Clave', 'Tipo', 'Destinatario', 'Correo', 'Código OC', 'Código PRO', 'Asunto',
     'Estado', 'Intentos', 'Fecha envío', 'Nº adjuntos', 'Último error', 'Datos'],
   'Registro': ['Fecha', 'Tipo', 'Acción', 'Código OC', 'Código PRO', 'Detalle', 'Usuario'],
@@ -133,5 +151,5 @@ var DESPLEGABLES = {
   'Ofertas': { 'Estado': ESTADOS_OFERTA },
   'Presupuestos': { 'Estado': ESTADOS_PRESUPUESTO },
   'Comisiones': { 'Estado': ESTADOS_COMISION },
-  'Incidencias': { 'Estado': ESTADOS_INCIDENCIA, 'Gravedad': ['Normal', 'Grave'], 'Categoría': CATEGORIAS_INCIDENCIA }
+  'Incidencias': { 'Estado': ESTADOS_INCIDENCIA, 'Gravedad': ['Normal', 'Alta', 'Grave'], 'Resultado': RESULTADOS_INCIDENCIA }
 };

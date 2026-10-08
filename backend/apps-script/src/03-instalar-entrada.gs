@@ -7,7 +7,7 @@
 var NOMBRE_HOJA = 'OficioCerca — Operación';
 
 /** V1.5 → V1.6: misma instalación idempotente (no borra datos) + migración V1.6. */
-function instalarV15() { instalarV16(); }
+function instalarV15() { instalarV17(); }
 
 function instalarV14() {
   var props = PropertiesService.getScriptProperties();
@@ -132,7 +132,7 @@ function limpiarDatosDePrueba() {
     ['Comisiones Sandbox', 'Pagos Sandbox'].forEach(function (n) { var sh = ss_().getSheetByName(n); if (sh) ss_().deleteSheet(sh); });
     var props = PropertiesService.getScriptProperties();
     props.setProperty('SEQ_OC', '0'); props.setProperty('SEQ_PRO', '0'); props.setProperty('SEQ_INC', '0');
-    props.deleteProperty('SBX_E2E_OC'); props.deleteProperty('PENDIENTE');
+    props.deleteProperty('SBX_E2E_OC'); props.deleteProperty('PENDIENTE'); props.deleteProperty('PROX_SEGUIMIENTO');
     _tablas = {};
   });
   actualizarPanel();
@@ -335,6 +335,16 @@ function respaldoV16Final() {
 
 /* ============================================================ ENTRADA DESDE LA WEB */
 
+/** Límite de frecuencia sencillo (CacheService): máx. «n» operaciones por clave y ventana. Sin datos personales en claro. */
+function limiteFrecuencia_(clave, n, segundos) {
+  try {
+    var c = CacheService.getScriptCache(), k = 'rl-' + hash_(clave).slice(0, 32), v = Number(c.get(k) || 0);
+    if (v >= n) return false;
+    c.put(k, String(v + 1), segundos);
+  } catch (e) { }
+  return true;
+}
+
 function doPost(e) {
   try {
     if (!e || !e.postData || !e.postData.contents || e.postData.contents.length > 30 * 1024 * 1024) return json_({ ok: false, error: 'sin datos' });
@@ -344,7 +354,12 @@ function doPost(e) {
     if (d.tipo === 'solicitud') return json_(guardarSolicitud_(d));
     if (d.tipo === 'profesional') return json_(guardarProfesional_(d));
     if (d.tipo === 'pagina') return json_(paginaJson_(d.t));
-    if (d.tipo === 'accion') return json_(accion(String(d.t || ''), d.p || {}));
+    if (d.tipo === 'accion') {
+      // V1.7: la respuesta incluye ya la página actualizada → la web no necesita una segunda llamada
+      var res = accion(String(d.t || ''), d.p || {});
+      if (res && res.ok && !res.url && !res.t) { try { res.pagina = paginaJson_(String(d.t || '')); } catch (e) { } }
+      return json_(res);
+    }
     return json_({ ok: false, error: 'tipo desconocido' });
   } catch (err) {
     var msg = String(err && err.message || err);
@@ -373,6 +388,7 @@ function guardarSolicitud_(d) {
     (/contratista/i.test(d.tipoSolicitante) ? 'Contratista' : /empresa/i.test(d.tipoSolicitante) ? 'Empresa' : 'Particular');
   var fotos = validarFotos_(d.fotos);
 
+  if (!limiteFrecuencia_('sol-' + limpio_(t_(d.whatsapp)) + '-' + String(d.email).toLowerCase(), 6, 3600)) invalido_('demasiadas solicitudes seguidas; inténtalo más tarde');
   return conLock_(function () {
     var ts = tabla_('Solicitudes');
     // Doble envío (doble clic / recarga): misma persona y descripción en los últimos 15 min → mismo código
@@ -444,6 +460,7 @@ function guardarProfesional_(d) {
   if (d.consentCondiciones !== 'si') invalido_('faltan las condiciones');
   var tipoProv = TIPOS_PROVEEDOR.indexOf(d.tipoProveedor) >= 0 ? d.tipoProveedor : 'Profesional independiente / autónomo';
   var version = s_(d.condVersion || cfg_('PRO_COND_VERSION'), 40);
+  if (!limiteFrecuencia_('pro-' + String(d.email).toLowerCase(), 4, 3600)) invalido_('demasiados intentos seguidos; inténtalo más tarde');
   return conLock_(function () {
     var tp = tabla_('Profesionales');
     var email = s_(d.email, 160).toLowerCase();
