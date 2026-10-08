@@ -195,6 +195,27 @@ function respaldoV15CierrePiloto() {
   Logger.log('Respaldo: ' + c.getUrl());
 }
 
+function respaldoV15PreSoporte() {
+  var c = crearRespaldo_('OFICIOCERCA-V1.5-PRE-SOPORTE', 'OFICIOCERCA-V1.5-PRE-SOPORTE');
+  c.createFile('LEEME.txt', [
+    'OFICIOCERCA-V1.5-PRE-SOPORTE — estado justo antes del remate final (soporte WhatsApp + tutoriales).',
+    'Es idéntico a OFICIOCERCA-V1.5-CIERRE-PILOTO. Rollback de la web: restaurar los archivos de este zip en GitHub.'
+  ].join('\n'));
+  Logger.log('Respaldo: ' + c.getUrl());
+}
+
+function respaldoV15FinalPiloto() {
+  var c = crearRespaldo_('OFICIOCERCA-V1.5-FINAL-PILOTO', 'OFICIOCERCA-V1.5-FINAL-PILOTO');
+  DriveApp.getFileById(ss_().getId()).makeCopy('OFICIOCERCA-V1.5-FINAL-PILOTO — copia de la hoja (estructura y configuración, sin datos)', c);
+  c.createFile('LEEME.txt', [
+    'OFICIOCERCA-V1.5-FINAL-PILOTO — versión final para el piloto real (soporte WhatsApp contextual + tutoriales en vídeo).',
+    'Contenido: zip del repositorio (web + backend/apps-script + vídeos) y copia de la hoja operativa sin datos.',
+    'Endpoint: ' + cfg_('URL_APP'),
+    'Rollback: ver OFICIOCERCA-V1.5-PRE-SOPORTE/LEEME.txt.'
+  ].join('\n'));
+  Logger.log('Respaldo: ' + c.getUrl());
+}
+
 /* ============================================================ ENTRADA DESDE LA WEB */
 
 function doPost(e) {
