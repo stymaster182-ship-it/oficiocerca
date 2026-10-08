@@ -1,7 +1,8 @@
 /* ============================================================ PÁGINAS DE LOS ENLACES (doGet ?t=TOKEN) */
 
 function doGet(e) {
-  if (e && e.parameter && e.parameter.wsbx) { try { return sbxPaginaPago_(String(e.parameter.wsbx)); } catch (err) { errorSistema_('pagoSandbox', err); return html_('Algo ha fallado', '<p>No hemos podido abrir el pago de prueba.</p>'); } }
+  var tp = e && e.parameter && (e.parameter.wpago || e.parameter.wsbx);
+  if (tp) { try { return paginaPago_(String(tp)); } catch (err) { errorSistema_('paginaPago', err); return html_('Algo ha fallado', '<p>No hemos podido abrir la página de pago. Inténtalo de nuevo en unos minutos.</p>'); } }
   var t = e && e.parameter && e.parameter.t;
   if (!t) return json_({ ok: true, service: 'OficioCerca', status: 'online' });
   try { return pagina_(String(t)); }
@@ -32,7 +33,9 @@ function html_(titulo, cuerpo, token, script) {
     '.ok{background:#E8F5EC;border-left:5px solid #2E7D4F;padding:14px;border-radius:8px}.err{background:#FDECEC;border-left:5px solid #A3262A;padding:14px;border-radius:8px}' +
     '.stars{display:flex;gap:6px;flex-wrap:wrap}.stars label{margin:0;flex:1;min-width:52px}.stars input{display:none}.stars span{display:block;text-align:center;border:2px solid #8B95A3;border-radius:10px;padding:12px 0;font-size:22px;cursor:pointer}' +
     '.stars input:checked+span{background:#13253D;color:#F2A65A;border-color:#13253D}.hide{display:none}' +
-    '.prog{list-style:none;padding:0;margin:14px 0}.prog li{padding:8px 10px;border-left:4px solid #DED6C8;margin:4px 0}.prog .hecho{border-color:#2E7D4F}.prog .ahora{border-color:#F2A65A;font-weight:bold;background:#FFF4E5}.prog .pend{color:#8B95A3}a.btn{text-decoration:none}';
+    '.prog{list-style:none;padding:0;margin:14px 0}.prog li{padding:8px 10px;border-left:4px solid #DED6C8;margin:4px 0}.prog .hecho{border-color:#2E7D4F}.prog .ahora{border-color:#F2A65A;font-weight:bold;background:#FFF4E5}.prog .pend{color:#8B95A3}a.btn{text-decoration:none}' +
+    '.panel4{background:#F6F2EB;border-radius:12px;padding:10px 16px;margin:10px 0}.panel4 p{margin:6px 0}.servicios{padding-left:18px}.servicios li{margin:6px 0}.servicios .actual{font-weight:bold}' +
+    '.mini{border:2px solid #13253D;background:#fff;color:#13253D;border-radius:8px;padding:4px 10px;font-weight:bold;cursor:pointer}details.hist{margin:10px 0}details.hist summary{cursor:pointer;font-weight:bold}';
   var js = '<script>var T=' + JSON.stringify(token || '') + ';' +
     'function enviar(p,btn){var bs=document.querySelectorAll("button");bs.forEach(function(b){b.disabled=true});' +
     'var m=document.getElementById("msg");m.className="";m.textContent="Enviando…";' +
@@ -56,7 +59,7 @@ function pagina_(t) {
   if (!tok) return html_('Enlace no válido', '<p>Este enlace no es válido o está incompleto. Abre el botón directamente desde el correo que te enviamos.</p>');
   var tipo = tok['Tipo'], oc = tok['Código OC'], pro = tok['Código PRO'];
   var sol = oc ? solicitud_(oc) : null;
-  var unUso = ['oferta', 'respaldo', 'presupuesto', 'fin'].indexOf(tipo) >= 0;
+  var unUso = ['oferta', 'respaldo'].indexOf(tipo) >= 0;
   if (unUso && tok['Usado']) return html_('Respuesta ya registrada', '<div class="ok">Ya habíamos registrado tu respuesta: ' + esc_(tok['Resultado'] || '') + '</div>');
   if (tok.caducado) return html_('Enlace caducado', '<p>Este enlace ya no está vigente' + (tipo === 'oferta' ? ': el plazo para responder a esta oportunidad terminó y la ofrecimos a otro profesional.' : '.') + '</p><p>Si necesitas algo, escríbenos.</p>');
 
@@ -87,20 +90,9 @@ function pagina_(t) {
       '<button class="btn rojo" onclick="if(confirm(\'¿Seguro que quieres cancelar la solicitud?\'))enviar({a:\'cancelar\'})">Cancelar solicitud</button>' +
       '<p class="nota">Hasta que elijas, no compartimos tus datos de contacto con ningún profesional.</p>', t);
   }
-  if (tipo === 'presupuesto') {
-    var pr = tabla_('Presupuestos').buscar('ID', tok['Referencia']), pp = profesional_(pro);
-    if (!pr) return html_('Presupuesto', '<p>Presupuesto no encontrado.</p>');
-    if (pr['Estado'] !== 'Enviado al cliente' || sol['Presupuesto vigente'] !== pr['ID']) return html_('Presupuesto ' + pr['ID'], '<p>Este presupuesto está: <b>' + esc_(pr['Estado']) + '</b>.' + (pr['Estado'] === 'Sustituido' ? ' Revisa el correo con la versión más reciente.' : '') + '</p>');
-    return html_('Presupuesto para tu solicitud ' + oc, filas_([['Profesional', pp ? pp['Nombre'] + (pp['Empresa / autónomo'] ? ' · ' + pp['Empresa / autónomo'] : '') : pro],
-      ['Mano de obra', euros_(pr['Mano de obra (€)'])], ['Materiales', euros_(pr['Materiales (€)'])], ['Total', euros_(pr['Total (€)'])], ['Observaciones', pr['Observaciones'] || '—'], ['Versión', pr['Versión']]]) +
-      '<button class="btn" onclick="if(confirm(\'¿Aceptas este presupuesto?\'))enviar({a:\'aceptar\'})">✔ Aceptar presupuesto</button>' +
-      '<button class="btn sec" onclick="enviar({a:\'hablar\'})">Necesito hablar con el profesional</button>' +
-      '<button class="btn rojo" onclick="if(confirm(\'¿No aceptas este presupuesto?\'))enviar({a:\'rechazar\'})">No aceptar</button>' +
-      '<p class="nota">Aceptar es libre y gratuito para ti. El pago del trabajo se hace directamente al profesional.</p>', t);
-  }
-  if (tipo === 'fin') {
-    if (sol['Estado'] !== 'Finalización por confirmar') return html_('Solicitud ' + oc, '<p>Estado actual: <b>' + esc_(ESTADO_HUMANO[sol['Estado']] || sol['Estado']) + '</b>.</p>');
-    return html_('¿Ha terminado el trabajo? · ' + oc, bloqueFin_(''), t);
+  if (tipo === 'presupuesto' || tipo === 'fin' || tipo === 'cliente') {
+    // Enlaces de V1.5: llevan ahora al seguimiento de ese servicio (mismas acciones, solo las válidas)
+    return paginaSeguimiento_(t, oc);
   }
   if (tipo === 'seguimiento') return paginaSeguimiento_(t, oc);
   if (tipo === 'valorar') {
@@ -120,34 +112,16 @@ function pagina_(t) {
       '<div id="ps" class="panel opc hide"><label for="ts">Tu sugerencia</label><textarea id="ts" maxlength="1500"></textarea>' +
       '<button class="btn sec" onclick="if(!val(\'ts\').trim()){alert(\'Escribe tu sugerencia\');return}enviar({a:\'sugerencia\',texto:val(\'ts\')})">Enviar sugerencia</button></div>', t);
   }
-  if (tipo === 'gestion') {
-    var p = profesional_(pro);
-    if (sol['Profesional asignado (PRO)'] !== pro) return html_('Solicitud ' + oc, '<p>Esta solicitud ya no está asignada a ti.</p>');
-    var pres = tabla_('Presupuestos').todas().filter(function (r) { return r['Código OC'] === oc; });
-    var lista = pres.length ? '<h2>Tus presupuestos</h2>' + filas_(pres.map(function (r) { return ['Versión ' + r['Versión'] + ' · ' + dia_(r['Fecha']), euros_(r['Total (€)']) + ' (MO ' + euros_(r['Mano de obra (€)']) + ' + materiales ' + euros_(r['Materiales (€)']) + ') · ' + r['Estado']]; })) : '';
-    var cuerpo = filas_([['Solicitud', oc], ['Servicio', servicioTxt_(sol)], ['Cliente', sol['Nombre']], ['Estado', sol['Estado']]]) + lista;
-    if (ESTADOS_PERMITEN_PRESUPUESTO.indexOf(sol['Estado']) >= 0) {
-      cuerpo += '<h2>' + (pres.length ? 'Registrar nueva versión del presupuesto' : 'Registrar presupuesto') + '</h2>' +
-        '<label for="mo">Mano de obra (€) *</label><input id="mo" inputmode="decimal" placeholder="Ej.: 350" oninput="tot()">' +
-        '<label for="mat">Materiales (€) <span class="nota">(si los hay)</span></label><input id="mat" inputmode="decimal" placeholder="0" oninput="tot()">' +
-        '<p>Total: <b id="tt">0,00 €</b> <span class="nota">(mano de obra + materiales)</span></p>' +
-        '<label for="obs">Observaciones (opcional)</label><textarea id="obs" maxlength="1000" placeholder="Qué incluye, plazo de ejecución…"></textarea>' +
-        '<button class="btn" onclick="if(!val(\'mo\').trim()){alert(\'Indica la mano de obra\');return}if(confirm(\'¿Enviar este presupuesto al cliente?\'))enviar({a:\'presupuesto\',mo:val(\'mo\'),mat:val(\'mat\'),obs:val(\'obs\')})">Enviar presupuesto al cliente</button>' +
-        '<p class="nota">Declara importes reales. La tarifa de OficioCerca (10 % de la mano de obra aceptada, máx. 200 €) solo se calcula si el cliente acepta; en el piloto no se cobra todavía. Falsear importes puede conllevar revisión o suspensión.</p>';
-    }
-    if (sol['Estado'] === 'Cliente aceptó') cuerpo += '<h2>¿Has terminado el trabajo?</h2><button class="btn" onclick="if(confirm(\'¿Confirmas que el trabajo está terminado?\'))enviar({a:\'finalizado\'})">✔ TRABAJO FINALIZADO</button><p class="nota">El cliente deberá confirmarlo.</p>';
-    if (sol['Estado'] === 'Finalización por confirmar') cuerpo += '<div class="ok">Esperando que el cliente confirme la finalización.</div>';
-    return html_('Gestionar trabajo · ' + oc, cuerpo, t, 'function n(v){v=(v||"").replace(/\\s|€/g,"");if(/,\\d{1,2}$/.test(v))v=v.replace(/\\./g,"").replace(",",".");else v=v.replace(/,/g,"");var x=parseFloat(v);return isNaN(x)?0:x}' +
-      'function tot(){var t=n(val("mo"))+n(val("mat"));document.getElementById("tt").textContent=t.toFixed(2).replace(".",",")+" €"}');
-  }
-  if (tipo === 'cliente') {
-    var cancelable = ['Nueva', 'Revisión manual', 'Buscando profesional', 'Esperando respuesta profesional', 'Esperando decisión cliente', 'Sin profesional compatible'].indexOf(sol['Estado']) >= 0;
-    return html_('Tu solicitud ' + oc, filas_([['Servicio', servicioTxt_(sol)], ['Zona', sol['Zona']], ['Estado', sol['Estado']]]) +
-      '<button class="btn sec" onclick="ver(\'ph\')">Necesito ayuda</button>' +
-      '<div id="ph" class="panel opc hide"><label for="th">¿En qué te ayudamos?</label><textarea id="th" maxlength="1500"></textarea>' +
-      '<label><input type="checkbox" id="gh" style="width:auto"> Es grave (seguridad, fraude, acoso o uso indebido de mis datos)</label>' +
-      '<button class="btn sec" onclick="if(!val(\'th\').trim()){alert(\'Escribe tu consulta\');return}enviar({a:\'ayuda\',texto:val(\'th\'),grave:document.getElementById(\'gh\').checked})">Enviar</button></div>' +
-      (cancelable ? '<button class="btn rojo" onclick="if(confirm(\'¿Seguro que quieres cancelar tu solicitud?\'))enviar({a:\'cancelar\'})">Cancelar mi solicitud</button>' : ''), t);
+  if (tipo === 'gestion') return paginaGestion_(t, oc, pro);
+  if (tipo === 'condiciones') {
+    var pc = profesional_(pro), urlCond = String(cfg_('URL_WEB') || 'https://oficiocerca.pages.dev/').replace(/\/?$/, '/') + 'condiciones-profesionales/';
+    if (!pc) return html_('Enlace no válido', '<p>Profesional no encontrado.</p>');
+    if (condAlDia_(pc)) return html_('Condiciones aceptadas', '<div class="ok">Ya aceptaste la versión vigente (' + esc_(condVigente_()) + '). No tienes que hacer nada más.</div>');
+    return html_('Nuevas condiciones ' + condVigente_(), '<div class="panel4"><p><b>¿Qué cambia?</b> La comisión pasa a ser el <b>10 % de los primeros 2.000 € de mano de obra y el 5 % del exceso</b>, sin tope. Los materiales nunca cuentan.</p>' +
+      '<p><b>¿Cuándo se genera?</b> Solo cuando el cliente confirma que el trabajo terminó. Registrarte, recibir una oportunidad, rechazarla o un acuerdo que no se confirma: <b>sin coste</b>.</p>' +
+      '<p><b>¿Y si queda pendiente?</b> Una comisión exigible sin pagar impide recibir NUEVAS oportunidades hasta pagarla. No borra tu cuenta ni cambia tu historial ni tus trabajos.</p></div>' +
+      '<p><a href="' + esc_(urlCond) + '" target="_blank" rel="noopener">Leer las condiciones completas</a></p>' +
+      '<button class="btn" onclick="enviar({a:\'aceptar\'})">✔ He leído y acepto las condiciones ' + esc_(condVigente_()) + '</button>', t);
   }
   return html_('Enlace no válido', '<p>Tipo de enlace desconocido.</p>');
 }
@@ -160,41 +134,80 @@ function accion(t, p) {
     if (!tok) return { ok: false, msg: 'Enlace no válido.' };
     if (tok.caducado) return { ok: false, msg: 'Este enlace ha caducado.' };
     var tipo = tok['Tipo'], oc = tok['Código OC'], pro = tok['Código PRO'], r;
-    var unUso = ['oferta', 'respaldo', 'presupuesto', 'fin'].indexOf(tipo) >= 0;
+    var unUso = ['oferta', 'respaldo'].indexOf(tipo) >= 0;
     if (unUso && tok['Usado']) return { ok: true, ya: true, msg: 'Ya habíamos registrado tu respuesta: ' + tok['Resultado'] };
     switch (tipo) {
       case 'oferta': r = procesarRespuestaOferta_(tok['Referencia'], p.a, p.disp, p.fecha, p.nota); break;
       case 'respaldo': r = procesarDecisionRespaldo_(tok['Referencia'], p.a); break;
-      case 'presupuesto': r = procesarRespuestaPresupuesto_(tok['Referencia'], p.a); break;
-      case 'fin': r = procesarFinCliente_(oc, p.a, p.texto, p.grave === true); break;
+      case 'presupuesto': case 'fin': case 'cliente': r = accionSeguimiento_(oc, p); break;
+      case 'condiciones': if (p.a === 'aceptar') r = aceptarCondiciones_(pro); break;
       case 'valorar':
         if (p.a === 'valorar') r = procesarValoracion_(oc, p.estrellas, p.comentario);
         else if (p.a === 'problema') r = procesarComentarioCliente_(oc, 'problema', p.categoria, p.texto, p.grave === true);
         else if (p.a === 'sugerencia') r = procesarComentarioCliente_(oc, 'sugerencia', 'Sugerencia para OficioCerca', p.texto, false);
         break;
-      case 'gestion':
-        if (p.a === 'presupuesto') r = registrarPresupuesto_(oc, pro, p.mo, p.mat, p.obs);
-        else if (p.a === 'finalizado') r = marcarFinalizado_(oc, pro);
-        break;
+      case 'gestion': r = accionGestion_(oc, pro, p); break;
       case 'seguimiento': r = accionSeguimiento_(oc, p); break;
-      case 'cliente':
-        if (p.a === 'ayuda') r = procesarComentarioCliente_(oc, 'ayuda', 'Otro', p.texto, p.grave === true);
-        else if (p.a === 'cancelar') r = conLock_(function () {
-          var sol = solicitud_(oc);
-          if (sol['Estado'] === 'Cancelada') return { ok: true, ya: true, msg: 'Tu solicitud ya estaba cancelada.' };
-          if (['Nueva', 'Revisión manual', 'Buscando profesional', 'Esperando respuesta profesional', 'Esperando decisión cliente', 'Sin profesional compatible'].indexOf(sol['Estado']) < 0)
-            return { ok: false, msg: 'Tu solicitud ya tiene profesional asignado. Si quieres cancelarla, usa «Necesito ayuda».' };
-          cancelarSolicitud_(sol, 'Cancelada por el cliente');
-          return { ok: true, msg: 'Hemos cancelado tu solicitud.' };
-        });
-        break;
     }
     if (!r) return { ok: false, msg: 'Acción no válida.' };
     if (r.ok && unUso && !r.noConsume) marcarToken_(tok, r.msg);
     try { actualizarPanel(); } catch (e) { }
-    return { ok: !!r.ok, msg: r.msg };
+    return { ok: !!r.ok, msg: r.msg, t: r.t || undefined, url: r.url || undefined };
   } catch (err) {
     errorSistema_('accion', err);
     return { ok: false, msg: 'Ha ocurrido un error. Inténtalo de nuevo en unos minutos.' };
   }
+}
+
+/* ---------- espacio del PROFESIONAL para un trabajo (token 'gestion') ---------- */
+function paginaGestion_(t, oc, pro) {
+  var sol = solicitud_(oc), estado = sol['Estado'], com = comisionDeOC_(oc);
+  if (sol['Profesional asignado (PRO)'] !== pro) return html_('Trabajo ' + oc, '<p>Este trabajo ya no está asignado a ti.</p>');
+  var h = resumenV16_(sol, com, 'pro') + lineaProgresoV16_(sol, com, 'pro');
+  h += '<h2>Datos del trabajo</h2>' + filas_([['Servicio', servicioTxt_(sol)], ['Cliente', sol['Nombre']], ['WhatsApp del cliente', limpio_(sol['WhatsApp'])],
+    ['Correo del cliente', sol['Email']], ['Zona', sol['Zona']], ['Estado', ESTADO_HUMANO[estado] || estado]]);
+  var pres = sol['Presupuesto vigente'] ? tabla_('Presupuestos').buscar('ID', sol['Presupuesto vigente']) : null;
+  if (pres) h += bloqueAcuerdoCliente_(pres).replace('Pendiente de tu confirmación', 'Pendiente de que el cliente lo confirme');
+  h += historialAcuerdo_(oc, 'pro');
+  if (ESTADOS_PERMITEN_ACUERDO.indexOf(estado) >= 0) {
+    var modificar = ['Acuerdo confirmado', 'Trabajo en proceso', 'Acuerdo pendiente del cliente'].indexOf(estado) >= 0;
+    var hoy = Utilities.formatDate(new Date(), ZONA_HORARIA, 'yyyy-MM-dd');
+    h += '<button class="btn' + (modificar ? ' sec' : '') + '" onclick="ver(\'pa\')">' + (modificar ? 'Modificar el acuerdo (el cliente deberá reconfirmarlo)' : 'Ya hablé con el cliente / Registrar acuerdo') + '</button>' +
+      '<div id="pa" class="panel opc' + (modificar ? ' hide' : '') + '">' +
+      '<label for="mo">Mano de obra (€) *</label><input id="mo" inputmode="decimal" placeholder="Ej.: 350" oninput="tot()">' +
+      '<label for="mat">Materiales (€) <span class="nota">(si los hay; no cuentan para la comisión)</span></label><input id="mat" inputmode="decimal" placeholder="0" oninput="tot()">' +
+      '<p>Total para el cliente: <b id="tt">0,00 €</b></p>' +
+      '<label for="fa">Fecha acordada</label><input type="date" id="fa" min="' + hoy + '">' +
+      '<label for="obs">Nota (opcional)</label><textarea id="obs" maxlength="1000" placeholder="Qué incluye, cómo os organizáis…"></textarea>' +
+      '<button class="btn" onclick="if(!val(\'mo\').trim()){alert(\'Indica la mano de obra\');return}if(confirm(\'¿Enviar este acuerdo al cliente para que lo confirme?\'))enviar({a:\'acuerdo\',mo:val(\'mo\'),mat:val(\'mat\'),fecha:val(\'fa\'),nota:val(\'obs\')})">Enviar acuerdo al cliente</button>' +
+      '<p class="nota">Comisión de OficioCerca: ' + esc_(POLITICA_COMISION.texto) + '. Solo se genera cuando el cliente confirma que el trabajo terminó. Declara importes reales.</p></div>';
+  }
+  if (estado === 'Acuerdo confirmado' || estado === 'Trabajo en proceso')
+    h += '<button class="btn" onclick="if(confirm(\'¿Confirmas que el trabajo está terminado?\'))enviar({a:\'finalizado\'})">✔ Trabajo terminado</button><p class="nota">El cliente deberá confirmarlo.</p>';
+  if (com) {
+    var filas = [['Mano de obra confirmada', euros_(com['Mano de obra (€)'])], ['Materiales (no cuentan)', euros_(com['Materiales (€)'])],
+      ['10 % de los primeros 2.000 €', euros_(com['Tramo 10 % (€)'])], ['5 % del exceso', euros_(com['Tramo 5 % (€)'])], ['Comisión', euros_(com['Importe comisión (€)'])]];
+    var estTxt = { NO_HABILITADA: 'Calculada · en el piloto no se cobra', DUE: 'Pendiente de pago', PAYMENT_PENDING: 'Pago en proceso', PAID: 'Pagada', PAYMENT_FAILED: 'Pago no completado', MANUAL_REVIEW: 'En revisión' }[com['Estado']] || com['Estado'];
+    filas.push(['Estado', estTxt + (com['Ambiente'] === 'SANDBOX' ? ' (PRUEBA / SANDBOX)' : '')]);
+    if (com['Estado'] === 'PAID') filas.push(['Referencia de pago', com['Referencia vigente']]);
+    h += '<h2>Comisión de OficioCerca</h2>' + filas_(filas);
+    if (['DUE', 'PAYMENT_FAILED'].indexOf(com['Estado']) >= 0) h += '<button class="btn" onclick="enviar({a:\'pagar\'})">' + (com['Ambiente'] === 'SANDBOX' ? 'PAGAR COMISIÓN (SANDBOX)' : 'PAGAR COMISIÓN') + '</button>' +
+      '<p class="nota">Mientras esté pendiente no recibirás nuevas oportunidades. Tu cuenta, tu historial y tus trabajos en curso no cambian.</p>';
+  }
+  return html_('Trabajo ' + oc + ' · ' + servicioTxt_(sol), h, t, 'function n(v){v=(v||"").replace(/\\s|€/g,"");if(/,\\d{1,2}$/.test(v))v=v.replace(/\\./g,"").replace(",",".");else v=v.replace(/,/g,"");var x=parseFloat(v);return isNaN(x)?0:x}' +
+    'function tot(){var t=n(val("mo"))+n(val("mat"));document.getElementById("tt").textContent=t.toFixed(2).replace(".",",")+" €"}');
+}
+
+function accionGestion_(oc, pro, p) {
+  switch (p.a) {
+    case 'acuerdo': case 'presupuesto': return registrarAcuerdo_(oc, pro, p.mo, p.mat, p.fecha, p.nota !== undefined ? p.nota : p.obs);
+    case 'finalizado': return marcarFinalizado_(oc, pro);
+    case 'pagar':
+      var sol = solicitud_(oc);
+      if (sol['Profesional asignado (PRO)'] !== pro) return { ok: false, msg: 'Este trabajo no está asignado a ti.' };
+      var c = comisionDeOC_(oc);
+      if (!c || ['DUE', 'PAYMENT_FAILED'].indexOf(c['Estado']) < 0) return { ok: false, msg: 'No hay ninguna comisión pendiente de pago.' };
+      return { ok: true, url: urlPagoComision_(oc, pro), msg: 'Abriendo la página de pago…' };
+  }
+  return { ok: false, msg: 'Acción no válida.' };
 }

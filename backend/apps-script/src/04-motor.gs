@@ -74,17 +74,17 @@ function candidatos_(sol, ofertasOC) {
   var dCli = diasCliente_(sol);
   var hace30 = Date.now() - 30 * 86400000;
   var todasOfertas = tabla_('Ofertas').todas();
-  var bloqueadosSbx = sbxProsBloqueados_(); // SANDBOX: {} si WOMPI_SANDBOX_ENABLED = FALSE
+  var bloqueados = prosBloqueados_(); // comisión exigible sin pagar → sin NUEVAS oportunidades (trabajos actuales intactos)
   var out = [];
   tabla_('Profesionales').todas().forEach(function (p) {
     var code = String(p['Código']);
     if (String(p['Estado']).trim() !== 'Activo') return;
     if (!emailOk_(p['Email'])) return;
     if (listaServicios_(p['Servicios (códigos)']).indexOf(servicio) < 0) return;
-    if (!String(p['Condiciones (versión)']).trim() || !p['Condiciones aceptadas (fecha)']) return;
+    if (!condAlDia_(p)) return; // V1.6: debe haber aceptado la versión VIGENTE de las condiciones
     if (empresa ? p['Con empresas'] !== 'Sí' : p['Con particulares'] !== 'Sí') return;
     if (yaOfrecidos.indexOf(code) >= 0) return;
-    if (bloqueadosSbx[code]) return; // SANDBOX: comisión de prueba exigible sin pagar → sin NUEVAS oportunidades
+    if (bloqueados[code]) return;
     var zona = zonaCompatible_(p, sol);
     if (!zona.ok) return;
     var puntos = 0, motivos = [];
@@ -213,13 +213,11 @@ function asignar_(sol, pro, dispTxt, motivo) {
     if (o['Estado'] === 'Enviada') to.poner(o._fila, { 'Estado': 'Cerrada', 'Notas': 'Solicitud asignada a otro profesional' });
     if (o['Estado'] === 'Respaldo') {
       to.poner(o._fila, { 'Estado': 'Cerrada', 'Notas': 'Se encontró disponibilidad antes' });
-      var pr = profesional_(o['Código PRO']);
-      if (pr) encolarCorreo_('pro-cubierta-' + oc + '-' + o['Código PRO'], 'solicitud_cubierta', 'Profesional', pr['Email'], oc, o['Código PRO'], {});
     }
   });
   actualizarSol_(sol, { 'Estado': 'Profesional asignado', 'Requiere intervención': '', 'Profesional asignado (PRO)': pro, 'Fecha asignación': new Date(), 'Disponibilidad profesional': dispTxt });
   encolarCorreo_('pro-contacto-' + oc + '-' + pro, 'contacto_profesional', 'Profesional', p['Email'], oc, pro, { token: { tipo: 'gestion', dias: 180 } });
-  encolarCorreo_('cli-asignado-' + oc + '-' + pro, 'asignado_cliente', 'Cliente', sol['Email'], oc, pro, { disp: dispTxt, token: { tipo: 'cliente', dias: 180 } });
+  encolarCorreo_('cli-asignado-' + oc + '-' + pro, 'asignado_cliente', 'Cliente', sol['Email'], oc, pro, { disp: dispTxt });
   actualizarSol_(sol, { 'Contacto enviado (fecha)': new Date() });
   registrar_('Sistema', 'Asignación automática y contacto compartido', oc, pro, motivo + ' · ' + dispTxt);
   return true;
@@ -289,11 +287,12 @@ function ofertaManual_(sol, pro) {
   var p = profesional_(pro);
   if (!p) return 'No existe ' + pro;
   if (p['Estado'] !== 'Activo') return pro + ' no está Activo';
-  if (!p['Condiciones aceptadas (fecha)']) return pro + ' no ha aceptado las condiciones';
+  if (!condAlDia_(p)) return pro + ' no ha aceptado las condiciones vigentes (' + condVigente_() + ')';
+  if (proBloqueado_(pro)) return pro + ' tiene una comisión exigible pendiente: no recibe nuevas oportunidades';
   var ofertas = tabla_('Ofertas').todas().filter(function (o) { return o['Código OC'] === sol['Código']; });
   if (ofertas.some(function (o) { return o['Estado'] === 'Enviada'; })) return 'Ya hay una oferta pendiente de respuesta';
   if (ofertas.some(function (o) { return o['Código PRO'] === pro; })) return pro + ' ya recibió esta solicitud';
-  if (['Profesional asignado', 'Presupuesto enviado', 'Cliente aceptó', 'Finalizado', 'Valorada', 'Cancelada'].indexOf(sol['Estado']) >= 0) return 'La solicitud está «' + sol['Estado'] + '»';
+  if (ESTADOS_BUSQUEDA.concat(['Revisión manual', 'Esperando decisión cliente']).indexOf(sol['Estado']) < 0) return 'La solicitud está «' + sol['Estado'] + '»';
   ofrecer_(sol, { pro: p, puntos: '', motivo: 'Oferta manual del administrador' });
   return 'Oferta enviada a ' + pro;
 }

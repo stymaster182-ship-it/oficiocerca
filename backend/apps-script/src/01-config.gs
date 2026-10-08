@@ -1,26 +1,24 @@
 /**
- * OficioCerca — backend V1.4 (Google Apps Script, cuenta oficiocerca@gmail.com).
+ * OficioCerca — backend V1.6 (Google Apps Script, cuenta oficiocerca@gmail.com).
  *
- * Flujo automático:
- *  solicitud web → confirmación al cliente → matching por reglas (oficio, zona, distancia, tipo de cliente,
- *  disponibilidad) → oferta SECUENCIAL al mejor candidato (ficha sin datos de contacto + fotos adjuntas)
- *  → el profesional responde con botones (enlace con token) → si su plazo encaja se asigna; si no, queda
- *  como respaldo y se sigue buscando → contacto automático solo al asignado → presupuesto → aceptación
- *  del cliente → comisión calculada (cobro DESACTIVADO) → finalización confirmada por el cliente →
- *  valoración / incidencias. El administrador interviene en excepciones desde la pestaña PANEL.
+ * Flujo: solicitud web (se guarda siempre) → matching por reglas → oferta SECUENCIAL → profesional asignado
+ *  (contacto habilitado) → «Ya hablé con el cliente / Registrar acuerdo» (mano de obra, materiales, fecha, nota)
+ *  → el cliente confirma el acuerdo → trabajo en proceso → «Trabajo terminado» → el cliente confirma (doble cierre)
+ *  → SOLO entonces nace la comisión (10 % de los primeros 2.000 € de mano de obra + 5 % del exceso, sin tope,
+ *  materiales excluidos) → cobro con Wompi únicamente si está habilitado (en el piloto NO) → cerrado.
+ *  «El correo avisa. La plataforma registra.»
  *
- * Puesta en marcha: ver backend/README.md (función instalarV14).
- * El código no contiene secretos: los IDs se guardan en Propiedades del script.
+ * Puesta en marcha / actualización: ver backend/README.md (función instalarV16, idempotente).
+ * El código no contiene secretos: los IDs y credenciales se guardan en Propiedades del script.
  */
 
-var VERSION_BACKEND = 'V1.5';
+var VERSION_BACKEND = 'V1.6';
 var ZONA_HORARIA = 'Europe/Madrid';
 
 /** Valores por defecto de la pestaña «Configuración» (editables allí, salvo los de solo lectura). */
 var CONFIG_DEFECTO = [
   ['COMMISSION_COLLECTION_ENABLED', 'FALSE', 'Cobro real de comisiones. FALSE = solo se calculan y registran (no se cobra nada). No activar sin titular, fiscalidad y revisión legal.'],
-  ['COMISION_PORCENTAJE', '10', '% sobre la MANO DE OBRA aceptada por el cliente (materiales excluidos).'],
-  ['COMISION_MAXIMO_EUR', '200', 'Máximo de comisión por solicitud/trabajo (€).'],
+  ['COMISION_POLITICA', 'COM-2026-10-V2', 'Solo lectura. Política vigente: 10 % de los primeros 2.000 € de mano de obra + 5 % del exceso, sin tope, materiales excluidos (fórmula única en 12-v16.gs → comisionV16_).'],
   ['ADMIN_EMAIL', 'oficiocerca@gmail.com', 'Recibe SOLO alertas (errores, incidencias, excepciones) y el resumen diario.'],
   ['RESUMEN_DIARIO', 'SI', 'SI = un único correo resumen cada mañana al administrador.'],
   ['URL_WEB', 'https://oficiocerca.pages.dev/', 'Web pública.'],
@@ -29,7 +27,7 @@ var CONFIG_DEFECTO = [
   ['HORAS_RESPUESTA_NORMAL', '24', 'Horas para responder a una oportunidad en el resto de casos.'],
   ['DIAS_VALIDEZ_ENLACES', '30', 'Días de validez de los enlaces enviados a clientes (presupuesto, finalización…).'],
   ['CUOTA_RESERVA', '3', 'Correos que se reservan para alertas al administrador.'],
-  ['PRO_COND_VERSION', 'PRO-COND-2026-10-V2', 'Versión vigente de las condiciones para profesionales.'],
+  ['PRO_COND_VERSION', 'PRO-COND-2026-10-V3', 'Versión vigente de las condiciones para profesionales.'],
   ['CONSENT_VERSION', 'C4-2026-10', 'Versión vigente del consentimiento de clientes.'],
   ['Cuota correo disponible', '', 'Solo lectura: MailApp.getRemainingDailyQuota() en la última comprobación.'],
   ['Última comprobación', '', 'Solo lectura.'],
@@ -76,13 +74,14 @@ var DISP_PRO = {
 
 var ESTADOS_SOLICITUD = [
   'Nueva', 'Revisión manual', 'Buscando profesional', 'Esperando respuesta profesional',
-  'Esperando decisión cliente', 'Sin profesional compatible', 'Profesional asignado', 'Presupuesto enviado',
-  'Presupuesto no aceptado', 'Cliente aceptó', 'Finalización por confirmar', 'Finalizado', 'Valorada', 'Cancelada'
+  'Esperando decisión cliente', 'Sin profesional compatible', 'Profesional asignado', 'Acuerdo pendiente del cliente',
+  'Acuerdo no confirmado', 'Acuerdo confirmado', 'Trabajo en proceso', 'Finalización por confirmar', 'Comisión pendiente', 'Cerrado', 'Cancelada'
 ];
 var ESTADOS_PROFESIONAL = ['Pendiente de revisar', 'Activo', 'En revisión', 'Pausado', 'Baja'];
 var ESTADOS_OFERTA = ['Enviada', 'Seleccionada', 'Respaldo', 'Rechazada', 'Sin respuesta', 'Cerrada'];
-var ESTADOS_PRESUPUESTO = ['Enviado al cliente', 'Sustituido', 'Aceptado', 'No aceptado'];
-var ESTADOS_COMISION = ['Generada', 'Pendiente de habilitación', 'Pendiente', 'Pagada', 'En revisión', 'Anulada'];
+var ESTADOS_PRESUPUESTO = ['Pendiente del cliente', 'Sustituido', 'Confirmado', 'No confirmado'];
+/** Comisiones (códigos técnicos): NO_HABILITADA = calculada pero el cobro no está activo (no bloquea). */
+var ESTADOS_COMISION = ['NO_HABILITADA', 'DUE', 'PAYMENT_PENDING', 'PAID', 'PAYMENT_FAILED', 'MANUAL_REVIEW', 'ANULADA'];
 var ESTADOS_INCIDENCIA = ['Abierta', 'En revisión', 'Verificada', 'Descartada', 'Cerrada'];
 var CATEGORIAS_INCIDENCIA = ['Problema con el profesional', 'Problema con el trabajo', 'Comunicación', 'Sugerencia para OficioCerca', 'Valoración baja', 'Otro'];
 
@@ -94,7 +93,8 @@ var ESQUEMA = {
     'Origen', 'Ofrecer a (PRO manual)', 'Profesional asignado (PRO)', 'Fecha asignación', 'Disponibilidad profesional',
     'Respaldo (PRO)', 'Respaldo disponibilidad', 'Decisión cliente', 'Contacto enviado (fecha)', 'Presupuesto vigente',
     'Mano de obra aceptada (€)', 'Total aceptado (€)', 'Comisión (€)', 'Fecha aceptación', 'Finalizado (fecha)',
-    'Valoración (1-5)', 'Motivo cierre', 'Última actualización', 'Notas internas', 'Consentimiento operativo', 'Consentimiento (fecha)'],
+    'Valoración (1-5)', 'Motivo cierre', 'Última actualización', 'Notas internas', 'Consentimiento operativo', 'Consentimiento (fecha)',
+    'Grupo cliente', 'Origen servicio', 'Fecha acordada', 'Materiales aceptados (€)', 'Versión acuerdo', 'Cliente confirmó fin (fecha)'],
   'Profesionales': ['Código', 'Fecha', 'Estado', 'Nombre', 'Empresa / autónomo', 'Servicios (códigos)', 'Servicios',
     'Servicio otro', 'Especialidades', 'WhatsApp', 'Teléfono', 'Email', 'Ciudad', 'Código postal', 'Zonas', 'Distancia',
     'Experiencia', 'Disponibilidad habitual', 'Con particulares', 'Con empresas', 'Descripción', 'Consent. contacto (legacy)',
@@ -105,9 +105,14 @@ var ESQUEMA = {
     'Estado', 'Respuesta', 'Disponibilidad (código)', 'Disponibilidad', 'Días hasta disponibilidad', 'Fecha respuesta',
     'Expira', 'Notas'],
   'Presupuestos': ['ID', 'Fecha', 'Código OC', 'Código PRO', 'Versión', 'Mano de obra (€)', 'Materiales (€)', 'Total (€)',
-    'Observaciones', 'Estado', 'Respuesta cliente (fecha)', 'Notas'],
+    'Observaciones', 'Estado', 'Respuesta cliente (fecha)', 'Notas', 'Fecha acordada', 'Registrado por', 'Confirmado por', 'Política comisión'],
   'Comisiones': ['Código OC', 'Código PRO', 'Profesional', 'Presupuesto', 'Mano de obra (€)', 'Porcentaje', 'Importe comisión (€)',
-    'Fecha generación', 'Estado', 'Fecha pago', 'Notas'],
+    'Fecha generación', 'Estado', 'Fecha pago', 'Notas', 'Materiales (€)', 'Política', 'Tramo 10 % (€)', 'Tramo 5 % (€)', 'Fecha exigible',
+    'Referencia vigente', 'Transaction ID', 'Importe pagado (COP)', 'Tasa EUR→COP', 'Fuente tasa', 'Fecha tasa', 'Moneda', 'Ambiente'],
+  'Pagos comisión': ['Referencia', 'Código OC', 'Código PRO', 'Comisión (€)', 'Tasa EUR→COP', 'Fuente tasa', 'Fecha tasa', 'Importe (COP)',
+    'Importe (centavos)', 'Moneda', 'Creado', 'Estado', 'Transaction ID', 'Estado Wompi', 'Fecha estado', 'Ambiente', 'Notas'],
+  'Eventos Wompi': ['Clave', 'Recibido', 'Evento', 'Ambiente', 'Transaction ID', 'Referencia', 'Estado Wompi', 'Firma válida', 'Resultado', 'Repeticiones', 'Timestamp'],
+  'Aceptaciones condiciones': ['Fecha', 'Código PRO', 'Versión', 'Origen', 'Notas'],
   'Incidencias': ['ID', 'Fecha', 'Tipo', 'Código OC', 'Código PRO', 'Origen', 'Categoría', 'Gravedad', 'Descripción', 'Estado',
     'Pausa preventiva', 'Acción tomada', 'Administrador', 'Fecha resolución', 'Notas'],
   'Valoraciones': ['Fecha', 'Código OC', 'Código PRO', 'Estrellas', 'Comentario', 'Publicable', 'Notas'],
@@ -119,8 +124,8 @@ var ESQUEMA = {
 };
 
 /** Orden de pestañas: PANEL primero. */
-var ORDEN_PESTANAS = ['PANEL', 'Solicitudes', 'Profesionales', 'Ofertas', 'Presupuestos', 'Comisiones', 'Incidencias',
-  'Valoraciones', 'Historial envíos', 'Registro', 'Configuración', 'Tokens'];
+var ORDEN_PESTANAS = ['PANEL', 'Solicitudes', 'Profesionales', 'Ofertas', 'Presupuestos', 'Comisiones', 'Pagos comisión', 'Eventos Wompi',
+  'Incidencias', 'Valoraciones', 'Aceptaciones condiciones', 'Historial envíos', 'Registro', 'Configuración', 'Tokens'];
 
 var DESPLEGABLES = {
   'Solicitudes': { 'Estado': ESTADOS_SOLICITUD },

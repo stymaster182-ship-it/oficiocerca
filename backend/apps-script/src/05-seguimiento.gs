@@ -1,122 +1,120 @@
 /* ============================================================ PRESUPUESTO · COMISIÓN · FINALIZACIÓN · VALORACIÓN · INCIDENCIAS */
 
-var ESTADOS_PERMITEN_PRESUPUESTO = ['Profesional asignado', 'Presupuesto enviado', 'Presupuesto no aceptado'];
+/* El «presupuesto» de V1.5 es ahora el ACUERDO (V1.6): mano de obra + materiales + fecha acordada + nota.
+ * Cada registro o cambio = nueva versión (pestaña «Presupuestos»); nada se sobrescribe y cada cambio exige reconfirmación. */
+var ESTADOS_PERMITEN_ACUERDO = ['Profesional asignado', 'Acuerdo pendiente del cliente', 'Acuerdo no confirmado', 'Acuerdo confirmado', 'Trabajo en proceso'];
+var ESTADOS_PERMITEN_PRESUPUESTO = ESTADOS_PERMITEN_ACUERDO; // compatibilidad
+var ESTADOS_TRAS_CONFIRMAR_FIN = ['Comisión pendiente', 'Cerrado'];
 
-/** El profesional asignado registra (o corrige) su presupuesto. Cada cambio = nueva versión; nada se sobrescribe. */
-function registrarPresupuesto_(oc, pro, manoObra, materiales, obs) {
+/** «Ya hablé con el cliente / Registrar acuerdo». fecha = 'AAAA-MM-DD' (opcional). */
+function registrarAcuerdo_(oc, pro, manoObra, materiales, fecha, nota) {
   return conLock_(function () {
     var sol = solicitud_(oc);
-    if (sol['Profesional asignado (PRO)'] !== pro) return { ok: false, msg: 'Esta solicitud no está asignada a ti.' };
-    if (ESTADOS_PERMITEN_PRESUPUESTO.indexOf(sol['Estado']) < 0) return { ok: false, msg: 'Ahora no se puede registrar un presupuesto (estado: ' + sol['Estado'] + ').' };
+    if (sol['Profesional asignado (PRO)'] !== pro) return { ok: false, msg: 'Este trabajo no está asignado a ti.' };
+    if (ESTADOS_PERMITEN_ACUERDO.indexOf(sol['Estado']) < 0) return { ok: false, msg: 'Ahora no se puede registrar un acuerdo (estado: ' + sol['Estado'] + ').' };
     var mo = num_(manoObra), mat = materiales === '' || materiales === undefined || materiales === null ? 0 : num_(materiales);
     if (isNaN(mo) || mo < 0 || isNaN(mat) || mat < 0) return { ok: false, msg: 'Revisa los importes: usa números (por ejemplo 350 o 350,50).' };
     if (mo > 1000000 || mat > 1000000) return { ok: false, msg: 'Importe demasiado alto. Revisa las cifras.' };
     var total = Math.round((mo + mat) * 100) / 100;
     if (total <= 0) return { ok: false, msg: 'El total debe ser mayor que 0.' };
+    var f = String(fecha || '').slice(0, 10);
+    if (f && !/^\d{4}-\d{2}-\d{2}$/.test(f)) return { ok: false, msg: 'Revisa la fecha acordada.' };
     var tp = tabla_('Presupuestos');
     var previos = tp.todas().filter(function (r) { return r['Código OC'] === oc; });
     var ultimo = previos[previos.length - 1];
-    // Doble clic / recarga: mismo importe y observaciones en los últimos 10 minutos → no se duplica
-    if (ultimo && Number(ultimo['Mano de obra (€)']) === mo && Number(ultimo['Materiales (€)']) === mat && String(ultimo['Observaciones']) === s_(obs, 1000) &&
-      Date.now() - new Date(ultimo['Fecha']).getTime() < 10 * 60000) return { ok: true, ya: true, msg: 'Este presupuesto ya estaba registrado (versión ' + ultimo['Versión'] + ').' };
-    previos.forEach(function (r) { if (r['Estado'] === 'Enviado al cliente') tp.poner(r._fila, { 'Estado': 'Sustituido' }); });
+    // Doble clic / recarga: mismo acuerdo en los últimos 10 minutos → no se duplica
+    if (ultimo && Number(ultimo['Mano de obra (€)']) === mo && Number(ultimo['Materiales (€)']) === mat && String(ultimo['Observaciones']) === s_(nota, 1000) &&
+      String(ultimo['Fecha acordada'] || '') === f && Date.now() - new Date(ultimo['Fecha']).getTime() < 10 * 60000)
+      return { ok: true, ya: true, msg: 'Este acuerdo ya estaba registrado (versión ' + ultimo['Versión'] + ').' };
+    var reconfirmar = ['Acuerdo confirmado', 'Trabajo en proceso'].indexOf(sol['Estado']) >= 0;
+    previos.forEach(function (r) { if (r['Estado'] === 'Pendiente del cliente' || r['Estado'] === 'Enviado al cliente' || r['Estado'] === 'Confirmado' || r['Estado'] === 'Aceptado') tp.poner(r._fila, { 'Estado': 'Sustituido' }); });
     var version = previos.length + 1, id = 'P-' + oc + '-v' + version;
     tp.agregar({ 'ID': id, 'Fecha': new Date(), 'Código OC': oc, 'Código PRO': pro, 'Versión': version, 'Mano de obra (€)': mo, 'Materiales (€)': mat,
-      'Total (€)': total, 'Observaciones': s_(obs, 1000), 'Estado': 'Enviado al cliente' });
-    actualizarSol_(sol, { 'Estado': 'Presupuesto enviado', 'Presupuesto vigente': id });
-    encolarCorreo_('cli-presupuesto-' + id, 'presupuesto_cliente', 'Cliente', sol['Email'], oc, pro, { presupuesto: id, token: { tipo: 'presupuesto', ref: id } });
-    registrar_('Sistema', 'Presupuesto registrado', oc, pro, id + ' · MO ' + euros_(mo) + ' · materiales ' + euros_(mat) + ' · total ' + euros_(total));
-    return { ok: true, msg: 'Presupuesto registrado (versión ' + version + ', total ' + euros_(total) + '). Se lo hemos enviado al cliente para que lo acepte o no.' };
+      'Total (€)': total, 'Observaciones': s_(nota, 1000), 'Estado': 'Pendiente del cliente', 'Fecha acordada': f ? "'" + f : '', 'Registrado por': pro,
+      'Política comisión': POLITICA_COMISION.version });
+    actualizarSol_(sol, { 'Estado': 'Acuerdo pendiente del cliente', 'Presupuesto vigente': id, 'Versión acuerdo': version, 'Fecha acordada': f ? "'" + f : '' });
+    encolarCorreo_('cli-acuerdo-' + id, 'acuerdo_cliente', 'Cliente', sol['Email'], oc, pro, { presupuesto: id, cambio: reconfirmar || version > 1 }, true);
+    registrar_('Sistema', reconfirmar ? 'Acuerdo modificado (requiere reconfirmación)' : 'Acuerdo registrado', oc, pro,
+      id + ' · MO ' + euros_(mo) + ' · materiales ' + euros_(mat) + (f ? ' · fecha ' + f : ''));
+    return { ok: true, msg: 'Acuerdo registrado (versión ' + version + '). Hemos pedido al cliente que lo confirme.' };
   });
 }
+/** Compatibilidad V1.5. */
+function registrarPresupuesto_(oc, pro, manoObra, materiales, obs, fecha) { return registrarAcuerdo_(oc, pro, manoObra, materiales, fecha || '', obs); }
 
-function comisionDe_(manoObra) {
-  var pct = cfgNum_('COMISION_PORCENTAJE', 10), max = cfgNum_('COMISION_MAXIMO_EUR', 200);
-  return { pct: pct, importe: Math.min(Math.round(manoObra * pct) / 100, max) };
-}
-
-/** Respuesta del CLIENTE a un presupuesto: 'aceptar' | 'rechazar' | 'hablar'. */
+/** Respuesta del CLIENTE al acuerdo: 'confirmar' | 'no_de_acuerdo' (+ alias V1.5 'aceptar' | 'rechazar'). */
 function procesarRespuestaPresupuesto_(presId, decision) {
+  if (decision === 'aceptar') decision = 'confirmar';
+  if (decision === 'rechazar') decision = 'no_de_acuerdo';
   return conLock_(function () {
     var tp = tabla_('Presupuestos'), pr = tp.buscar('ID', presId);
-    if (!pr) return { ok: false, msg: 'Presupuesto no encontrado.' };
+    if (!pr) return { ok: false, msg: 'Acuerdo no encontrado.' };
     var sol = solicitud_(pr['Código OC']), oc = sol['Código'], pro = pr['Código PRO'];
     var p = profesional_(pro);
-    if (pr['Estado'] === 'Aceptado') return { ok: true, ya: true, msg: 'Ya habías aceptado este presupuesto. ¡Gracias!' };
-    if (pr['Estado'] === 'No aceptado') return { ok: true, ya: true, msg: 'Ya nos indicaste que no aceptas este presupuesto.' };
-    if (pr['Estado'] !== 'Enviado al cliente' || sol['Presupuesto vigente'] !== presId) return { ok: false, msg: 'Este presupuesto fue sustituido por una versión más reciente. Revisa el último correo que te enviamos.' };
+    if (pr['Estado'] === 'Confirmado' || pr['Estado'] === 'Aceptado') return { ok: true, ya: true, msg: 'Ya habías confirmado este acuerdo. ¡Gracias!' };
+    if (pr['Estado'] === 'No confirmado' || pr['Estado'] === 'No aceptado') return { ok: true, ya: true, msg: 'Ya nos indicaste que no estás de acuerdo.' };
+    if ((pr['Estado'] !== 'Pendiente del cliente' && pr['Estado'] !== 'Enviado al cliente') || sol['Presupuesto vigente'] !== presId)
+      return { ok: false, msg: 'Este acuerdo fue sustituido por una versión más reciente. Abre tu seguimiento para ver la última.' };
     var ahora = new Date();
-    if (decision === 'aceptar') {
-      var mo = Number(pr['Mano de obra (€)']) || 0, com = comisionDe_(mo);
-      tp.poner(pr._fila, { 'Estado': 'Aceptado', 'Respuesta cliente (fecha)': ahora });
-      actualizarSol_(sol, { 'Estado': 'Cliente aceptó', 'Mano de obra aceptada (€)': mo, 'Total aceptado (€)': Number(pr['Total (€)']),
-        'Comisión (€)': com.importe, 'Fecha aceptación': ahora });
-      var tc = tabla_('Comisiones');
-      var existe = tc.todas().some(function (c) { return c['Código OC'] === oc && c['Estado'] !== 'Anulada'; });
-      if (!existe) tc.agregar({ 'Código OC': oc, 'Código PRO': pro, 'Profesional': p ? p['Nombre'] : '', 'Presupuesto': presId, 'Mano de obra (€)': mo,
-        'Porcentaje': com.pct + ' %', 'Importe comisión (€)': com.importe, 'Fecha generación': ahora,
-        'Estado': cfgBool_('COMMISSION_COLLECTION_ENABLED') ? 'Pendiente' : 'Pendiente de habilitación',
-        'Notas': cfgBool_('COMMISSION_COLLECTION_ENABLED') ? '' : 'Cobro no habilitado: solo cálculo y registro.' });
-      sbxAlAceptarPresupuesto_(sol, pr, p); // SANDBOX (no-op fuera de pruebas)
-      if (p) encolarCorreo_('pro-pres-aceptado-' + presId, 'presupuesto_aceptado_pro', 'Profesional', p['Email'], oc, pro, { presupuesto: presId, token: { tipo: 'gestion', dias: 180 } });
-      registrar_('Sistema', 'Cliente acepta presupuesto · comisión calculada', oc, pro, presId + ' · MO ' + euros_(mo) + ' · comisión ' + euros_(com.importe));
-      return { ok: true, msg: 'Has aceptado el presupuesto. El profesional ya está avisado. Cuando termine el trabajo te pediremos que lo confirmes.' };
+    if (decision === 'confirmar') {
+      tp.poner(pr._fila, { 'Estado': 'Confirmado', 'Respuesta cliente (fecha)': ahora, 'Confirmado por': 'Cliente (' + sol['Email'] + ')' });
+      var f = fechaIso_(pr['Fecha acordada']);
+      var enCurso = f && f <= Utilities.formatDate(ahora, ZONA_HORARIA, 'yyyy-MM-dd');
+      actualizarSol_(sol, { 'Estado': enCurso ? 'Trabajo en proceso' : 'Acuerdo confirmado', 'Mano de obra aceptada (€)': Number(pr['Mano de obra (€)']) || 0,
+        'Materiales aceptados (€)': Number(pr['Materiales (€)']) || 0, 'Total aceptado (€)': Number(pr['Total (€)']), 'Fecha aceptación': ahora, 'Comisión (€)': '' });
+      if (p) encolarCorreo_('pro-acuerdo-ok-' + presId, 'acuerdo_confirmado_pro', 'Profesional', p['Email'], oc, pro, { presupuesto: presId, token: { tipo: 'gestion', dias: 180 } }, true);
+      registrar_('Sistema', 'Cliente confirma el acuerdo', oc, pro, presId + ' · MO ' + euros_(pr['Mano de obra (€)']) + ' · materiales ' + euros_(pr['Materiales (€)']));
+      return { ok: true, msg: 'Has confirmado el acuerdo. El profesional ya está avisado. Cuando termine el trabajo te pediremos que lo confirmes.' };
     }
-    if (decision === 'rechazar') {
-      tp.poner(pr._fila, { 'Estado': 'No aceptado', 'Respuesta cliente (fecha)': ahora });
-      actualizarSol_(sol, { 'Estado': 'Presupuesto no aceptado' });
-      if (p) encolarCorreo_('pro-pres-rechazado-' + presId, 'presupuesto_rechazado_pro', 'Profesional', p['Email'], oc, pro, { presupuesto: presId, token: { tipo: 'gestion', dias: 180 } });
-      registrar_('Sistema', 'Cliente no acepta presupuesto', oc, pro, presId);
-      return { ok: true, msg: 'Hemos registrado que no aceptas este presupuesto. El profesional puede enviarte otra propuesta si lo ve oportuno.' };
-    }
-    if (decision === 'hablar') {
-      if (p) encolarCorreo_('pro-pres-hablar-' + presId, 'presupuesto_hablar_pro', 'Profesional', p['Email'], oc, pro, { presupuesto: presId });
-      tp.poner(pr._fila, { 'Notas': 'El cliente quiere hablar (' + fecha_(ahora) + ')' });
-      registrar_('Sistema', 'Cliente quiere hablar con el profesional', oc, pro, presId);
-      return { ok: true, noConsume: true, msg: 'Hemos pedido al profesional que te contacte. Este enlace sigue sirviendo para aceptar o no el presupuesto más tarde.' };
+    if (decision === 'no_de_acuerdo') {
+      tp.poner(pr._fila, { 'Estado': 'No confirmado', 'Respuesta cliente (fecha)': ahora });
+      actualizarSol_(sol, { 'Estado': 'Acuerdo no confirmado' });
+      if (p) encolarCorreo_('pro-acuerdo-no-' + presId, 'acuerdo_no_confirmado_pro', 'Profesional', p['Email'], oc, pro, { presupuesto: presId, token: { tipo: 'gestion', dias: 180 } }, true);
+      registrar_('Sistema', 'Cliente NO está de acuerdo', oc, pro, presId);
+      return { ok: true, msg: 'Hemos avisado al profesional de que no estás de acuerdo. Podéis hablarlo y, si llegáis a otro acuerdo, te pediremos que lo confirmes.' };
     }
     return { ok: false, msg: 'Opción no válida.' };
   });
 }
 
-/** El profesional indica que terminó. No cierra la solicitud: el cliente debe confirmarlo. */
+/** El profesional indica «Trabajo terminado». No cierra nada: el cliente debe confirmarlo. */
 function marcarFinalizado_(oc, pro) {
   return conLock_(function () {
     var sol = solicitud_(oc);
-    if (sol['Profesional asignado (PRO)'] !== pro) return { ok: false, msg: 'Esta solicitud no está asignada a ti.' };
+    if (sol['Profesional asignado (PRO)'] !== pro) return { ok: false, msg: 'Este trabajo no está asignado a ti.' };
     if (sol['Estado'] === 'Finalización por confirmar') return { ok: true, ya: true, msg: 'Ya lo habías indicado. Estamos esperando la confirmación del cliente.' };
-    if (sol['Estado'] !== 'Cliente aceptó') return { ok: false, msg: 'Solo se puede marcar como finalizado un trabajo con presupuesto aceptado (estado actual: ' + sol['Estado'] + ').' };
+    if (['Acuerdo confirmado', 'Trabajo en proceso'].indexOf(sol['Estado']) < 0) return { ok: false, msg: 'Solo se puede indicar «Trabajo terminado» con un acuerdo confirmado por el cliente (estado actual: ' + sol['Estado'] + ').' };
     var n = tabla_('Registro').todas().filter(function (r) { return r['Código OC'] === oc && r['Acción'] === 'Profesional indica trabajo finalizado'; }).length + 1;
     actualizarSol_(sol, { 'Estado': 'Finalización por confirmar' });
-    encolarCorreo_('cli-fin-' + oc + '-' + n, 'fin_cliente', 'Cliente', sol['Email'], oc, pro, { token: { tipo: 'fin' } });
+    encolarCorreo_('cli-fin-' + oc + '-' + n, 'fin_cliente', 'Cliente', sol['Email'], oc, pro, {}, true);
     registrar_('Sistema', 'Profesional indica trabajo finalizado', oc, pro, 'Aviso ' + n);
     return { ok: true, msg: 'Gracias. Hemos pedido al cliente que confirme que el trabajo terminó.' };
   });
 }
 
-/** Confirmación del cliente: 'si' | 'aun_no' | 'problema' (+ texto y gravedad). */
+/** Confirmación del cliente: 'si' | 'aun_no' | 'problema' (+ texto y gravedad). La comisión SOLO nace con 'si'. */
 function procesarFinCliente_(oc, decision, texto, grave) {
   return conLock_(function () {
     var sol = solicitud_(oc), pro = sol['Profesional asignado (PRO)'], p = profesional_(pro);
-    if (['Finalizado', 'Valorada'].indexOf(sol['Estado']) >= 0) return { ok: true, ya: true, msg: 'Ya confirmaste que el trabajo terminó. ¡Gracias!' };
-    if (sol['Estado'] !== 'Finalización por confirmar') return { ok: false, msg: 'Este enlace ya no está vigente (estado: ' + sol['Estado'] + ').' };
+    if (ESTADOS_TRAS_CONFIRMAR_FIN.indexOf(sol['Estado']) >= 0) return { ok: true, ya: true, msg: 'Ya confirmaste que el trabajo terminó. ¡Gracias!' };
+    if (sol['Estado'] !== 'Finalización por confirmar') return { ok: false, msg: 'Ahora no hay ninguna finalización pendiente de confirmar (estado: ' + sol['Estado'] + ').' };
     if (decision === 'si') {
-      actualizarSol_(sol, { 'Estado': 'Finalizado', 'Finalizado (fecha)': new Date() });
-      encolarCorreo_('cli-valorar-' + oc, 'valorar_cliente', 'Cliente', sol['Email'], oc, pro, { token: { tipo: 'valorar', dias: 60 } });
+      var ahora = new Date();
+      actualizarSol_(sol, { 'Finalizado (fecha)': ahora, 'Cliente confirmó fin (fecha)': ahora });
       registrar_('Sistema', 'Cliente confirma finalización', oc, pro, '');
-      sbxAlConfirmarFin_(sol); // SANDBOX: comisión exigible SOLO tras la confirmación del cliente
-      return { ok: true, valorar: true, msg: '¡Gracias! Hemos cerrado el trabajo como finalizado. Te acabamos de enviar un correo para valorar el servicio.' };
+      var c = crearObligacionComision_(sol, p); // calcula, crea la obligación y arranca el cobro si procede
+      actualizarSol_(sol, { 'Estado': c && ESTADOS_COMISION_BLOQUEAN.indexOf(c.estado) >= 0 ? 'Comisión pendiente' : 'Cerrado', 'Comisión (€)': c ? c.importe : '' });
+      return { ok: true, valorar: true, msg: '¡Gracias! Hemos registrado que el trabajo terminó. Si quieres, valora el servicio aquí mismo.' };
     }
     if (decision === 'aun_no') {
-      actualizarSol_(sol, { 'Estado': 'Cliente aceptó' });
-      if (p) encolarCorreo_('pro-aun-no-' + oc + '-' + Date.now(), 'aun_no_pro', 'Profesional', p['Email'], oc, pro, { token: { tipo: 'gestion', dias: 180 } });
+      actualizarSol_(sol, { 'Estado': 'Trabajo en proceso' });
+      if (p) encolarCorreo_('pro-aun-no-' + oc + '-' + Date.now(), 'aun_no_pro', 'Profesional', p['Email'], oc, pro, { token: { tipo: 'gestion', dias: 180 } }, true);
       registrar_('Sistema', 'Cliente indica que aún no ha terminado', oc, pro, 'Discrepancia con la finalización declarada por el profesional');
       return { ok: true, msg: 'Entendido. Avisamos al profesional. Cuando termine, te volveremos a preguntar.' };
     }
     if (decision === 'problema') {
-      // Terminó, pero hay un problema: NO se da por finalizado satisfactoriamente; queda pendiente y se revisa
       crearIncidencia_({ tipo: 'Incidencia', oc: oc, pro: pro, origen: 'Cliente (finalización)', categoria: 'Problema con el trabajo', grave: !!grave, texto: texto });
-      return { ok: true, msg: 'Lo sentimos. Hemos registrado el problema y una persona de OficioCerca lo revisará y te escribirá.' };
+      return { ok: true, msg: 'Lo sentimos. Hemos registrado el problema y una persona de OficioCerca lo revisará y te escribirá. La comisión no se genera mientras tanto.' };
     }
     return { ok: false, msg: 'Opción no válida.' };
   });
@@ -128,13 +126,11 @@ function procesarValoracion_(oc, estrellas, comentario) {
     var sol = solicitud_(oc), pro = sol['Profesional asignado (PRO)'];
     estrellas = parseInt(estrellas, 10);
     if (!(estrellas >= 1 && estrellas <= 5)) return { ok: false, msg: 'Elige de 1 a 5 estrellas.' };
-    if (['Finalizado', 'Valorada'].indexOf(sol['Estado']) < 0) return { ok: false, msg: 'Solo se puede valorar un trabajo finalizado.' };
+    if (!sol['Cliente confirmó fin (fecha)'] && ['Finalizado', 'Valorada'].indexOf(sol['Estado']) < 0) return { ok: false, msg: 'Solo se puede valorar un trabajo finalizado.' };
     var tv = tabla_('Valoraciones');
     if (tv.todas().some(function (v) { return v['Código OC'] === oc; })) return { ok: true, ya: true, msg: 'Ya habíamos recibido tu valoración. ¡Gracias!' };
     tv.agregar({ 'Fecha': new Date(), 'Código OC': oc, 'Código PRO': pro, 'Estrellas': estrellas, 'Comentario': s_(comentario, 1000), 'Publicable': 'No' });
-    actualizarSol_(sol, { 'Estado': 'Valorada', 'Valoración (1-5)': estrellas });
-    var p = profesional_(pro);
-    if (estrellas >= 4 && p) encolarCorreo_('pro-buen-trabajo-' + oc, 'buen_trabajo_pro', 'Profesional', p['Email'], oc, pro, { estrellas: estrellas });
+    actualizarSol_(sol, { 'Valoración (1-5)': estrellas });
     if (estrellas <= 3) crearIncidencia_({ tipo: 'Incidencia', oc: oc, pro: pro, origen: 'Valoración', categoria: 'Valoración baja', grave: false, texto: estrellas + '/5 · ' + s_(comentario, 500) });
     registrar_('Sistema', 'Valoración recibida', oc, pro, estrellas + '/5');
     recalcularMetricas_();
@@ -190,12 +186,12 @@ function recalcularMetricas_() {
     var ultima = of.reduce(function (m, o) { return Math.max(m, new Date(o['Fecha envío']).getTime()); }, 0);
     return [of.length, resp.length, resp.filter(function (o) { return /^Puede/.test(o['Respuesta']); }).length,
       sols.filter(function (s) { return s['Profesional asignado (PRO)'] === code; }).length,
-      sols.filter(function (s) { return s['Profesional asignado (PRO)'] === code && (s['Estado'] === 'Finalizado' || s['Estado'] === 'Valorada'); }).length,
+      sols.filter(function (s) { return s['Profesional asignado (PRO)'] === code && !!s['Cliente confirmó fin (fecha)']; }).length,
       tiempos.length ? Math.round(tiempos.reduce(function (a, b) { return a + b; }, 0) / tiempos.length * 10) / 10 : '',
       v.length ? Math.round(v.reduce(function (a, x) { return a + Number(x['Estrellas']); }, 0) / v.length * 10) / 10 : '',
       v.length,
       incs.filter(function (i) { return i['Código PRO'] === code && i['Tipo'] === 'Incidencia' && i['Estado'] === 'Verificada'; }).length,
-      coms.filter(function (c) { return c['Código PRO'] === code && c['Estado'] === 'Pendiente'; }).length,
+      coms.filter(function (c) { return c['Código PRO'] === code && ESTADOS_COMISION_BLOQUEAN.indexOf(c['Estado']) >= 0; }).length,
       ultima ? new Date(ultima) : ''];
   });
   // Escritura por bloques contiguos (las filas pueden no ser consecutivas si hay huecos)
