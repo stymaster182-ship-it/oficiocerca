@@ -494,3 +494,17 @@ html.modal-abierto{overflow:hidden}
 @media(max-width:400px){.inst-card{grid-template-columns:88px 1fr;gap:12px;padding:12px}.inst-txt p{font-size:.9rem}.btn.inst-btn{width:100%;padding:0 10px}}
 @media(min-width:720px){.sec-inst{padding:40px 0 12px}.inst-card{grid-template-columns:150px 1fr;gap:26px;padding:18px 22px}.inst-play{width:56px;height:56px;margin:-28px 0 0 -28px}}
 .vmodal-inst video{aspect-ratio:9/16}
+
+/* ===== V1.6: seguimiento (4 preguntas, servicios, historial) y redes ===== */
+.g-box .panel4{background:var(--sand);border-radius:12px;padding:10px 16px;margin:10px 0 14px;font-size:1rem}
+.g-box .panel4 p{margin:6px 0}
+.g-box .servicios{padding-left:18px;margin:8px 0}
+.g-box .servicios li{margin:6px 0}
+.g-box .servicios .actual{font-weight:700}
+.g-box .mini{border:2px solid var(--navy);background:#fff;color:var(--navy);border-radius:8px;padding:4px 12px;font-weight:800;cursor:pointer;margin-left:6px;min-height:36px}
+.g-box details.hist{margin:10px 0}
+.g-box details.hist summary{cursor:pointer;font-weight:700;padding:6px 0}
+.ftr li.redes a{display:inline-flex;align-items:center;gap:7px}
+.ftr li.redes svg{flex:none;opacity:.85}
+.borrador-aviso{background:var(--sand);padding:10px 14px;border-radius:10px;margin:0 0 14px}
+.link-btn{background:none;border:0;padding:0;color:var(--navy);text-decoration:underline;font:inherit;font-weight:700;cursor:pointer}
