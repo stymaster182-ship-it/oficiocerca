@@ -31,6 +31,36 @@
     setSelect(form.elements.oficio, params.get("oficio"));
     setSelect(form.elements.ciudad, params.get("ciudad"));
 
+    // ---- V1.6: borrador local (solo en este navegador, 7 días). Sin nombre, correo, teléfonos ni fotos.
+    var BORR = "oc-borrador-" + kind, CAMPOS_BORR = ["tipoSolicitante", "oficio", "oficioOtro", "zona", "plazo", "fechaDeseada", "descripcion"];
+    function guardarBorrador() {
+      if (kind !== "solicitud") return;
+      try {
+        var d = { t: Date.now() };
+        CAMPOS_BORR.forEach(function (n) { var v = getValue(form, n); if (v) d[n] = String(v).slice(0, 3000); });
+        if (Object.keys(d).length > 1) localStorage.setItem(BORR, JSON.stringify(d)); else localStorage.removeItem(BORR);
+      } catch (e) { }
+    }
+    function borrarBorrador() { try { localStorage.removeItem(BORR); } catch (e) { } }
+    if (kind === "solicitud") {
+      try {
+        var bd = JSON.parse(localStorage.getItem(BORR) || "null");
+        if (bd && Date.now() - bd.t < 7 * 86400000) {
+          var rec = 0;
+          CAMPOS_BORR.forEach(function (n) {
+            var el = form.elements[n]; if (!el || !bd[n]) return;
+            if (el.length && el[0] && el[0].type === "radio") { Array.prototype.forEach.call(el, function (r) { if (r.value === bd[n] && !getValue(form, n)) { r.checked = true; rec++; } }); }
+            else if (!el.value) { el.value = bd[n]; rec++; el.dispatchEvent(new Event("input", { bubbles: true })); el.dispatchEvent(new Event("change", { bubbles: true })); }
+          });
+          if (rec) { var aviso = document.createElement("p"); aviso.className = "hint borrador-aviso"; aviso.innerHTML = "Hemos recuperado lo que escribiste la última vez en este dispositivo. <button type=\"button\" class=\"link-btn\">Empezar de cero</button>";
+            aviso.querySelector("button").addEventListener("click", function () { borrarBorrador(); location.reload(); }); form.insertBefore(aviso, form.firstChild); }
+        } else if (bd) borrarBorrador();
+      } catch (e) { }
+      var tBorr = null;
+      form.addEventListener("input", function () { clearTimeout(tBorr); tBorr = setTimeout(guardarBorrador, 600); });
+      form.addEventListener("change", function () { clearTimeout(tBorr); tBorr = setTimeout(guardarBorrador, 600); });
+    }
+
     // ---- Campos condicionales
     var condFields = form.querySelectorAll("[data-show-if], [data-show-if-has]");
     function updateConditions() {
@@ -118,6 +148,7 @@
           clearTimeout(timer);
           if (!res || !res.ok || !res.code) throw new Error((res && res.error) || "respuesta inválida");
           form.hidden = true;
+          borrarBorrador();
           success.querySelector("[data-code]").textContent = res.code;
           success.classList.add("show");
           window.scrollTo(0, Math.max(0, card.getBoundingClientRect().top + window.scrollY - 90));
