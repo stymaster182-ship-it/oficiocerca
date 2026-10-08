@@ -442,3 +442,30 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--navy-2);
 .g-box #msg:empty{display:none}
 @media (max-width:360px){.g-box{padding:18px 12px}.g-box td{padding:7px;font-size:16px}}
 @media (max-width:480px){.g-box table,.g-box tbody,.g-box tr,.g-box td{display:block;width:100%!important}.g-box tr{margin-bottom:8px}.g-box td:first-child{border-bottom:0;padding-bottom:4px;font-size:16px}.g-box td+td{border-top:0;padding-top:4px}}
+/* ===== V1.5 final · Ayuda contextual (tutorial + asesor) — secundaria, nunca por encima del botón de envío ===== */
+.ayuda{display:grid;gap:10px;margin:14px 0 6px;padding:14px;background:#fff;border:1px solid var(--line);border-radius:var(--r-sm);box-shadow:var(--sh-1);max-width:46em}
+@media(min-width:640px){.ayuda{grid-template-columns:1fr 1fr;gap:18px;padding:16px 18px}}
+.ayuda-item{display:flex;flex-direction:column;gap:6px;min-width:0}
+.ayuda-item[hidden]{display:none}
+.page-hero .ayuda .ayuda-q,.ayuda-q{margin:0;font-size:.95rem;font-weight:600;color:var(--ink)}
+.btn-ayuda{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:48px;padding:8px 14px;border-radius:10px;border:1.5px solid var(--navy-2);background:#fff;color:var(--navy-2);font:inherit;font-weight:700;font-size:.97rem;line-height:1.2;text-align:center;text-decoration:none;cursor:pointer;transition:background .18s,color .18s}
+.btn-ayuda:hover{background:var(--sand);color:var(--navy)}
+.btn-ayuda .ico{width:20px;height:20px}
+.btn-ayuda-wa{border-color:var(--line-2);color:var(--ink)}
+.btn-ayuda-wa .ico{color:#1E7B55}
+.ayuda-seg{margin-top:18px;padding-top:14px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
+.ayuda-seg[hidden]{display:none}
+.g-box a.btn-ayuda{min-height:52px;font-size:1rem}
+/* Modal del tutorial */
+html.modal-abierto{overflow:hidden}
+.vmodal{border:0;padding:0;background:transparent;max-width:min(560px,calc(100vw - 20px));width:100%;max-height:calc(100dvh - 20px);overflow:visible}
+.vmodal::backdrop{background:rgba(14,26,43,.72)}
+.vmodal-box{background:#fff;border-radius:var(--r);padding:12px 12px 14px;display:flex;flex-direction:column;gap:8px;max-height:calc(100dvh - 20px);box-shadow:var(--sh-3)}
+.vmodal-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.vmodal-top h2{font-size:1.05rem;margin:6px 0 0 4px;letter-spacing:-.01em}
+.vmodal-x{flex:none;width:44px;height:44px;border-radius:10px;border:1.5px solid var(--line-2);background:#fff;font-size:28px;line-height:1;cursor:pointer;color:var(--ink)}
+.vmodal-x:hover{border-color:var(--ink)}
+.vmodal-media{min-height:0;display:flex;justify-content:center;background:#0E1A2B;border-radius:10px;overflow:hidden}
+.vmodal video{display:block;width:auto;max-width:100%;height:auto;max-height:calc(100dvh - 190px);aspect-ratio:1/2;background:#0E1A2B}
+.vmodal-note{margin:0;font-size:.82rem;color:var(--muted);text-align:center}
+.vmodal-close{width:100%;min-height:46px}
