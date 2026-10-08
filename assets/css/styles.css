@@ -508,3 +508,22 @@ html.modal-abierto{overflow:hidden}
 .ftr li.redes svg{flex:none;opacity:.85}
 .borrador-aviso{background:var(--sand);padding:10px 14px;border-radius:10px;margin:0 0 14px}
 .link-btn{background:none;border:0;padding:0;color:var(--navy);text-decoration:underline;font:inherit;font-weight:700;cursor:pointer}
+/* ===== V1.7 · seguimiento, acuerdo, soporte y centro de ayuda ===== */
+.g-box .fila2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:340px){.g-box .fila2{grid-template-columns:1fr}}
+.g-box a.wa-soporte[hidden]{display:none}
+.g-box a.wa-soporte{border-color:#1E7B55;color:#14532D}
+.g-cargando{display:flex;align-items:center;gap:10px}
+.g-cargando::before{content:"";width:18px;height:18px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--navy);animation:oc-gira .8s linear infinite;flex:none}
+@keyframes oc-gira{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.g-cargando::before{animation:none}}
+.ay-idx{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 20px}
+.ay-idx a{padding:8px 12px;border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--navy);font-weight:600;font-size:.92rem;text-decoration:none}
+.ay-idx a:hover{background:var(--sand)}
+.ay-grid{display:grid;gap:16px}
+@media (min-width:860px){.ay-grid{grid-template-columns:1fr 1fr}}
+.ay-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px 18px 10px;box-shadow:var(--sh-1);min-width:0;scroll-margin-top:90px}
+.ay-card h2{font-size:1.2rem;margin:0 0 10px}
+.ay-card ul,.ay-card ol{padding-left:1.2em;margin:0 0 12px}
+.ay-card li{margin:6px 0;overflow-wrap:break-word}
+.ay-nota{color:var(--muted);font-size:.95rem}
