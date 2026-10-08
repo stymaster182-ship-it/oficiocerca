@@ -228,6 +228,28 @@ function respaldoV15FinalPiloto2() {
   Logger.log('Respaldo: ' + c.getUrl());
 }
 
+function respaldoV15PreVideoInstitucional() {
+  var c = crearRespaldo_('OFICIOCERCA-V1.5-PRE-VIDEO-INSTITUCIONAL', 'OFICIOCERCA-V1.5-PRE-VIDEO-INSTITUCIONAL');
+  c.createFile('LEEME.txt', [
+    'OFICIOCERCA-V1.5-PRE-VIDEO-INSTITUCIONAL — estado justo antes de integrar el vídeo institucional en la home.',
+    'Idéntico a OFICIOCERCA-V1.5-FINAL-PILOTO-2. Rollback de la web: restaurar los archivos de este zip en GitHub.'
+  ].join('\n'));
+  Logger.log('Respaldo: ' + c.getUrl());
+}
+
+function respaldoV15VideoInstitucional() {
+  var c = crearRespaldo_('OFICIOCERCA-V1.5-VIDEO-INSTITUCIONAL', 'OFICIOCERCA-V1.5-VIDEO-INSTITUCIONAL');
+  DriveApp.getFileById(ss_().getId()).makeCopy('OFICIOCERCA-V1.5-VIDEO-INSTITUCIONAL — copia de la hoja (estructura y configuración, sin datos)', c);
+  c.createFile('LEEME.txt', [
+    'OFICIOCERCA-V1.5-VIDEO-INSTITUCIONAL — versión vigente con el vídeo institucional en la home.',
+    'El zip incluye la versión web del vídeo (assets/video/oficiocerca-institucional.mp4) y su póster.',
+    'El MASTER original del vídeo (26,9 MB, supera el límite de 25 MB por archivo de Cloudflare Pages) está adjunto a la release de GitHub OFICIOCERCA-V1.5-VIDEO-INSTITUCIONAL.',
+    'Endpoint: ' + cfg_('URL_APP'),
+    'Rollback: OFICIOCERCA-V1.5-PRE-VIDEO-INSTITUCIONAL.'
+  ].join('\n'));
+  Logger.log('Respaldo: ' + c.getUrl());
+}
+
 /* ============================================================ ENTRADA DESDE LA WEB */
 
 function doPost(e) {
