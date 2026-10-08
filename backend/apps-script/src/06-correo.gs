@@ -261,6 +261,8 @@ function componer_(tipo, oc, pro, d) {
       break;
     case 'alerta_admin':
       return { asunto: '[OficioCerca · ' + d.categoria + '] ' + d.asunto, html: plantilla_(d.asunto, '', ['<pre style="white-space:pre-wrap;font-family:inherit">' + esc_(d.texto) + '</pre>'], 'Alerta automática de OficioCerca'), texto: d.asunto + '\n\n' + d.texto };
+    case 'comision_exigible_sbx':
+      return sbxComponerCorreo_(oc, pro, d); // PRUEBA / SANDBOX
     case 'resumen_diario':
       return { asunto: '[OficioCerca · Resumen diario] ' + d.fecha, html: plantilla_('Resumen diario · ' + d.fecha, '', [d.html], 'Un único resumen al día'), texto: texto_(d.html) };
     default:

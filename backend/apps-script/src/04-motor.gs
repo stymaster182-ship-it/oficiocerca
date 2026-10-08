@@ -74,6 +74,7 @@ function candidatos_(sol, ofertasOC) {
   var dCli = diasCliente_(sol);
   var hace30 = Date.now() - 30 * 86400000;
   var todasOfertas = tabla_('Ofertas').todas();
+  var bloqueadosSbx = sbxProsBloqueados_(); // SANDBOX: {} si WOMPI_SANDBOX_ENABLED = FALSE
   var out = [];
   tabla_('Profesionales').todas().forEach(function (p) {
     var code = String(p['Código']);
@@ -83,6 +84,7 @@ function candidatos_(sol, ofertasOC) {
     if (!String(p['Condiciones (versión)']).trim() || !p['Condiciones aceptadas (fecha)']) return;
     if (empresa ? p['Con empresas'] !== 'Sí' : p['Con particulares'] !== 'Sí') return;
     if (yaOfrecidos.indexOf(code) >= 0) return;
+    if (bloqueadosSbx[code]) return; // SANDBOX: comisión de prueba exigible sin pagar → sin NUEVAS oportunidades
     var zona = zonaCompatible_(p, sol);
     if (!zona.ok) return;
     var puntos = 0, motivos = [];

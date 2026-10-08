@@ -1,6 +1,7 @@
 /* ============================================================ PÁGINAS DE LOS ENLACES (doGet ?t=TOKEN) */
 
 function doGet(e) {
+  if (e && e.parameter && e.parameter.wsbx) { try { return sbxPaginaPago_(String(e.parameter.wsbx)); } catch (err) { errorSistema_('pagoSandbox', err); return html_('Algo ha fallado', '<p>No hemos podido abrir el pago de prueba.</p>'); } }
   var t = e && e.parameter && e.parameter.t;
   if (!t) return json_({ ok: true, service: 'OficioCerca', status: 'online' });
   try { return pagina_(String(t)); }

@@ -57,6 +57,7 @@ function procesarRespuestaPresupuesto_(presId, decision) {
         'Porcentaje': com.pct + ' %', 'Importe comisión (€)': com.importe, 'Fecha generación': ahora,
         'Estado': cfgBool_('COMMISSION_COLLECTION_ENABLED') ? 'Pendiente' : 'Pendiente de habilitación',
         'Notas': cfgBool_('COMMISSION_COLLECTION_ENABLED') ? '' : 'Cobro no habilitado: solo cálculo y registro.' });
+      sbxAlAceptarPresupuesto_(sol, pr, p); // SANDBOX (no-op fuera de pruebas)
       if (p) encolarCorreo_('pro-pres-aceptado-' + presId, 'presupuesto_aceptado_pro', 'Profesional', p['Email'], oc, pro, { presupuesto: presId, token: { tipo: 'gestion', dias: 180 } });
       registrar_('Sistema', 'Cliente acepta presupuesto · comisión calculada', oc, pro, presId + ' · MO ' + euros_(mo) + ' · comisión ' + euros_(com.importe));
       return { ok: true, msg: 'Has aceptado el presupuesto. El profesional ya está avisado. Cuando termine el trabajo te pediremos que lo confirmes.' };
@@ -103,6 +104,7 @@ function procesarFinCliente_(oc, decision, texto, grave) {
       actualizarSol_(sol, { 'Estado': 'Finalizado', 'Finalizado (fecha)': new Date() });
       encolarCorreo_('cli-valorar-' + oc, 'valorar_cliente', 'Cliente', sol['Email'], oc, pro, { token: { tipo: 'valorar', dias: 60 } });
       registrar_('Sistema', 'Cliente confirma finalización', oc, pro, '');
+      sbxAlConfirmarFin_(sol); // SANDBOX: comisión exigible SOLO tras la confirmación del cliente
       return { ok: true, valorar: true, msg: '¡Gracias! Hemos cerrado el trabajo como finalizado. Te acabamos de enviar un correo para valorar el servicio.' };
     }
     if (decision === 'aun_no') {

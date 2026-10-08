@@ -256,6 +256,7 @@ function doPost(e) {
   try {
     if (!e || !e.postData || !e.postData.contents || e.postData.contents.length > 30 * 1024 * 1024) return json_({ ok: false, error: 'sin datos' });
     var d = JSON.parse(e.postData.contents);
+    if (d && d.event && d.signature && d.data) return json_(sbxWebhook_(d)); // Wompi: URL de eventos (solo SANDBOX)
     if (d.web) return json_({ ok: false, error: 'rechazado' }); // trampa anti-spam
     if (d.tipo === 'solicitud') return json_(guardarSolicitud_(d));
     if (d.tipo === 'profesional') return json_(guardarProfesional_(d));
