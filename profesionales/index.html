@@ -45,6 +45,16 @@
   <h1>Regístrate para recibir trabajos</h1>
   <p>Para profesionales independientes, contratistas y empresas. Recibe por correo oportunidades compatibles con tus servicios y tu zona; tú decides cuáles atiendes. OficioCerca no es un empleador: te pone en contacto con clientes. Registro gratuito.</p>
   <p class="req-legend"><span class="req">*</span> Obligatorio. El resto es opcional.</p>
+  <div class="ayuda" role="group" aria-label="Ayuda">
+    <div class="ayuda-item">
+      <p class="ayuda-q">¿Quieres ver cómo funciona el registro?</p>
+      <button type="button" class="btn-ayuda" data-video-open="tut-registro" aria-haspopup="dialog"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M10 8.5v7l6-3.5z" fill="currentColor"/></svg><span>Ver cómo hacerlo en 40 segundos</span></button>
+    </div>
+    <div class="ayuda-item" data-wa-item hidden>
+      <p class="ayuda-q">¿Necesitas ayuda con tu registro?</p>
+      <a class="btn-ayuda btn-ayuda-wa" data-wa-msg="Hola, quiero registrarme para recibir oportunidades de trabajo en OficioCerca y necesito ayuda con el proceso." target="_blank" rel="noopener" aria-label="Hablar con un asesor de OficioCerca por WhatsApp (se abre en una ventana nueva)"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 0 1-11.6 7.1L4 20l1-4.1A8 8 0 1 1 20 12z"/><path d="M8.5 11h7M8.5 14h4.5"/></svg><span>Hablar con un asesor</span></a>
+    </div>
+  </div>
 </div></section>
 <div class="wrap form-layout">
   <div class="form-card">
@@ -137,6 +147,16 @@
     </div>
   </aside>
 </div>
+<dialog class="vmodal" id="tut-registro" aria-labelledby="tut-registro-t">
+  <div class="vmodal-box">
+    <div class="vmodal-top"><h2 id="tut-registro-t">Cómo registrarte para recibir trabajos en OficioCerca</h2><button type="button" class="vmodal-x" data-video-close aria-label="Cerrar el vídeo">&times;</button></div>
+    <div class="vmodal-media"><video controls playsinline preload="none" data-poster="../assets/video/como-registrarse-oficiocerca.webp" data-src="../assets/video/como-registrarse-oficiocerca.mp4" aria-label="Cómo registrarte para recibir trabajos en OficioCerca (vídeo sin voz, con textos en pantalla)">
+      <track kind="captions" srclang="es" label="Español" data-src="../assets/video/como-registrarse-oficiocerca.vtt">
+    </video></div>
+    <p class="vmodal-note">Vídeo sin voz: las instrucciones aparecen escritas en pantalla.</p>
+    <button type="button" class="btn btn-ghost vmodal-close" data-video-close>Cerrar y volver</button>
+  </div>
+</dialog>
 </main>
 <footer class="ftr" id="contacto">
   <div class="wrap">
