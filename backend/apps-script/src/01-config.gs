@@ -1,14 +1,17 @@
 /**
- * OficioCerca — backend V1.6 (Google Apps Script, cuenta oficiocerca@gmail.com).
+ * OficioCerca — backend V1.7 (Google Apps Script, cuenta oficiocerca@gmail.com).
  *
  * Flujo: solicitud web (se guarda siempre) → matching por reglas → oferta SECUENCIAL → profesional asignado
- *  (contacto habilitado) → «Ya hablé con el cliente / Registrar acuerdo» (mano de obra, materiales, fecha, nota)
- *  → el cliente confirma el acuerdo → trabajo en proceso → «Trabajo terminado» → el cliente confirma (doble cierre)
- *  → SOLO entonces nace la comisión (10 % de los primeros 2.000 € de mano de obra + 5 % del exceso, sin tope,
- *  materiales excluidos) → cobro con Wompi únicamente si está habilitado (en el piloto NO) → cerrado.
+ *  (contacto habilitado: «recibir el contacto inicia el trabajo en OficioCerca») → hablan, visitan y acuerdan FUERA
+ *  → el profesional registra el ACUERDO ALCANZADO (mano de obra inicial + duración; materiales opcionales) → trabajo
+ *  en proceso con fecha estimada de fin → seguimiento al vencer (terminado / sigue / problema) → cierre: el profesional
+ *  registra el valor FINAL y el cliente confirma → SOLO entonces nace la comisión (10 % de los primeros 2.000 € de mano
+ *  de obra final + 5 % del exceso, sin tope, materiales excluidos) → cobro con Wompi únicamente si está habilitado
+ *  (en el piloto NO) → cerrado → valoración. Incidencias → «En revisión» (sin cierre, cobro ni reseña automáticos).
+ *  Sin respuesta → archivado por inactividad (ambos) o revisión manual (una parte).
  *  «El correo avisa. La plataforma registra.»
  *
- * Puesta en marcha / actualización: ver backend/README.md (función instalarV16, idempotente).
+ * Puesta en marcha / actualización: ver backend/README.md (función instalarV15 → instalarV17, idempotente).
  * El código no contiene secretos: los IDs y credenciales se guardan en Propiedades del script.
  */
 

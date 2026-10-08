@@ -338,6 +338,12 @@ function instalarV17() {
     ts.todas().forEach(function (s) { var n = MIGRACION_ESTADOS_V17[s['Estado']]; if (n) ts.poner(s._fila, { 'Estado': n }); });
     var tp = tabla_('Presupuestos');
     tp.todas().forEach(function (r) { if (['Pendiente del cliente', 'Confirmado', 'No confirmado'].indexOf(r['Estado']) >= 0) tp.poner(r._fila, { 'Estado': 'Registrado' }); });
+    // Fechas con hora exacta visibles en la hoja (el valor guardado siempre incluye la hora)
+    var sh = ts.sh;
+    ['Fecha registro acuerdo', 'Fecha estimada fin', 'Acción desde', 'Último aviso', 'Fecha asignación'].forEach(function (c) {
+      var i = ESQUEMA['Solicitudes'].indexOf(c);
+      if (i >= 0 && sh && sh.getRange) { try { sh.getRange(2, i + 1, Math.max(1, sh.getMaxRows() - 1), 1).setNumberFormat('dd/MM/yyyy HH:mm'); } catch (e) { } }
+    });
   });
   Logger.log('V1.7 instalada. Condiciones vigentes: ' + condVigente_() + ' · seguimiento: ' + JSON.stringify(horasSeg_()) + ' h');
 }

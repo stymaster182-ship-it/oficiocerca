@@ -172,6 +172,11 @@ function alEditar(e) {
         }
       }
       if (nombre === 'Solicitudes') {
+        // Fechas del seguimiento corregidas a mano: el motor las atiende en el minuto (no espera a la fecha antigua)
+        if ((col === 'Fecha estimada fin' || col === 'Acción desde') && valor instanceof Date) {
+          programarRevision_(valor);
+          registrar_('Admin', col + ' cambiada', reg['Código'], reg['Profesional asignado (PRO)'], (antes || '—') + ' → ' + fecha_(valor), usuario);
+        }
         if (col === 'Ofrecer a (PRO manual)' && valor) {
           var res = ofertaManual_(reg, valor);
           t.poner(fila, { 'Notas internas': fecha_(new Date()) + ' Oferta manual ' + valor + ': ' + res + '\n' + reg['Notas internas'] });
