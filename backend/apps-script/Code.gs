@@ -520,6 +520,18 @@ function respaldoV15FinalPiloto() {
   Logger.log('Respaldo: ' + c.getUrl());
 }
 
+function respaldoV15FinalPiloto2() {
+  var c = crearRespaldo_('OFICIOCERCA-V1.5-FINAL-PILOTO-2', 'OFICIOCERCA-V1.5-FINAL-PILOTO-2');
+  DriveApp.getFileById(ss_().getId()).makeCopy('OFICIOCERCA-V1.5-FINAL-PILOTO-2 — copia de la hoja (estructura y configuración, sin datos)', c);
+  c.createFile('LEEME.txt', [
+    'OFICIOCERCA-V1.5-FINAL-PILOTO-2 — versión final vigente para el piloto real.',
+    'Igual que OFICIOCERCA-V1.5-FINAL-PILOTO + accesos generales a asesoría (cabecera, menú móvil y pie de página).',
+    'Endpoint: ' + cfg_('URL_APP'),
+    'Rollback: OFICIOCERCA-V1.5-FINAL-PILOTO (sin accesos generales) u OFICIOCERCA-V1.5-PRE-SOPORTE.'
+  ].join('\n'));
+  Logger.log('Respaldo: ' + c.getUrl());
+}
+
 /* ============================================================ ENTRADA DESDE LA WEB */
 
 function doPost(e) {
