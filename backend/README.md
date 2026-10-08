@@ -79,3 +79,27 @@ y `04 - Respaldos/OFICIOCERCA-V1.3-PRE-MIGRACION/LEEME.txt`) y subirlo a `main`.
 - **Sin conformidad automática:** si el profesional declara el fin y el cliente no responde, se envían como máximo
   2 recordatorios (≥3 y ≥7 días); el estado sigue «Finalización declarada por el profesional · pendiente de
   confirmación del cliente».
+
+## Wompi SANDBOX (solo pruebas · `10-wompi-sandbox.gs`)
+
+Aislado de producción: no cobra dinero real, no usa `COMMISSION_COLLECTION_ENABLED` ni la pestaña «Comisiones».
+
+- **Interruptor:** Configuración → `WOMPI_SANDBOX_ENABLED` (por defecto `FALSE`). Con `FALSE` el sistema se comporta exactamente igual que antes.
+- **Ámbito:** solo solicitudes **y** profesionales cuyo nombre contiene «PRUEBA». Los datos reales nunca entran en sandbox.
+- **Secretos (nunca en código, hoja ni GitHub):** Apps Script → Configuración del proyecto → Propiedades del script:
+  `WOMPI_TEST_PUBLIC_KEY` (pub_test_…), `WOMPI_TEST_INTEGRITY_SECRET` (test_integrity_…), `WOMPI_TEST_EVENTS_SECRET` (test_events_…).
+  Si alguna empieza por `prod`/`pub_prod_` el módulo se detiene.
+- **Tasa:** `TEST_EXCHANGE_RATE` = TASA FICTICIA DE PRUEBA EUR→COP (no es real). Producción necesitará una fuente oficial.
+- **Estados (pestaña «Comisiones Sandbox»):** `NOT_DUE` (presupuesto aceptado) → `DUE` (solo cuando el CLIENTE confirma «Sí, está terminado»)
+  → `PAYMENT_PENDING` / `PAID` / `PAYMENT_FAILED` / `MANUAL_REVIEW`. Solo el evento verificado de Wompi cambia estados (nunca la redirección).
+- **Referencia:** `OC-<ID>-COM-<AAAAMMDDhhmmss>` (sin datos personales; si se repite → sufijo `-2`, `-3`…). Pestaña «Pagos Sandbox».
+- **Firma de integridad:** `SHA256(referencia + centavos + COP + secreto)` calculada en el servidor.
+- **URL de eventos:** la misma URL `/exec`; `doPost` detecta el evento de Wompi, verifica `signature.checksum`
+  (`SHA256(valores de signature.properties + timestamp + secreto de eventos)`), exige `environment = test` e importe/moneda coincidentes,
+  y es idempotente por `transaction.id|status` (pestaña «Eventos Wompi», columna Repeticiones).
+- **Bloqueo (solo sandbox, `SANDBOX_BLOQUEO_PRO`):** un profesional de PRUEBA con comisión exigible sin pagar no recibe NUEVAS oportunidades;
+  no se tocan sus trabajos, estado ni historial. Al quedar `PAID` vuelve a recibirlas automáticamente.
+- **Correo:** «[OficioCerca · PRUEBA / SANDBOX] Comisión exigible…» solo a `SANDBOX_EMAIL_TEST` (vacío = no se envía).
+- **Pruebas offline:** `node backend/apps-script/tests/wompi-sandbox.test.js` (simula Apps Script; secretos falsos generados al vuelo).
+- **Puesta en marcha:** pegar `Code.gs` → ejecutar `instalarWompiSandbox` → pegar las 3 propiedades → `diagnosticoWompiSandbox`
+  → `WOMPI_SANDBOX_ENABLED = TRUE` → Nueva versión de la implementación → en Wompi (modo pruebas) «URL de Eventos» = URL `/exec`.
