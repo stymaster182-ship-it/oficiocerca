@@ -587,3 +587,4 @@ body.oc-enviado .page-hero > .wrap > p:not(.crumbs){display:none}
 .g-box .nota-val{margin:6px 0 10px}
 .pro-ventajas li{font-size:.93rem;line-height:1.45;padding:10px 12px}.pro-ventajas ul{gap:8px}
 #form-profesional{scroll-margin-top:90px}
+@media(max-width:359px){.ftr .soc{padding:8px 9px;gap:8px}.ftr .soc-ico{width:32px;height:32px}.ftr .soc-ico svg{width:18px;height:18px}.ftr .soc-txt b{font-size:.9rem}}
