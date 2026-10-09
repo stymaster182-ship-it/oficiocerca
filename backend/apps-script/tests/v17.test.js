@@ -198,6 +198,9 @@ caso('10. El cliente indica «Sigue en proceso» → se pide al profesional que 
   assert.ok(E.enviados.slice(n0).some(m => m.to === F.pEmail && /Actualiza el plazo/.test(m.subject)));
   assert.ok(!E.enviados.slice(n0).some(m => m.to === F.email), 'no se insiste al cliente');
   assert.strictEqual(sol(E, F.oc)['Acción pendiente de'], 'profesional');
+  const pc = pagina(E, F.tS).cuerpo;
+  assert.ok(/Indicaste que el trabajo sigue en proceso/.test(pc) && !/a:\\'sigue\\'/.test(pc), 'el cliente ve que espera al profesional y no repite');
+  assert.ok(/Registra la nueva duración estimada/.test(pagina(E, F.tG).cuerpo));
 });
 caso('11–12 + 17–18. Cierre por el profesional con adicionales (motivo obligatorio) → el cliente confirma → comisión sobre el valor FINAL', () => {
   assert.ok(!accionWeb(E, F.tG, { a: 'finalizado', mo: 2600, adicionales: 'si', motivo: '' }).ok, 'motivo obligatorio si cambia');
@@ -375,6 +378,13 @@ caso('37–38. Sin profesional disponible: UN correo y «Volver a buscar» sin r
   assert.ok(accionWeb(E2, tS, { a: 'volver_a_buscar' }).ok);
   assert.strictEqual(sol(E2, r.code)['Ronda búsqueda'], 2);
   assert.strictEqual(sol(E2, r.code)['Estado'], 'Esperando respuesta profesional', 'se vuelve a ofrecer en la nueva ronda');
+  tick(E2);
+  const pEm = E2.ctx.profesional_(unico)['Email'];
+  assert.strictEqual(correosA(E2, pEm).filter(m => /Nueva oportunidad/.test(m.subject)).length, 2, 'la nueva ronda envía una oportunidad nueva');
+  const tOf2 = ultimoToken(E2, pEm, 'gestion');
+  assert.ok(tOf2 !== tOf && /PUEDO ATENDERLO/.test(pagina(E2, tOf2).cuerpo), 'el enlace de la nueva ronda está abierto');
+  assert.ok(accionWeb(E2, tOf2, { a: 'si', disp: 'MANANA' }).ok); tick(E2);
+  assert.strictEqual(sol(E2, r.code)['Estado'], 'Profesional asignado');
   assert.strictEqual(E2.ctx.tabla_('Solicitudes').todas().length, 1, 'misma solicitud');
 });
 caso('39–40. Cuota baja: salen primero los críticos, el resto espera en cola y sale cuando vuelve la cuota', () => {
