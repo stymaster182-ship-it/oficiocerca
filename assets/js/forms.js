@@ -148,6 +148,7 @@
           clearTimeout(timer);
           if (!res || !res.ok || !res.code) throw new Error((res && res.error) || "respuesta inválida");
           form.hidden = true;
+          document.body.classList.add("oc-enviado"); // ya rellenó el formulario: se ocultan el tutorial y la ayuda para rellenarlo
           borrarBorrador();
           success.querySelector("[data-code]").textContent = res.code;
           success.classList.add("show");

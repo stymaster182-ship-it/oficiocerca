@@ -8,6 +8,11 @@
  *   internacional sin "+" ni espacios. ÚNICO lugar donde está: para cambiarlo, edita solo esta línea.
  *   No se escribe en ninguna página; solo va dentro de los enlaces de los botones «Hablar con un asesor».
  *   Vacío = no se muestra ningún botón de asesor.
+ * OC_VIDEOS: vídeos definitivos (todavía no entregados). Cada clave corresponde a un hueco ya colocado en la web
+ *   (data-video-slot). Vacío = el hueco no se muestra. Para integrar un vídeo basta poner aquí la ruta del archivo
+ *   (p. ej. "/assets/video/despues-solicitud.mp4") o una URL de YouTube, sin reconstruir ninguna página.
+ *   despues_solicitud → confirmación de /solicitar/ · despues_registro → confirmación de /profesionales/
+ *   general → Inicio (Cómo funciona) y Ayuda · cliente / profesional → Centro de ayuda.
  */
 window.OC_CONFIG = {
   ENDPOINT: "https://script.google.com/macros/s/AKfycbyjOjHiDWHdLwXx23eMkHZi7z2PYbTRiuqYYQvfe7HGRdnPfWqNO9MlhB-pl0_BrCHZ/exec",
@@ -17,4 +22,11 @@ window.OC_CONFIG = {
   MAX_PHOTOS: 5,
   PHOTO_MAX_SIDE: 1600,
   PHOTO_QUALITY: 0.78
+};
+window.OC_VIDEOS = {
+  despues_solicitud: "",
+  despues_registro: "",
+  general: "",
+  cliente: "",
+  profesional: ""
 };
