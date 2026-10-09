@@ -168,7 +168,8 @@ function procesarValoracion_(oc, estrellas, comentario) {
     var p = profesional_(pro);
     if (p) encolarCorreo_('pro-valoracion-' + oc, 'valoracion_pro', 'Profesional', p['Email'], oc, pro, { estrellas: estrellas, token: { tipo: 'gestion', dias: 180 } }, true);
     registrar_('Sistema', 'Valoración recibida', oc, pro, estrellas + '/5');
-    recalcularMetricas_();
+    // La reputación se recalcula en segundo plano (procesador de cada minuto): la respuesta al cliente no espera
+    PropertiesService.getScriptProperties().setProperty('METRICAS_PENDIENTES', '1'); marcarPendiente_();
     return { ok: true, msg: '¡Gracias por tu valoración! Nos ayuda a mejorar.' };
   });
 }

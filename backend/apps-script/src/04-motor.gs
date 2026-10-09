@@ -137,12 +137,12 @@ function vencimiento_(horas) {
 
 function ofrecer_(sol, c) {
   var oc = sol['Código'], p = c.pro, pro = p['Código'];
-  var id = 'OF-' + oc + '-' + pro;
+  var ronda = rondaDe_(sol), id = 'OF-' + oc + '-' + pro + (ronda > 1 ? '-R' + ronda : ''); // ID único por ronda (volver a buscar)
   var expira = vencimiento_(plazoRespuestaHoras_(sol));
   tabla_('Ofertas').agregar({
     'ID': id, 'Fecha envío': new Date(), 'Código OC': oc, 'Código PRO': pro, 'Profesional': p['Nombre'],
     'Servicio': SERVICIOS[sol['Servicio (código)']] || sol['Servicio'], 'Puntuación': c.puntos, 'Motivo ranking': c.motivo,
-    'Estado': 'Enviada', 'Expira': expira, 'Ronda': rondaDe_(sol)
+    'Estado': 'Enviada', 'Expira': expira, 'Ronda': ronda
   });
   actualizarSol_(sol, { 'Estado': 'Esperando respuesta profesional', 'Requiere intervención': '' });
   encolarCorreo_('pro-oferta-' + id, 'oferta_profesional', 'Profesional', p['Email'], oc, pro,

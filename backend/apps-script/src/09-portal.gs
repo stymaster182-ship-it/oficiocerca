@@ -58,6 +58,8 @@ function resumenV16_(sol, com, vista) {
     R('Estamos buscando un profesional compatible con tu trabajo, zona y plazo.', 'Nada por ahora. Te avisaremos por correo.', 'Cuando un profesional acepte, verás aquí sus datos de contacto.');
   else if (e === 'Profesional asignado') r = cli ? R('Ya tienes profesional. Se pondrá en contacto contigo directamente.', 'Hablad, y si hace falta que visite el trabajo. El precio y las condiciones los acordáis entre vosotros.', 'Cuando lleguéis a un acuerdo, el profesional lo registrará aquí con la duración estimada.')
     : R('Tienes el contacto del cliente.', 'Habla con el cliente (y visítalo si hace falta). Cuando lleguéis a un acuerdo, pulsa «Registrar acuerdo alcanzado».', 'La duración que indiques será la fecha en la que te preguntaremos cómo va.');
+  else if (e === 'Trabajo en proceso' && sol['Plantilla seguimiento'] === 'actualizar_plazo') r = cli ? R('Indicaste que el trabajo sigue en proceso.', 'Nada por ahora.', 'El profesional registrará la nueva fecha estimada y la verás aquí.')
+    : R('El cliente indica que el trabajo sigue en proceso.', 'Registra la nueva duración estimada con «Sigue en proceso · actualizar plazo».', 'Te preguntaremos de nuevo al llegar la nueva fecha.');
   else if (e === 'Trabajo en proceso') r = cli ? R(vencido ? 'Llegó la fecha estimada de finalización.' : 'El trabajo está en proceso. Fin estimado: ' + fecha_(sol['Fecha estimada fin']) + '.', vencido ? 'Indica el estado: «El trabajo terminó», «Sigue en proceso» o «Hay un problema».' : 'Nada. Si el trabajo termina antes o hay un problema, indícalo aquí.', 'Al terminar, el profesional registrará el valor final y tú confirmarás el cierre.')
     : R(vencido ? 'Llegó la fecha estimada de finalización.' : 'Trabajo en proceso. Fin estimado: ' + fecha_(sol['Fecha estimada fin']) + '.', vencido ? 'Indica el estado: «Marcar trabajo como terminado» o «Sigue en proceso» (con el nuevo plazo).' : 'Al terminar, pulsa «Marcar trabajo como terminado». Si necesitas más tiempo, actualiza el plazo.', 'El cliente confirmará el cierre.');
   else if (e === 'Cierre pendiente del profesional') r = cli ? R('Indicaste que el trabajo terminó.', 'Nada por ahora.', 'El profesional registrará el valor final y te pediremos que confirmes el cierre.')
@@ -179,9 +181,9 @@ function paginaSeguimiento_(t, oc) {
   }
   if (estado === 'Sin profesional disponible') h += '<button class="btn" onclick="enviar({a:\'volver_a_buscar\'})">VOLVER A BUSCAR</button><p class="nota">Usamos los mismos datos: no tienes que rellenar nada otra vez.</p>';
   if ((estado === 'Trabajo en proceso' || estado === 'Archivado por inactividad') || (estado === 'Profesional asignado' && sol['Fecha registro acuerdo'])) {
-    h += '<h2>' + (estado === 'Archivado por inactividad' ? '¿Cómo está el servicio? (se reabrirá el seguimiento)' : vencido ? 'Llegó la fecha estimada: ¿cómo va?' : '¿Novedades del trabajo?') + '</h2>' +
+    h += '<h2>' + (estado === 'Archivado por inactividad' ? '¿Cómo está el servicio? (se reabrirá el seguimiento)' : vencido && sol['Plantilla seguimiento'] !== 'actualizar_plazo' ? 'Llegó la fecha estimada: ¿cómo va?' : '¿Novedades del trabajo?') + '</h2>' +
       '<button class="btn" onclick="if(confirm(\'¿El trabajo ha terminado?\'))enviar({a:\'termino\'})">✔ El trabajo terminó</button>' +
-      (vencido || estado === 'Archivado por inactividad' ? '<button class="btn sec" onclick="enviar({a:\'sigue\'})">Sigue en proceso</button>' : '');
+      ((vencido && sol['Plantilla seguimiento'] !== 'actualizar_plazo') || estado === 'Archivado por inactividad' ? '<button class="btn sec" onclick="enviar({a:\'sigue\'})">Sigue en proceso</button>' : '');
   }
   if (estado === 'Finalización por confirmar') {
     h += '<h2>¿Confirmas el cierre?</h2>' +
@@ -267,6 +269,7 @@ function procesarPendientes() {
       if (pendiente) props.deleteProperty('PENDIENTE');
       if (vence) motorSeguimiento_(); // fecha estimada / recordatorio programado: se atiende en el minuto
       procesarCola_();
+      if (props.getProperty('METRICAS_PENDIENTES')) { props.deleteProperty('METRICAS_PENDIENTES'); recalcularMetricas_(); }
       tabla_('Solicitudes').todas().filter(function (s) { return s['Estado'] === 'Nueva'; })
         .forEach(function (s) { try { motor_(s['Código']); } catch (e) { errorSistema_('motor ' + s['Código'], e); } });
       procesarCola_();
