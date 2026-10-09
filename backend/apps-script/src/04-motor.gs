@@ -16,7 +16,7 @@
  * Ofertas SECUENCIALES: una oferta activa por solicitud, nunca envíos masivos.
  */
 
-var ESTADOS_BUSQUEDA = ['Nueva', 'Buscando profesional', 'Esperando respuesta profesional', 'Sin profesional compatible'];
+var ESTADOS_BUSQUEDA = ['Nueva', 'Buscando profesional', 'Esperando respuesta profesional', 'Sin profesional disponible'];
 
 function solicitud_(oc) {
   var r = tabla_('Solicitudes').buscar('Código', oc);
@@ -39,7 +39,8 @@ function motor_(oc) {
       actualizarSol_(sol, { 'Estado': 'Revisión manual', 'Requiere intervención': sol['Servicio (código)'] === 'otro' ? 'Otro servicio: revisar demanda' : 'Servicio no activo en el piloto: revisar' });
       return 'manual';
     }
-    var ofertas = tabla_('Ofertas').todas().filter(function (o) { return o['Código OC'] === oc; });
+    var ronda = rondaDe_(sol);
+    var ofertas = tabla_('Ofertas').todas().filter(function (o) { return o['Código OC'] === oc && (Number(o['Ronda']) || 1) === ronda; });
     var activa = ofertas.filter(function (o) { return o['Estado'] === 'Enviada'; })[0];
     if (activa) return 'esperando ' + activa['Código PRO'];
 
@@ -59,9 +60,11 @@ function motor_(oc) {
       }
       return 'respaldo ' + respaldo['Código PRO'];
     }
-    if (sol['Estado'] !== 'Sin profesional compatible') {
-      actualizarSol_(sol, { 'Estado': 'Sin profesional compatible', 'Requiere intervención': 'No hay profesional compatible disponible' + (respaldo ? ' (el cliente pidió seguir buscando)' : '') });
-      registrar_('Sistema', 'Sin profesional compatible', oc, '', SERVICIOS[sol['Servicio (código)']] + ' · ' + sol['Zona']);
+    if (sol['Estado'] !== 'Sin profesional disponible') {
+      actualizarSol_(sol, { 'Estado': 'Sin profesional disponible', 'Requiere intervención': 'No hay profesional compatible disponible' + (respaldo ? ' (el cliente pidió seguir buscando)' : '') });
+      registrar_('Sistema', 'Sin profesional disponible', oc, '', SERVICIOS[sol['Servicio (código)']] + ' · ' + sol['Zona'] + ' · ronda ' + ronda);
+      // UN solo correo por ronda de búsqueda (la clave lo hace idempotente); se sigue reintentando en silencio
+      encolarCorreo_('cli-sinpro-' + oc + '-r' + ronda, 'sin_profesional', 'Cliente', sol['Email'], oc, '', {}, true);
     }
     return 'sin candidatos';
   });
@@ -74,15 +77,17 @@ function candidatos_(sol, ofertasOC) {
   var dCli = diasCliente_(sol);
   var hace30 = Date.now() - 30 * 86400000;
   var todasOfertas = tabla_('Ofertas').todas();
+  var bloqueados = prosBloqueados_(); // comisión exigible sin pagar → sin NUEVAS oportunidades (trabajos actuales intactos)
   var out = [];
   tabla_('Profesionales').todas().forEach(function (p) {
     var code = String(p['Código']);
     if (String(p['Estado']).trim() !== 'Activo') return;
     if (!emailOk_(p['Email'])) return;
     if (listaServicios_(p['Servicios (códigos)']).indexOf(servicio) < 0) return;
-    if (!String(p['Condiciones (versión)']).trim() || !p['Condiciones aceptadas (fecha)']) return;
+    if (!condAlDia_(p)) return; // V1.6: debe haber aceptado la versión VIGENTE de las condiciones
     if (empresa ? p['Con empresas'] !== 'Sí' : p['Con particulares'] !== 'Sí') return;
     if (yaOfrecidos.indexOf(code) >= 0) return;
+    if (bloqueados[code]) return;
     var zona = zonaCompatible_(p, sol);
     if (!zona.ok) return;
     var puntos = 0, motivos = [];
@@ -91,10 +96,8 @@ function candidatos_(sol, ofertasOC) {
     if (dCli !== null && dCli <= 7 && /esta semana/.test(habitual)) { puntos += 2; motivos.push('disponibilidad habitual +2'); }
     if (dCli !== null && dCli > 7 && /1-2 semanas|1–2 semanas/.test(habitual)) { puntos += 1; motivos.push('disponibilidad habitual +1'); }
     if (dCli === null && !/completa/.test(habitual)) { puntos += 1; motivos.push('plazo flexible +1'); }
-    var media = Number(p['Valoración media']) || 0;
-    if (media >= 4) { puntos += 1; motivos.push('valoración +1'); }
-    var inc = Number(p['Incidencias verificadas']) || 0;
-    if (inc) { puntos -= 2 * inc; motivos.push('incidencias −' + 2 * inc); }
+    var rep = puntosReputacion_(p);
+    if (rep.puntos) { puntos += rep.puntos; motivos.push(rep.motivo); }
     if (p['Prioridad'] === 'Baja') { puntos -= 3; motivos.push('prioridad baja −3'); }
     var recientes = todasOfertas.filter(function (o) { return o['Código PRO'] === code && new Date(o['Fecha envío']).getTime() > hace30; });
     var ultima = recientes.reduce(function (m, o) { return Math.max(m, new Date(o['Fecha envío']).getTime()); }, 0);
@@ -134,12 +137,12 @@ function vencimiento_(horas) {
 
 function ofrecer_(sol, c) {
   var oc = sol['Código'], p = c.pro, pro = p['Código'];
-  var id = 'OF-' + oc + '-' + pro;
+  var ronda = rondaDe_(sol), id = 'OF-' + oc + '-' + pro + (ronda > 1 ? '-R' + ronda : ''); // ID único por ronda (volver a buscar)
   var expira = vencimiento_(plazoRespuestaHoras_(sol));
   tabla_('Ofertas').agregar({
     'ID': id, 'Fecha envío': new Date(), 'Código OC': oc, 'Código PRO': pro, 'Profesional': p['Nombre'],
     'Servicio': SERVICIOS[sol['Servicio (código)']] || sol['Servicio'], 'Puntuación': c.puntos, 'Motivo ranking': c.motivo,
-    'Estado': 'Enviada', 'Expira': expira
+    'Estado': 'Enviada', 'Expira': expira, 'Ronda': ronda
   });
   actualizarSol_(sol, { 'Estado': 'Esperando respuesta profesional', 'Requiere intervención': '' });
   encolarCorreo_('pro-oferta-' + id, 'oferta_profesional', 'Profesional', p['Email'], oc, pro,
@@ -211,13 +214,11 @@ function asignar_(sol, pro, dispTxt, motivo) {
     if (o['Estado'] === 'Enviada') to.poner(o._fila, { 'Estado': 'Cerrada', 'Notas': 'Solicitud asignada a otro profesional' });
     if (o['Estado'] === 'Respaldo') {
       to.poner(o._fila, { 'Estado': 'Cerrada', 'Notas': 'Se encontró disponibilidad antes' });
-      var pr = profesional_(o['Código PRO']);
-      if (pr) encolarCorreo_('pro-cubierta-' + oc + '-' + o['Código PRO'], 'solicitud_cubierta', 'Profesional', pr['Email'], oc, o['Código PRO'], {});
     }
   });
   actualizarSol_(sol, { 'Estado': 'Profesional asignado', 'Requiere intervención': '', 'Profesional asignado (PRO)': pro, 'Fecha asignación': new Date(), 'Disponibilidad profesional': dispTxt });
   encolarCorreo_('pro-contacto-' + oc + '-' + pro, 'contacto_profesional', 'Profesional', p['Email'], oc, pro, { token: { tipo: 'gestion', dias: 180 } });
-  encolarCorreo_('cli-asignado-' + oc + '-' + pro, 'asignado_cliente', 'Cliente', sol['Email'], oc, pro, { disp: dispTxt, token: { tipo: 'cliente', dias: 180 } });
+  encolarCorreo_('cli-asignado-' + oc + '-' + pro, 'asignado_cliente', 'Cliente', sol['Email'], oc, pro, { disp: dispTxt });
   actualizarSol_(sol, { 'Contacto enviado (fecha)': new Date() });
   registrar_('Sistema', 'Asignación automática y contacto compartido', oc, pro, motivo + ' · ' + dispTxt);
   return true;
@@ -276,7 +277,7 @@ function revisarOfertas_() {
     }
   });
   tabla_('Solicitudes').todas().forEach(function (s) {
-    if (['Nueva', 'Buscando profesional', 'Sin profesional compatible'].indexOf(s['Estado']) >= 0) tocadas[s['Código']] = 1;
+    if (['Nueva', 'Buscando profesional', 'Sin profesional disponible'].indexOf(s['Estado']) >= 0) tocadas[s['Código']] = 1;
   });
   Object.keys(tocadas).forEach(function (oc) { try { motor_(oc); } catch (e) { errorSistema_('motor ' + oc, e); } });
 }
@@ -287,11 +288,56 @@ function ofertaManual_(sol, pro) {
   var p = profesional_(pro);
   if (!p) return 'No existe ' + pro;
   if (p['Estado'] !== 'Activo') return pro + ' no está Activo';
-  if (!p['Condiciones aceptadas (fecha)']) return pro + ' no ha aceptado las condiciones';
+  if (!condAlDia_(p)) return pro + ' no ha aceptado las condiciones vigentes (' + condVigente_() + ')';
+  if (proBloqueado_(pro)) return pro + ' tiene una comisión exigible pendiente: no recibe nuevas oportunidades';
   var ofertas = tabla_('Ofertas').todas().filter(function (o) { return o['Código OC'] === sol['Código']; });
   if (ofertas.some(function (o) { return o['Estado'] === 'Enviada'; })) return 'Ya hay una oferta pendiente de respuesta';
   if (ofertas.some(function (o) { return o['Código PRO'] === pro; })) return pro + ' ya recibió esta solicitud';
-  if (['Profesional asignado', 'Presupuesto enviado', 'Cliente aceptó', 'Finalizado', 'Valorada', 'Cancelada'].indexOf(sol['Estado']) >= 0) return 'La solicitud está «' + sol['Estado'] + '»';
+  if (ESTADOS_BUSQUEDA.concat(['Revisión manual', 'Esperando decisión cliente']).indexOf(sol['Estado']) < 0) return 'La solicitud está «' + sol['Estado'] + '»';
   ofrecer_(sol, { pro: p, puntos: '', motivo: 'Oferta manual del administrador' });
   return 'Oferta enviada a ' + pro;
+}
+
+/** Ronda de búsqueda vigente (cada «Volver a buscar» abre una ronda nueva sin pedir otra vez los datos). */
+function rondaDe_(sol) { return Number(sol['Ronda búsqueda']) || 1; }
+
+/**
+ * Reputación como SEÑAL SECUNDARIA de prioridad (los filtros duros —servicio, zona, tipo de cliente, estado activo,
+ * condiciones vigentes y ausencia de bloqueo— se aplican antes). Pesos configurables (REP_PESO_*; 0 = no influye).
+ * Un profesional nuevo sin datos puntúa 0 (neutro) y la rotación (menos ofertas en 30 días primero) le da oportunidades.
+ *  - Valoración: solo con ≥ 1 valoración → (media − 3) / 2  (de −1 a +1).
+ *  - Respuesta: solo con ≥ 3 ofertas → +1 si responde ≥ 80 %, −1 si responde < 40 %.
+ *  - Seguimiento: solo con ≥ 2 trabajos → +0,5 si ≥ 90 % al día, −1 si < 60 %.
+ *  - Nuevo (menos de 3 oportunidades recibidas): +1, para que entre en rotación sin necesitar reseñas.
+ *  - Tope total ±1 (la zona coincidente suma 3): la reputación desempata, nunca domina.
+ */
+function puntosReputacion_(p) {
+  var w1 = cfgNum_('REP_PESO_VALORACION', 1), w2 = cfgNum_('REP_PESO_RESPUESTA', 1), w3 = cfgNum_('REP_PESO_SEGUIMIENTO', 1);
+  var pts = 0, m = [];
+  var nv = Number(p['Nº valoraciones']) || 0, media = Number(p['Valoración media']) || 0;
+  if (nv >= 1 && w1) { var a = w1 * (media - 3) / 2; pts += a; m.push('valoración ' + (a >= 0 ? '+' : '') + Math.round(a * 10) / 10); }
+  var of = Number(p['Ofertas recibidas']) || 0, tr = p['Tasa respuesta (%)'];
+  if (of >= 3 && tr !== '' && tr !== undefined && w2) { var b = Number(tr) >= 80 ? w2 : Number(tr) < 40 ? -w2 : 0; if (b) { pts += b; m.push('respuesta ' + (b > 0 ? '+' : '') + b); } }
+  var cs = p['Cumplimiento seguimiento (%)'], tj = Number(p['Asignaciones']) || 0;
+  if (tj >= 2 && cs !== '' && cs !== undefined && w3) { var c = Number(cs) >= 90 ? 0.5 * w3 : Number(cs) < 60 ? -w3 : 0; if (c) { pts += c; m.push('seguimiento ' + (c > 0 ? '+' : '') + c); } }
+  // Profesional nuevo (menos de 3 oportunidades recibidas): +1 para que tenga oportunidades reales aunque no tenga historial
+  if (of < 3) { pts += 1; m.push('nuevo +1'); }
+  // Señal SECUNDARIA: la reputación nunca suma ni resta más de 1 punto (la zona suma 3). A igualdad de puntos manda la
+  // rotación (menos oportunidades en 30 días), así que nadie queda «siempre primero».
+  var tope = 1, lim = Math.max(-tope, Math.min(tope, pts));
+  if (lim !== pts) m.push('tope ±' + tope);
+  return { puntos: Math.round(lim * 10) / 10, motivo: m.join(' · ') };
+}
+
+/** «Volver a buscar»: nueva ronda sobre la MISMA solicitud (sin rellenar nada otra vez). */
+function volverABuscar_(oc) {
+  return conLock_(function () {
+    var sol = solicitud_(oc);
+    if (sol['Estado'] !== 'Sin profesional disponible') return { ok: false, msg: 'Ahora mismo tu solicitud ya está en búsqueda o en curso.' };
+    var ronda = rondaDe_(sol) + 1;
+    actualizarSol_(sol, { 'Estado': 'Buscando profesional', 'Ronda búsqueda': ronda, 'Requiere intervención': '', 'Decisión cliente': '' });
+    registrar_('Sistema', 'El cliente vuelve a buscar (ronda ' + ronda + ')', oc, '', '');
+    motor_(oc);
+    return { ok: true, msg: 'Hemos vuelto a buscar un profesional para tu solicitud. Te avisaremos por correo cuando haya uno.' };
+  });
 }

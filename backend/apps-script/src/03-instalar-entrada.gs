@@ -6,8 +6,8 @@
  */
 var NOMBRE_HOJA = 'OficioCerca — Operación';
 
-/** V1.5: misma instalación idempotente (no borra datos). */
-function instalarV15() { instalarV14(); }
+/** V1.5 → V1.6: misma instalación idempotente (no borra datos) + migración V1.6. */
+function instalarV15() { instalarV17(); }
 
 function instalarV14() {
   var props = PropertiesService.getScriptProperties();
@@ -124,11 +124,15 @@ function limpiarDatosDePrueba() {
     var fotos = DriveApp.getFolderById(PropertiesService.getScriptProperties().getProperty('PHOTOS_FOLDER_ID'));
     sol.forEach(function (r) { if (r['Carpeta fotos (ID)']) try { DriveApp.getFolderById(r['Carpeta fotos (ID)']).setTrashed(true); } catch (e) { } });
     var it = fotos.getFolders(); while (it.hasNext()) { var f = it.next(); if (/^OC-\d+/.test(f.getName())) f.setTrashed(true); }
-    ['Solicitudes', 'Profesionales', 'Ofertas', 'Presupuestos', 'Comisiones', 'Incidencias', 'Valoraciones', 'Historial envíos', 'Registro', 'Tokens'].forEach(function (n) {
+    ['Solicitudes', 'Profesionales', 'Ofertas', 'Presupuestos', 'Comisiones', 'Pagos comisión', 'Eventos Wompi', 'Incidencias', 'Valoraciones',
+      'Aceptaciones condiciones', 'Historial envíos', 'Registro', 'Tokens'].forEach(function (n) {
       var sh = hoja_(n); if (sh.getLastRow() > 1) sh.deleteRows(2, sh.getLastRow() - 1);
     });
+    // Pestañas exclusivas de las pruebas Wompi de V1.5 (solo contenían datos de PRUEBA)
+    ['Comisiones Sandbox', 'Pagos Sandbox'].forEach(function (n) { var sh = ss_().getSheetByName(n); if (sh) ss_().deleteSheet(sh); });
     var props = PropertiesService.getScriptProperties();
     props.setProperty('SEQ_OC', '0'); props.setProperty('SEQ_PRO', '0'); props.setProperty('SEQ_INC', '0');
+    props.deleteProperty('SBX_E2E_OC'); props.deleteProperty('PENDIENTE'); props.deleteProperty('PROX_SEGUIMIENTO'); props.deleteProperty('METRICAS_PENDIENTES');
     _tablas = {};
   });
   actualizarPanel();
@@ -250,17 +254,135 @@ function respaldoV15VideoInstitucional() {
   Logger.log('Respaldo: ' + c.getUrl());
 }
 
+/* ============================================================ V1.6 · RESPALDO, AUDITORÍA Y ACTIVADORES */
+
+function respaldoV16Pre() {
+  var c = crearRespaldo_('OFICIOCERCA-V1.6-PRE', 'OFICIOCERCA-V1.6-PRE');
+  DriveApp.getFileById(ss_().getId()).makeCopy('OFICIOCERCA-V1.6-PRE — copia de la hoja (con los registros PRUEBA SANDBOX)', c);
+  c.createFile('LEEME.txt', [
+    'OFICIOCERCA-V1.6-PRE — estado justo antes de la V1.6 (comisiones 10 %/5 %, acuerdo, seguimiento, Wompi).',
+    'GitHub: main = d9b2d224 · wompi-sandbox = fccb17f4 (etiqueta OFICIOCERCA-V1.6-PRE) · Apps Script: implementación versión 10.',
+    'La copia de la hoja incluye los registros marcados PRUEBA SANDBOX (no hay registros reales).',
+    'Endpoint: ' + cfg_('URL_APP'),
+    'Rollback del backend: Gestionar implementaciones → editar → Versión 10. Rollback web: rama main (sin cambios).'
+  ].join('\n'));
+  Logger.log('Respaldo: ' + c.getUrl());
+}
+
+/** Auditoría sin secretos: pestañas, cabeceras, filas, nombres de propiedades, registros reales vs. prueba. */
+function auditoriaV16() {
+  var ss = ss_(), props = PropertiesService.getScriptProperties().getProperties();
+  Logger.log('Versión: ' + VERSION_BACKEND + ' · Hoja: ' + ss.getId());
+  ss.getSheets().forEach(function (sh) {
+    var c = sh.getLastColumn(), cab = c ? sh.getRange(1, 1, 1, c).getValues()[0].filter(String) : [];
+    Logger.log('Pestaña «' + sh.getName() + '» · filas ' + Math.max(sh.getLastRow() - 1, 0) + ' · ' + cab.length + ' columnas: ' + cab.join(' | '));
+  });
+  Logger.log('Propiedades (solo nombres): ' + Object.keys(props).sort().join(', '));
+  ['SEQ_OC', 'SEQ_PRO', 'SEQ_INC'].forEach(function (k) { Logger.log(k + ' → ' + props[k]); });
+  ['COMMISSION_COLLECTION_ENABLED', 'WOMPI_SANDBOX_ENABLED', 'TEST_EXCHANGE_RATE', 'PRO_COND_VERSION', 'CONSENT_VERSION', 'COMISION_MAXIMO_EUR'].forEach(function (k) {
+    Logger.log('Config ' + k + ' → ' + cfg_(k));
+  });
+  var esPrueba = function (r) { return /PRUEBA|SANDBOX/i.test([r['Nombre'], r['Notas internas'], r['Origen']].join(' ')); };
+  ['Solicitudes', 'Profesionales'].forEach(function (n) {
+    var t = tabla_(n).todas();
+    Logger.log(n + ': ' + t.length + ' registro(s) · prueba ' + t.filter(esPrueba).length + ' · NO prueba ' + t.filter(function (r) { return !esPrueba(r); }).length +
+      ' · códigos ' + t.map(function (r) { return r['Código'] + (esPrueba(r) ? '(prueba)' : '(REAL?)'); }).join(', '));
+  });
+  Logger.log('Activadores: ' + ScriptApp.getProjectTriggers().map(function (t) { return t.getHandlerFunction() + '[' + t.getEventType() + ']'; }).join(', '));
+}
+
+/**
+ * Activadores deshabilitados por Google («Se ha desactivado la cuenta del propietario de este activador»):
+ * se eliminan los de procesarPendientes y cicloAutomatico y se crean de nuevo con la cuenta actual (uno de cada).
+ */
+function repararActivadoresV16() {
+  var ss = ss_();
+  var fijar = { procesarPendientes: function () { ScriptApp.newTrigger('procesarPendientes').timeBased().everyMinutes(1).create(); },
+                cicloAutomatico: function () { ScriptApp.newTrigger('cicloAutomatico').timeBased().everyMinutes(10).create(); } };
+  ScriptApp.getProjectTriggers().forEach(function (t) { if (fijar[t.getHandlerFunction()]) ScriptApp.deleteTrigger(t); });
+  Object.keys(fijar).forEach(function (f) { fijar[f](); });
+  var hay = function (f) { return ScriptApp.getProjectTriggers().some(function (t) { return t.getHandlerFunction() === f; }); };
+  if (!hay('alEditar')) ScriptApp.newTrigger('alEditar').forSpreadsheet(ss).onEdit().create();
+  if (!hay('alAbrir')) ScriptApp.newTrigger('alAbrir').forSpreadsheet(ss).onOpen().create();
+  if (!hay('resumenDiario')) ScriptApp.newTrigger('resumenDiario').timeBased().atHour(8).nearMinute(5).everyDays(1).inTimezone(ZONA_HORARIA).create();
+  var cuenta = {};
+  ScriptApp.getProjectTriggers().forEach(function (t) { cuenta[t.getHandlerFunction()] = (cuenta[t.getHandlerFunction()] || 0) + 1; });
+  Logger.log('Activadores (función × número): ' + JSON.stringify(cuenta) + ' · cuenta ' + Session.getEffectiveUser().getEmail());
+}
+
+function respaldoV16Evidencias() {
+  var c = crearRespaldo_('OFICIOCERCA-V1.6-EVIDENCIAS-PRUEBAS', 'OFICIOCERCA-V1.6-EVIDENCIAS-PRUEBAS');
+  DriveApp.getFileById(ss_().getId()).makeCopy('OFICIOCERCA-V1.6-EVIDENCIAS-PRUEBAS — copia de la hoja CON los registros de PRUEBA (evidencia E2E)', c);
+  c.createFile('LEEME.txt', [
+    'OFICIOCERCA-V1.6-EVIDENCIAS-PRUEBAS — evidencia de las pruebas E2E de la V1.6, justo antes de la limpieza total.',
+    'La copia de la hoja contiene SOLO registros de PRUEBA / SANDBOX (ningún cliente ni profesional real). No se cobró dinero real.',
+    'Endpoint: ' + cfg_('URL_APP')
+  ].join('\n'));
+  Logger.log('Respaldo: ' + c.getUrl());
+}
+
+function respaldoV16Final() {
+  var c = crearRespaldo_('OFICIOCERCA-V1.6-FINAL', 'OFICIOCERCA-V1.6-FINAL');
+  DriveApp.getFileById(ss_().getId()).makeCopy('OFICIOCERCA-V1.6-FINAL — copia de la hoja limpia (estructura y configuración, sin datos)', c);
+  c.createFile('LEEME.txt', [
+    'OFICIOCERCA-V1.6-FINAL — backend V1.6 en la rama oficiocerca-v1.6 (NO fusionada en main), hoja limpia y contadores a cero.',
+    'Cobro real: COMMISSION_COLLECTION_ENABLED = FALSE. Wompi SANDBOX desactivado (se puede reactivar con sbxE2E_activar).',
+    'Endpoint: ' + cfg_('URL_APP'),
+    'Rollback: OFICIOCERCA-V1.6-PRE (Apps Script versión 10).'
+  ].join('\n'));
+  Logger.log('Respaldo: ' + c.getUrl());
+}
+
+function respaldoV17Evidencias() {
+  var c = crearRespaldo_('OFICIOCERCA-V1.7-EVIDENCIAS-PRUEBAS', null);
+  DriveApp.getFileById(ss_().getId()).makeCopy('OFICIOCERCA-V1.7-EVIDENCIAS-PRUEBAS — copia de la hoja CON los registros de PRUEBA (evidencia E2E)', c);
+  c.createFile('LEEME.txt', [
+    'OFICIOCERCA-V1.7-EVIDENCIAS-PRUEBAS — evidencia de las pruebas E2E reales de la V1.7, justo antes de la limpieza.',
+    'Solo registros PRUEBA / E2E (ningún cliente ni profesional real). No se cobró dinero real (cobro y sandbox desactivados).',
+    'Backend: Apps Script V1.7 · Endpoint: ' + cfg_('URL_APP')
+  ].join('\n'));
+  Logger.log('Respaldo: ' + c.getUrl());
+}
+
+function respaldoV17Final() {
+  var c = crearRespaldo_('OFICIOCERCA-V1.7-FINAL', 'OFICIOCERCA-V1.7-FINAL');
+  DriveApp.getFileById(ss_().getId()).makeCopy('OFICIOCERCA-V1.7-FINAL — copia de la hoja limpia (estructura y configuración, sin datos)', c);
+  c.createFile('LEEME.txt', [
+    'OFICIOCERCA-V1.7-FINAL — backend V1.7 en la rama oficiocerca-v1.6 (NO fusionada en main), hoja limpia y contadores a cero.',
+    'Cobro real: COMMISSION_COLLECTION_ENABLED = FALSE. Wompi SANDBOX desactivado. Condiciones vigentes ' + condVigente_() + '.',
+    'Endpoint: ' + cfg_('URL_APP'),
+    'Rollback: etiqueta OFICIOCERCA-V1.6-PRE-V17 + Apps Script versión 12.'
+  ].join('\n'));
+  Logger.log('Respaldo: ' + c.getUrl());
+}
+
 /* ============================================================ ENTRADA DESDE LA WEB */
+
+/** Límite de frecuencia sencillo (CacheService): máx. «n» operaciones por clave y ventana. Sin datos personales en claro. */
+function limiteFrecuencia_(clave, n, segundos) {
+  try {
+    var c = CacheService.getScriptCache(), k = 'rl-' + hash_(clave).slice(0, 32), v = Number(c.get(k) || 0);
+    if (v >= n) return false;
+    c.put(k, String(v + 1), segundos);
+  } catch (e) { }
+  return true;
+}
 
 function doPost(e) {
   try {
     if (!e || !e.postData || !e.postData.contents || e.postData.contents.length > 30 * 1024 * 1024) return json_({ ok: false, error: 'sin datos' });
     var d = JSON.parse(e.postData.contents);
+    if (d && d.event && d.signature && d.data) return json_(webhookWompi_(d)); // Wompi: URL de eventos (verificada)
     if (d.web) return json_({ ok: false, error: 'rechazado' }); // trampa anti-spam
     if (d.tipo === 'solicitud') return json_(guardarSolicitud_(d));
     if (d.tipo === 'profesional') return json_(guardarProfesional_(d));
     if (d.tipo === 'pagina') return json_(paginaJson_(d.t));
-    if (d.tipo === 'accion') return json_(accion(String(d.t || ''), d.p || {}));
+    if (d.tipo === 'accion') {
+      // V1.7: la respuesta incluye ya la página actualizada → la web no necesita una segunda llamada
+      var res = accion(String(d.t || ''), d.p || {});
+      if (res && res.ok && !res.url && !res.t) { try { res.pagina = paginaJson_(String(d.t || '')); } catch (e) { } }
+      return json_(res);
+    }
     return json_({ ok: false, error: 'tipo desconocido' });
   } catch (err) {
     var msg = String(err && err.message || err);
@@ -289,6 +411,7 @@ function guardarSolicitud_(d) {
     (/contratista/i.test(d.tipoSolicitante) ? 'Contratista' : /empresa/i.test(d.tipoSolicitante) ? 'Empresa' : 'Particular');
   var fotos = validarFotos_(d.fotos);
 
+  if (!limiteFrecuencia_('sol-' + limpio_(t_(d.whatsapp)) + '-' + String(d.email).toLowerCase(), 6, 3600)) invalido_('demasiadas solicitudes seguidas; inténtalo más tarde');
   return conLock_(function () {
     var ts = tabla_('Solicitudes');
     // Doble envío (doble clic / recarga): misma persona y descripción en los últimos 15 min → mismo código
@@ -360,6 +483,7 @@ function guardarProfesional_(d) {
   if (d.consentCondiciones !== 'si') invalido_('faltan las condiciones');
   var tipoProv = TIPOS_PROVEEDOR.indexOf(d.tipoProveedor) >= 0 ? d.tipoProveedor : 'Profesional independiente / autónomo';
   var version = s_(d.condVersion || cfg_('PRO_COND_VERSION'), 40);
+  if (!limiteFrecuencia_('pro-' + String(d.email).toLowerCase(), 4, 3600)) invalido_('demasiados intentos seguidos; inténtalo más tarde');
   return conLock_(function () {
     var tp = tabla_('Profesionales');
     var email = s_(d.email, 160).toLowerCase();
@@ -376,6 +500,7 @@ function guardarProfesional_(d) {
       'Condiciones (versión)': version, 'Condiciones aceptadas (fecha)': new Date(), 'Origen': origen_(d), 'Prioridad': 'Normal',
       'Ofertas recibidas': 0, 'Respuestas': 0, 'Aceptadas': 0, 'Asignaciones': 0, 'Completados': 0, 'Incidencias verificadas': 0
     });
+    registrarAceptacionCond_(code, version, 'Formulario de registro');
     registrar_('Sistema', 'Profesional registrado (pendiente de revisar)', '', code, servicios.join(', ') + ' · condiciones ' + version);
     encolarCorreo_('pro-registro-' + code, 'registro_profesional', 'Profesional', email, '', code, {}, true);
     marcarPendiente_();
