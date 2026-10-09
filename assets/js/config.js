@@ -13,6 +13,7 @@
  *   (p. ej. "/assets/video/despues-solicitud.mp4") o una URL de YouTube, sin reconstruir ninguna página.
  *   despues_solicitud → confirmación de /solicitar/ («¿Qué pasa después de enviar tu solicitud?»)
  *   despues_registro → confirmación de /profesionales/
+ *   profesionales_cordoba → landing /profesionales/cordoba/ («OficioCerca para profesionales», 15–30 s; institucional profesional)
  *   general → flujo completo (Inicio «Cómo funciona» y Ayuda) · cliente → tutorial cliente · profesional → tutorial profesional
  *   Las piezas institucionales para redes (cliente, profesional, general) no necesitan hueco: el institucional general
  *   sustituye a assets/video/oficiocerca-institucional.mp4 (vídeo actual de Inicio).
@@ -31,5 +32,6 @@ window.OC_VIDEOS = {
   despues_registro: "",
   general: "",
   cliente: "",
-  profesional: ""
+  profesional: "",
+  profesionales_cordoba: ""
 };
