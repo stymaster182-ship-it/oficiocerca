@@ -17,7 +17,7 @@ CAT = json.loads((ROOT / "assets/data/catalogo.json").read_text(encoding="utf-8"
 OFICIOS = [o for o in CAT["oficios"] if o.get("activo", True)]  # solo servicios activos del piloto
 CIUDADES, TIPOS = CAT["ciudades"], CAT["tiposTrabajo"]
 SITE = "https://oficiocerca.pages.dev/"
-VERSION = "9"
+VERSION = "10"
 CONSENT_VERSION = "C4-2026-10"  # cambia este código si cambias el texto del consentimiento
 PRO_COND_VERSION = "PRO-COND-2026-10-V4"  # versión de las condiciones para profesionales (V3 archivada en /condiciones-profesionales/v3/)
 CONTACT_EMAIL = "oficiocerca@gmail.com"
@@ -106,50 +106,40 @@ def header(p):
 </header>
 """
 
+SOC_ICONS = {
+    "wa": '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2.2A9.7 9.7 0 0 0 3.7 16.9L2.3 21.8l5-1.3A9.7 9.7 0 1 0 12 2.2Zm0 17.7a8 8 0 0 1-4.1-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8 8 0 1 1 12 19.9Zm4.4-6c-.2-.1-1.4-.7-1.7-.8-.2-.1-.4-.1-.5.1l-.8 1c-.1.2-.3.2-.5.1a6.5 6.5 0 0 1-3.2-2.8c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.5-.4h-.5a.9.9 0 0 0-.7.3 2.8 2.8 0 0 0-.9 2.1c0 1.2.9 2.4 1 2.6.1.2 1.8 2.7 4.3 3.8 1.6.7 2.2.7 3 .6.5-.1 1.4-.6 1.6-1.2.2-.6.2-1.1.1-1.2l-.5-.2Z"/></svg>',
+    "ig": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg>',
+    "fb": '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M14 8h3V4h-3c-2.8 0-4 1.8-4 4.3V10H7v4h3v7h4v-7h3l1-4h-4V8.6c0-.4.3-.6.6-.6z"/></svg>',
+    "mail": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="m4 7 8 6 8-6"/></svg>',
+}
+
+MAIL_ICO = SOC_ICONS["mail"]
+
 def footer(p, extra_js=""):
     c = ciudad_activa()
+    soc = lambda cls, icon, titulo, sub, attrs: (f'<a class="soc soc-{cls}" {attrs}><span class="soc-ico">{SOC_ICONS[icon]}</span>'
+                                                  f'<span class="soc-txt"><b>{titulo}</b><small>{sub}</small></span></a>')
     return f"""<footer class="ftr" id="contacto">
   <div class="wrap">
-    <div class="ftr-grid">
-      <div>
-        <a class="brand" href="{p}">{LOGO}<span class="brand-name">OFICIO<b>CERCA</b></span></a>
-        <p style="margin-top:12px">Profesionales para obras, reformas y reparaciones.</p>
-        <p>{e(c['nombre'])}, España — zona piloto.</p>
-        <p>Correo: <a href="mailto:{CONTACT_EMAIL}">{CONTACT_EMAIL}</a></p>
+    <div class="ftr-main">
+      <div class="ftr-left">
+        <p class="ftr-title">OFICIO<b>CERCA</b></p>
+        <div class="ftr-social">
+          {soc("wa", "wa", "WhatsApp", "Escríbenos", f'data-wa-item hidden data-wa-msg="{e(WA_MSG_CONTACTO)}" target="_blank" rel="noopener" aria-label="WhatsApp de OficioCerca: escríbenos {WA_ARIA}"')}
+          {soc("ig", "ig", "Instagram", "Síguenos", f'href="{INSTAGRAM_URL}" target="_blank" rel="noopener" aria-label="Instagram de OficioCerca, @oficiocerca (se abre en una ventana nueva)"')}
+          {soc("fb", "fb", "Facebook", "Síguenos", f'href="{FACEBOOK_URL}" target="_blank" rel="noopener" aria-label="Facebook de OficioCerca (se abre en una ventana nueva)"')}
+          {soc("mail", "mail", "Correo", CONTACT_EMAIL, f'href="mailto:{CONTACT_EMAIL}" aria-label="Escribir un correo a {CONTACT_EMAIL}"')}
+        </div>
+        <div class="ftr-ctas">
+          <a class="btn btn-primary btn-sm" href="{p}solicitar/">Solicitar servicio</a>
+          <a class="btn btn-sm ftr-btn2" href="{p}profesionales/">Solicitar trabajo</a>
+        </div>
       </div>
-      <div>
-        <h2>Solicitar</h2>
-        <ul>
-          <li><a href="{p}solicitar/">Solicitar un servicio</a></li>
-          <li><a href="{p}{c['slug']}/">Oficios en {e(c['nombre'])}</a></li>
-        </ul>
-      </div>
-      <div>
-        <h2>Recibir trabajos</h2>
-        <ul>
-          <li><a href="{p}profesionales/">Registrarme para recibir trabajos</a></li>
-          <li><a href="{p}condiciones-profesionales/">Condiciones para profesionales</a></li>
-          <li><a href="{p}#como-funciona">Cómo funciona</a></li>
-          <li><a href="{p}ayuda/">Centro de ayuda y políticas</a></li>
-        </ul>
-      </div>
-      <div>
-        <h2>Contacto</h2>
-        <ul data-oc-contact>
-          <li><a href="mailto:{CONTACT_EMAIL}">{CONTACT_EMAIL}</a></li>
-          <li data-wa-item hidden><a data-wa-msg="{e(WA_MSG_CONTACTO)}" target="_blank" rel="noopener" aria-label="Hablar con un asesor por WhatsApp (se abre en una ventana nueva)">Hablar con un asesor por WhatsApp</a></li>
-          <li class="redes"><a href="{INSTAGRAM_URL}" target="_blank" rel="noopener" aria-label="Instagram de OficioCerca, @oficiocerca (se abre en una ventana nueva)"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg>Instagram @oficiocerca</a></li>
-          <li class="redes"><a href="{FACEBOOK_URL}" target="_blank" rel="noopener" aria-label="Facebook de OficioCerca (se abre en una ventana nueva)"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M14 8h3V4h-3c-2.8 0-4 1.8-4 4.3V10H7v4h3v7h4v-7h3l1-4h-4V8.6c0-.4.3-.6.6-.6z"/></svg>Facebook OficioCerca</a></li>
-          <li><a href="{p}solicitar/">Formulario de solicitud</a></li>
-          <li><a href="{p}ayuda/">Centro de ayuda y políticas</a></li>
-          <li><a href="{p}privacidad/">Política de privacidad</a></li>
-          <li><a href="{p}condiciones/">Condiciones de uso</a></li>
-        </ul>
-      </div>
+      <a class="ftr-logo" href="{p}" aria-label="OficioCerca, inicio">{LOGO}</a>
     </div>
     <div class="ftr-bottom">
-      <span>© <span data-year>2026</span> OficioCerca · Servicio en fase piloto.</span>
-      <span>OficioCerca pone en contacto a clientes y profesionales independientes. No ejecuta obras ni cobra los trabajos.</span>
+      <nav class="ftr-legal" aria-label="Información legal y ayuda"><a href="{p}ayuda/">Ayuda</a><span aria-hidden="true">·</span><a href="{p}condiciones/">Condiciones</a><span aria-hidden="true">·</span><a href="{p}privacidad/">Privacidad</a><span aria-hidden="true">·</span><a href="{p}condiciones-profesionales/">Condiciones profesionales</a><span aria-hidden="true">·</span><a href="{p}{c['slug']}/">{e(c['nombre'])}</a></nav>
+      <span class="ftr-copy">© <span data-year>2026</span> OficioCerca · Piloto en {e(c['nombre'])}. Pone en contacto a clientes y profesionales independientes; no ejecuta obras ni cobra los trabajos.</span>
     </div>
   </div>
 </footer>
@@ -160,6 +150,11 @@ def footer(p, extra_js=""):
 </body>
 </html>
 """
+
+def video_slot(clave, titulo):
+    """Hueco para un vídeo futuro. No muestra nada hasta que OC_VIDEOS[clave] (assets/js/config.js) tenga un archivo o URL:
+    entonces main.js lo inserta. Para añadir o cambiar el vídeo basta editar config.js (sin reconstruir páginas)."""
+    return f'<figure class="video-slot" data-video-slot="{clave}" hidden><figcaption>{e(titulo)}</figcaption><div class="video-slot-media"></div></figure>'
 
 def write(path, content):
     f = ROOT / path
@@ -264,6 +259,7 @@ def page_home():
 </section>
 
 <section class="sec sec-white" id="como-funciona" aria-labelledby="h-como">
+  <div class="wrap">{video_slot("general", "Cómo funciona OficioCerca")}</div>
   <div class="wrap">
     <div class="sec-head" data-reveal>
       <span class="eyebrow">Cómo funciona</span>
@@ -454,10 +450,10 @@ def page_solicitar():
     <div class="success" data-success tabindex="-1">
       <div class="badge">{ico('check')}</div>
       <h2>Solicitud recibida</h2>
+      <p class="success-lead">Ahora buscaremos un profesional compatible. Te avisaremos por correo cuando tengamos novedades.</p>
       <div class="ticket"><small>Tu código de solicitud</small><strong data-code>—</strong></div>
-      <p class="mail-alert"><strong>Te hemos enviado un correo de confirmación. Mantente pendiente de tu correo: por ahí te informaremos de los avances de tu solicitud.</strong></p>
-      <p>Si no lo encuentras, revisa también <strong>Spam</strong> o <strong>Promociones</strong>. En ese correo tienes el botón <strong>«Ver seguimiento de mi solicitud»</strong>.</p>
-      <div class="next"><strong>Próximos pasos</strong><ol><li>Buscamos un profesional compatible con tu trabajo, zona y plazo.</li><li>Cuando uno confirme que puede atenderlo, te avisamos por correo y te contactará.</li><li>El precio y el plazo los acordáis directamente. Usa tu página de seguimiento para el cierre o para reportar cualquier problema.</li></ol></div>
+      <p class="success-seg">{MAIL_ICO}<span>Tu enlace de <b>seguimiento</b> está en el correo de confirmación. Si no lo ves, revisa Spam o Promociones.</span></p>
+      {video_slot("despues_solicitud", "¿Qué pasa después de enviar tu solicitud?")}
       <a class="btn btn-ghost" href="../">Volver al inicio</a>
     </div>
   </div>
@@ -562,10 +558,10 @@ def page_profesionales():
     <div class="success" data-success tabindex="-1">
       <div class="badge">{ico('check')}</div>
       <h2>Registro recibido</h2>
+      <p class="success-lead">Revisaremos tu alta y te avisaremos por correo cuando esté activa.</p>
       <div class="ticket"><small>Tu código de profesional</small><strong data-code>—</strong></div>
-      <p class="mail-alert"><strong>Tu alta queda pendiente de revisión. Te avisaremos por correo cuando esté activa.</strong></p>
-      <p>Si no ves nuestro correo, revisa también <strong>Spam</strong> o <strong>Promociones</strong>.</p>
-      <div class="next"><strong>Después</strong><ol><li>Recibirás por correo oportunidades de tus servicios y tu zona.</li><li>Respondes con un botón: puedo, puedo más adelante o no puedo.</li><li>Si te la asignamos, recibes el contacto del cliente. Cuando acordéis, vuelves a la plataforma y registras el acuerdo alcanzado (mano de obra y duración).</li></ol></div>
+      <p class="success-seg">{MAIL_ICO}<span>Las oportunidades te llegarán por correo con un botón para responder. Revisa también Spam o Promociones.</span></p>
+      {video_slot("despues_registro", "¿Qué pasa después de registrarte?")}
       <a class="btn btn-ghost" href="../">Volver al inicio</a>
     </div>
   </div>
@@ -766,7 +762,7 @@ def page_ayuda():
 <li>Solicitas el servicio (gratis, sin cuenta).</li><li>Buscamos un profesional compatible y le ofrecemos el trabajo sin tus datos.</li>
 <li>Si acepta, os ponemos en contacto.</li><li>Habláis, visitáis y acordáis precio y plazo <b>directamente, fuera de OficioCerca</b>.</li>
 <li>El profesional registra el acuerdo alcanzado (mano de obra y duración estimada).</li><li>Seguimiento hasta la fecha estimada.</li>
-<li>Cierre: el profesional registra el valor final y el cliente lo confirma.</li><li>Valoración del trabajo verificado.</li></ol>
+<li>Cierre: el profesional registra el valor final y el cliente lo confirma.</li><li>Valoración del trabajo verificado.</li></ol>""" + video_slot("general", "Cómo funciona OficioCerca") + """
 <p>OficioCerca no cotiza, no negocia precios, no ejecuta obras y no cobra los trabajos.</p>"""),
         card("cliente", "2. Soy cliente", """<p><b>Aunque el contacto y el acuerdo se realicen directamente con el profesional, utiliza OficioCerca para el seguimiento, cierre o reporte de cualquier problema.</b></p>
 <ul><li>No tienes que confirmar ni negociar nada en OficioCerca: el acuerdo lo registra el profesional y lo ves en tu seguimiento.</li>
@@ -774,12 +770,12 @@ def page_ayuda():
 <li>Al llegar la fecha estimada te preguntaremos el estado: terminado, sigue en proceso o hay un problema.</li>
 <li>Para cerrar, confirma cuando el profesional registre el valor final. Después puedes valorar el trabajo.</li>
 <li>Si no hay profesional disponible, usa «Volver a buscar»: no tienes que rellenar nada otra vez.</li>
-<li>Tu enlace de seguimiento es personal: no lo reenvíes.</li></ul>"""),
+<li>Tu enlace de seguimiento es personal: no lo reenvíes.</li></ul>""" + video_slot("cliente", "Vídeo para clientes")),
         card("profesional", "3. Soy profesional / empresa", """<p><b>Recibir el contacto inicia el trabajo en OficioCerca; mantener actualizado el seguimiento hasta el cierre forma parte del proceso.</b></p>
 <ul><li>Después de hablar con el cliente y llegar a un acuerdo, vuelve a la plataforma y pulsa «Registrar acuerdo alcanzado»: mano de obra inicial y duración estimada (horas, días o semanas). Los materiales son opcionales e informativos.</li>
 <li>Si el trabajo se alarga, actualiza el plazo con la nueva duración (se conserva el historial).</li>
 <li>Al terminar, registra el valor FINAL de la mano de obra, si hubo trabajos adicionales y, si cambió, el motivo. El cliente confirma el cierre.</li>
-<li>No actualizar el seguimiento de forma reiterada puede afectar a tu prioridad para nuevas oportunidades.</li></ul>"""),
+<li>No actualizar el seguimiento de forma reiterada puede afectar a tu prioridad para nuevas oportunidades.</li></ul>""" + video_slot("profesional", "Vídeo para profesionales")),
         card("problema", "4. Tengo un problema", """<ul><li>Desde tu página de seguimiento o de gestión pulsa «Reportar un problema» y elige la categoría: no se pudo contactar, retraso, trabajo abandonado, trabajo parcial, desacuerdo económico, problema de calidad, daños, materiales / bienes, falta de comunicación, situación grave u otro.</li>
 <li>El servicio queda <b>En revisión</b>: se detienen el cierre automático, la comisión y las reseñas, y no se inventan importes.</li>
 <li>Una persona del equipo revisa el caso. Resultados posibles: trabajo completo, trabajo parcial, cancelado sin trabajo o sin acuerdo / revisión manual.</li>
@@ -832,7 +828,21 @@ def page_enlace(ruta, titulo, recargar):
     if(!wa)return; if(box.querySelector('[data-wa-soporte]')){document.getElementById('ayuda-seg').hidden=true;return;} var oc=ocActual();
     var m=oc?'Hola, necesito ayuda con mi solicitud '+oc+' de OficioCerca.':wa.getAttribute('data-wa-msg');
     wa.href='https://wa.me/'+WA+'?text='+encodeURIComponent(m); document.getElementById('ayuda-seg').hidden=false; }
-  function pintar(r){tit.textContent=r.titulo||'OficioCerca';box.innerHTML=r.cuerpo||'';if(r.script){var s=document.createElement('script');s.text=r.script;document.body.appendChild(s);}ayudaWA();}
+  // Servicio cancelado: vista simple (solo presentación; el estado y los datos del servicio no cambian).
+  function simplificarCancelado(){var p4=box.querySelector('.panel4'); if(!p4||!/est[áa] cancelad/i.test(p4.textContent))return;
+    var pn=box.querySelector('#pn'), notas=box.querySelectorAll('p.nota'), ayudaP=null;
+    for(var i=0;i<notas.length;i++){if(notas[i].querySelector('a[href*="/ayuda/"]'))ayudaP=notas[i];}
+    var top=document.createElement('div'); top.className='cancel-box';
+    top.innerHTML='<p class="cancel-estado">Servicio cancelado</p><p class="cancel-txt">Este servicio ha finalizado y no requiere ninguna otra acción.</p>'+
+      '<button type="button" class="btn" id="cancel-otro">SOLICITAR OTRO SERVICIO</button><a class="btn sec" href="../">VOLVER AL INICIO</a>';
+    var det=document.createElement('details'); det.className='cancel-det'; det.innerHTML='<summary>Ver detalles del servicio cancelado</summary>';
+    Array.prototype.slice.call(box.children).forEach(function(k){
+      if(k===pn||k===ayudaP)return;
+      if(k.classList.contains('err')||(k.tagName==='H2'&&/Otras opciones/.test(k.textContent))||(k.tagName==='BUTTON'&&/ver\\('pn'\\)/.test(k.getAttribute('onclick')||''))){k.parentNode.removeChild(k);return;}
+      det.appendChild(k);});
+    box.insertBefore(top,box.firstChild); if(pn)box.insertBefore(pn,top.nextSibling); box.insertBefore(det,pn?pn.nextSibling:top.nextSibling);
+    document.getElementById('cancel-otro').onclick=function(){if(pn&&window.ver){ver('pn');}else{location.href='../solicitar/';}};}
+  function pintar(r){tit.textContent=r.titulo||'OficioCerca';box.innerHTML=r.cuerpo||'';if(r.script){var s=document.createElement('script');s.text=r.script;document.body.appendChild(s);}simplificarCancelado();ayudaWA();}
   function errorCarga(){tit.textContent='No se pudo cargar';
     box.innerHTML='<p>La conexión con OficioCerca está tardando más de lo normal o ha fallado. Tus datos no se han perdido.</p><button type="button" class="btn" id="g-reintentar">Reintentar</button>';
     document.getElementById('g-reintentar').onclick=function(){cargar(true);};}
