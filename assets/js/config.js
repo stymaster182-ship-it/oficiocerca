@@ -11,8 +11,11 @@
  * OC_VIDEOS: vídeos definitivos (todavía no entregados). Cada clave corresponde a un hueco ya colocado en la web
  *   (data-video-slot). Vacío = el hueco no se muestra. Para integrar un vídeo basta poner aquí la ruta del archivo
  *   (p. ej. "/assets/video/despues-solicitud.mp4") o una URL de YouTube, sin reconstruir ninguna página.
- *   despues_solicitud → confirmación de /solicitar/ · despues_registro → confirmación de /profesionales/
- *   general → Inicio (Cómo funciona) y Ayuda · cliente / profesional → Centro de ayuda.
+ *   despues_solicitud → confirmación de /solicitar/ («¿Qué pasa después de enviar tu solicitud?»)
+ *   despues_registro → confirmación de /profesionales/
+ *   general → flujo completo (Inicio «Cómo funciona» y Ayuda) · cliente → tutorial cliente · profesional → tutorial profesional
+ *   Las piezas institucionales para redes (cliente, profesional, general) no necesitan hueco: el institucional general
+ *   sustituye a assets/video/oficiocerca-institucional.mp4 (vídeo actual de Inicio).
  */
 window.OC_CONFIG = {
   ENDPOINT: "https://script.google.com/macros/s/AKfycbyjOjHiDWHdLwXx23eMkHZi7z2PYbTRiuqYYQvfe7HGRdnPfWqNO9MlhB-pl0_BrCHZ/exec",

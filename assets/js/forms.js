@@ -244,6 +244,8 @@
     form.querySelectorAll("select").forEach(function (sel) { if (sel.name && data[sel.name] && sel.value !== "" && !sel.hasAttribute("data-keep-value")) data[sel.name] = sel.options[sel.selectedIndex].text.replace(/ \(próximamente\)$/, ""); });
     ["whatsapp", "telefonoAlt", "telefono"].forEach(function (k) { if (data[k]) data[k] = cleanPhone(data[k]); });
     form.querySelectorAll(".cond-hidden input, .cond-hidden select").forEach(function (el) { delete data[el.name]; });
+    // Profesionales: «¿Cómo ejerces tu actividad?» también rellena el tipo de proveedor que ya usa la hoja
+    if (kind === "profesional" && data.formaEjercicio) data.tipoProveedor = data.formaEjercicio === "Empresa / sociedad" ? "Empresa" : "Profesional independiente / autónomo";
     return data;
   }
   function compress(file) {
