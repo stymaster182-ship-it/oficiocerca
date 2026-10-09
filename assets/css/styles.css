@@ -527,3 +527,52 @@ html.modal-abierto{overflow:hidden}
 .ay-card ul,.ay-card ol{padding-left:1.2em;margin:0 0 12px}
 .ay-card li{margin:6px 0;overflow-wrap:break-word}
 .ay-nota{color:var(--muted);font-size:.95rem}
+/* ===== Pulido V1.7 · pie de página, confirmaciones, servicio cancelado, huecos de vídeo ===== */
+.ftr{padding:44px 0 26px}
+.ftr-main{display:flex;flex-direction:column;gap:26px}
+.ftr-left{display:flex;flex-direction:column;gap:20px;min-width:0}
+.ftr-title{margin:0;font-weight:800;letter-spacing:.08em;font-size:1.15rem;color:#fff}
+.ftr-title b{color:#F08A4B}
+.ftr-social{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.ftr .soc{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid #2A3B53;border-radius:12px;color:#fff;text-decoration:none;min-width:0;transition:background .18s,border-color .18s}
+.ftr .soc[hidden]{display:none}
+.ftr .soc:hover{background:#1B2C44;border-color:#3B5272;text-decoration:none}
+.ftr .soc-ico{flex:none;width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:#1B2C44}
+.ftr .soc-ico svg{width:20px;height:20px}
+.ftr .soc-wa .soc-ico{color:#4ADE80}.ftr .soc-ig .soc-ico{color:#F9A8D4}.ftr .soc-fb .soc-ico{color:#93C5FD}.ftr .soc-mail .soc-ico{color:#FDBA74}
+.ftr .soc-txt{display:flex;flex-direction:column;min-width:0;line-height:1.2}
+.ftr .soc-txt b{font-size:.95rem}
+.ftr .soc-txt small{color:#9FB0C4;font-size:.8rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ftr-ctas{display:flex;flex-wrap:wrap;gap:10px}
+.ftr-ctas .btn{text-decoration:none}
+.ftr .ftr-btn2{background:transparent;color:#fff;border:1.5px solid #4A5F7D}
+.ftr .ftr-btn2:hover{background:#1B2C44;text-decoration:none}
+.ftr-logo{align-self:flex-start;display:block;line-height:0}
+.ftr-logo .brand-mark{width:64px;height:64px}
+.ftr-bottom{display:flex;flex-direction:column;gap:8px;margin-top:28px;padding-top:16px;font-size:.82rem}
+.ftr-legal{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}
+.ftr-legal a{color:#B8C3D2}
+.ftr-legal span{color:#4A5F7D}
+.ftr-copy{color:#7F90A6}
+@media(min-width:720px){.ftr-social{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(min-width:900px){.ftr-main{flex-direction:row;justify-content:space-between;align-items:center;gap:40px}.ftr-left{flex:1}.ftr-logo{align-self:center}.ftr-logo .brand-mark{width:96px;height:96px}}
+/* Confirmación tras enviar: sin tutorial ni ayuda para rellenar */
+body.oc-enviado .page-hero .ayuda,body.oc-enviado .page-hero .req-legend,body.oc-enviado .aside-sticky{display:none}
+.success .success-lead{font-size:1.08rem;color:var(--ink);margin-bottom:18px}
+.success .success-seg{display:flex;gap:10px;align-items:flex-start;text-align:left;max-width:30em;margin:14px auto 18px;padding:12px 14px;background:var(--sand);border-radius:12px;font-size:.95rem}
+.success .success-seg svg{flex:none;width:22px;height:22px;color:var(--navy);margin-top:1px}
+/* Huecos de vídeo (vacíos = ocultos) */
+.video-slot{margin:22px auto;max-width:640px;text-align:left}
+.video-slot[hidden]{display:none}
+.video-slot figcaption{font-weight:700;margin-bottom:8px}
+.video-slot-media{position:relative;border-radius:14px;overflow:hidden;background:#0F1B2D;aspect-ratio:16/9}
+.video-slot-media video,.video-slot-media iframe{position:absolute;inset:0;width:100%;height:100%;border:0;object-fit:contain}
+/* Servicio cancelado */
+.g-box .cancel-box{text-align:center;padding:22px 16px;border:1px solid var(--line);border-radius:14px;background:#FAFBFC;margin-bottom:16px}
+.g-box .cancel-estado{display:inline-block;margin:0 0 10px;padding:6px 14px;border-radius:999px;background:#FDECEC;color:#8A1F23;font-weight:800;font-size:1.05rem}
+.g-box .cancel-txt{margin:0 0 14px;color:var(--graphite)}
+.g-box .cancel-det{margin:18px 0;border:1px solid var(--line);border-radius:12px;padding:10px 14px}
+.g-box .cancel-det>summary{cursor:pointer;font-weight:700;color:var(--navy)}
+.g-box .cancel-det[open]>summary{margin-bottom:10px}
+.ftr-logo .brand-mark{border-radius:22%;box-shadow:0 0 0 2px #2A3B53}
+body.oc-enviado .page-hero > .wrap > p:not(.crumbs){display:none}
