@@ -1,14 +1,17 @@
 /**
- * OficioCerca — backend V1.6 (Google Apps Script, cuenta oficiocerca@gmail.com).
+ * OficioCerca — backend V1.7 (Google Apps Script, cuenta oficiocerca@gmail.com).
  *
  * Flujo: solicitud web (se guarda siempre) → matching por reglas → oferta SECUENCIAL → profesional asignado
- *  (contacto habilitado) → «Ya hablé con el cliente / Registrar acuerdo» (mano de obra, materiales, fecha, nota)
- *  → el cliente confirma el acuerdo → trabajo en proceso → «Trabajo terminado» → el cliente confirma (doble cierre)
- *  → SOLO entonces nace la comisión (10 % de los primeros 2.000 € de mano de obra + 5 % del exceso, sin tope,
- *  materiales excluidos) → cobro con Wompi únicamente si está habilitado (en el piloto NO) → cerrado.
+ *  (contacto habilitado: «recibir el contacto inicia el trabajo en OficioCerca») → hablan, visitan y acuerdan FUERA
+ *  → el profesional registra el ACUERDO ALCANZADO (mano de obra inicial + duración; materiales opcionales) → trabajo
+ *  en proceso con fecha estimada de fin → seguimiento al vencer (terminado / sigue / problema) → cierre: el profesional
+ *  registra el valor FINAL y el cliente confirma → SOLO entonces nace la comisión (10 % de los primeros 2.000 € de mano
+ *  de obra final + 5 % del exceso, sin tope, materiales excluidos) → cobro con Wompi únicamente si está habilitado
+ *  (en el piloto NO) → cerrado → valoración. Incidencias → «En revisión» (sin cierre, cobro ni reseña automáticos).
+ *  Sin respuesta → archivado por inactividad (ambos) o revisión manual (una parte).
  *  «El correo avisa. La plataforma registra.»
  *
- * Puesta en marcha / actualización: ver backend/README.md (función instalarV16, idempotente).
+ * Puesta en marcha / actualización: ver backend/README.md (función instalarV15 → instalarV17, idempotente).
  * El código no contiene secretos: los IDs y credenciales se guardan en Propiedades del script.
  */
 
@@ -2229,6 +2232,11 @@ function alEditar(e) {
         }
       }
       if (nombre === 'Solicitudes') {
+        // Fechas del seguimiento corregidas a mano: el motor las atiende en el minuto (no espera a la fecha antigua)
+        if ((col === 'Fecha estimada fin' || col === 'Acción desde') && valor instanceof Date) {
+          programarRevision_(valor);
+          registrar_('Admin', col + ' cambiada', reg['Código'], reg['Profesional asignado (PRO)'], (antes || '—') + ' → ' + fecha_(valor), usuario);
+        }
         if (col === 'Ofrecer a (PRO manual)' && valor) {
           var res = ofertaManual_(reg, valor);
           t.poner(fila, { 'Notas internas': fecha_(new Date()) + ' Oferta manual ' + valor + ': ' + res + '\n' + reg['Notas internas'] });
@@ -3314,6 +3322,12 @@ function instalarV17() {
     ts.todas().forEach(function (s) { var n = MIGRACION_ESTADOS_V17[s['Estado']]; if (n) ts.poner(s._fila, { 'Estado': n }); });
     var tp = tabla_('Presupuestos');
     tp.todas().forEach(function (r) { if (['Pendiente del cliente', 'Confirmado', 'No confirmado'].indexOf(r['Estado']) >= 0) tp.poner(r._fila, { 'Estado': 'Registrado' }); });
+    // Fechas con hora exacta visibles en la hoja (el valor guardado siempre incluye la hora)
+    var sh = ts.sh;
+    ['Fecha registro acuerdo', 'Fecha estimada fin', 'Acción desde', 'Último aviso', 'Fecha asignación'].forEach(function (c) {
+      var i = ESQUEMA['Solicitudes'].indexOf(c);
+      if (i >= 0 && sh && sh.getRange) { try { sh.getRange(2, i + 1, Math.max(1, sh.getMaxRows() - 1), 1).setNumberFormat('dd/MM/yyyy HH:mm'); } catch (e) { } }
+    });
   });
   Logger.log('V1.7 instalada. Condiciones vigentes: ' + condVigente_() + ' · seguimiento: ' + JSON.stringify(horasSeg_()) + ' h');
 }
