@@ -62,6 +62,10 @@ var SERVICIOS = {
 var SERVICIOS_ACTIVOS = ['electricidad', 'fontaneria', 'marmoleria', 'carpinteria', 'pintura'];
 var TIPOS_SOLICITANTE = ['Particular', 'Empresa', 'Contratista'];
 var TIPOS_PROVEEDOR = ['Profesional independiente / autónomo', 'Contratista', 'Empresa'];
+/** «¿Cómo ejerces tu actividad?» (registro desde V1.7 pre-piloto). Los profesionales antiguos quedan en blanco. */
+var FORMAS_EJERCICIO = ['Profesional independiente', 'Autónomo', 'Empresa / sociedad'];
+/** Confianza (SOLO uso interno, no se muestra al público ni afecta al reparto): se marca a mano cuando se haga la comprobación real. */
+var REVISIONES_CONFIANZA = ['Pendiente', 'Revisada', 'No aplica'];
 
 /** Plazo pedido por el cliente → días máximos (null = flexible). */
 var PLAZOS_CLIENTE = {
@@ -119,7 +123,8 @@ var ESQUEMA = {
     'Consent. privacidad (legacy)', 'Condiciones (versión)', 'Condiciones aceptadas (fecha)', 'Origen', 'Prioridad',
     'Ofertas recibidas', 'Respuestas', 'Aceptadas', 'Asignaciones', 'Completados', 'Tiempo medio respuesta (h)',
     'Valoración media', 'Nº valoraciones', 'Incidencias verificadas', 'Comisiones pendientes', 'Última oferta', 'Notas internas', 'Tipo de proveedor',
-    'Tasa respuesta (%)', 'Cumplimiento seguimiento (%)'],
+    'Tasa respuesta (%)', 'Cumplimiento seguimiento (%)', 'Forma de ejercicio', 'Identidad revisada', 'Documentación revisada',
+    'Revisión confianza (fecha)', 'Revisión confianza (por)'],
   'Ofertas': ['ID', 'Fecha envío', 'Código OC', 'Código PRO', 'Profesional', 'Servicio', 'Puntuación', 'Motivo ranking',
     'Estado', 'Respuesta', 'Disponibilidad (código)', 'Disponibilidad', 'Días hasta disponibilidad', 'Fecha respuesta',
     'Expira', 'Notas', 'Ronda'],
@@ -150,7 +155,8 @@ var ORDEN_PESTANAS = ['PANEL', 'Solicitudes', 'Profesionales', 'Ofertas', 'Presu
 
 var DESPLEGABLES = {
   'Solicitudes': { 'Estado': ESTADOS_SOLICITUD },
-  'Profesionales': { 'Estado': ESTADOS_PROFESIONAL, 'Prioridad': ['Normal', 'Baja'], 'Tipo de proveedor': TIPOS_PROVEEDOR },
+  'Profesionales': { 'Estado': ESTADOS_PROFESIONAL, 'Prioridad': ['Normal', 'Baja'], 'Tipo de proveedor': TIPOS_PROVEEDOR, 'Forma de ejercicio': FORMAS_EJERCICIO,
+    'Identidad revisada': REVISIONES_CONFIANZA, 'Documentación revisada': REVISIONES_CONFIANZA },
   'Ofertas': { 'Estado': ESTADOS_OFERTA },
   'Presupuestos': { 'Estado': ESTADOS_PRESUPUESTO },
   'Comisiones': { 'Estado': ESTADOS_COMISION },
@@ -833,7 +839,8 @@ function guardarProfesional_(d) {
   if (servicios.indexOf('otro') >= 0 && !String(d.servicioOtro || '').trim()) invalido_('falta servicioOtro');
   // V1.5: una única casilla (condiciones para profesionales + política de privacidad), no premarcada
   if (d.consentCondiciones !== 'si') invalido_('faltan las condiciones');
-  var tipoProv = TIPOS_PROVEEDOR.indexOf(d.tipoProveedor) >= 0 ? d.tipoProveedor : 'Profesional independiente / autónomo';
+  var forma = FORMAS_EJERCICIO.indexOf(d.formaEjercicio) >= 0 ? d.formaEjercicio : ''; // opcional en el servidor: formularios antiguos siguen funcionando
+  var tipoProv = TIPOS_PROVEEDOR.indexOf(d.tipoProveedor) >= 0 ? d.tipoProveedor : forma === 'Empresa / sociedad' ? 'Empresa' : 'Profesional independiente / autónomo';
   var version = s_(d.condVersion || cfg_('PRO_COND_VERSION'), 40);
   if (!limiteFrecuencia_('pro-' + String(d.email).toLowerCase(), 4, 3600)) invalido_('demasiados intentos seguidos; inténtalo más tarde');
   return conLock_(function () {
@@ -848,7 +855,7 @@ function guardarProfesional_(d) {
       'Servicio otro': s_(d.servicioOtro, 120), 'Especialidades': s_(d.especialidades, 300), 'WhatsApp': t_(d.whatsapp), 'Teléfono': t_(d.telefono),
       'Email': email, 'Ciudad': s_(d.ciudad, 80), 'Código postal': t_(d.codigoPostal), 'Zonas': s_(d.zonas, 300), 'Distancia': s_(d.distancia, 40),
       'Experiencia': s_(d.experiencia, 40), 'Disponibilidad habitual': s_(d.disponibilidad, 60), 'Con particulares': d.conParticulares === 'Sí' ? 'Sí' : 'No',
-      'Con empresas': d.conEmpresas === 'Sí' ? 'Sí' : 'No', 'Descripción': s_(d.descripcion, 1500), 'Tipo de proveedor': tipoProv,
+      'Con empresas': d.conEmpresas === 'Sí' ? 'Sí' : 'No', 'Descripción': s_(d.descripcion, 1500), 'Tipo de proveedor': tipoProv, 'Forma de ejercicio': forma,
       'Condiciones (versión)': version, 'Condiciones aceptadas (fecha)': new Date(), 'Origen': origen_(d), 'Prioridad': 'Normal',
       'Ofertas recibidas': 0, 'Respuestas': 0, 'Aceptadas': 0, 'Asignaciones': 0, 'Completados': 0, 'Incidencias verificadas': 0
     });
