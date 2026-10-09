@@ -576,3 +576,13 @@ body.oc-enviado .page-hero .ayuda,body.oc-enviado .page-hero .req-legend,body.oc
 .g-box .cancel-det[open]>summary{margin-bottom:10px}
 .ftr-logo .brand-mark{border-radius:22%;box-shadow:0 0 0 2px #2A3B53}
 body.oc-enviado .page-hero > .wrap > p:not(.crumbs){display:none}
+/* Pre-piloto: ventajas para profesionales y nota de valoración */
+.pro-ventajas{margin-top:8px;margin-bottom:8px}
+.pro-ventajas h2{font-size:1.25rem;margin:0 0 12px}
+.pro-ventajas ul{list-style:none;padding:0;margin:0;display:grid;gap:10px}
+@media(min-width:860px){.pro-ventajas ul{grid-template-columns:1fr 1fr}}
+.pro-ventajas li{display:flex;gap:10px;align-items:flex-start;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px;min-width:0}
+.pro-ventajas li .ico{flex:none;width:22px;height:22px;color:var(--ok,#2E7D4F);margin-top:1px}
+.pro-ventajas li span{overflow-wrap:anywhere}
+.g-box .nota-val{margin:6px 0 10px}
+.pro-ventajas li{font-size:.93rem;line-height:1.45;padding:10px 12px}.pro-ventajas ul{gap:8px}
