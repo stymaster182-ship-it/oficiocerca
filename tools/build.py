@@ -829,7 +829,7 @@ def page_enlace(ruta, titulo, recargar):
     // Botones de soporte tras una incidencia: texto fijo con el código, sin token ni datos privados; el número no se muestra.
     box.querySelectorAll('[data-wa-soporte]').forEach(function(a){var oc=a.getAttribute('data-wa-soporte')||ocActual()||'';
       a.href='https://wa.me/'+WA+'?text='+encodeURIComponent('Hola, necesito ayuda con la solicitud '+oc+'. Ya registré una incidencia en OficioCerca.');a.hidden=false;});
-    if(!wa)return; var oc=ocActual();
+    if(!wa)return; if(box.querySelector('[data-wa-soporte]')){document.getElementById('ayuda-seg').hidden=true;return;} var oc=ocActual();
     var m=oc?'Hola, necesito ayuda con mi solicitud '+oc+' de OficioCerca.':wa.getAttribute('data-wa-msg');
     wa.href='https://wa.me/'+WA+'?text='+encodeURIComponent(m); document.getElementById('ayuda-seg').hidden=false; }
   function pintar(r){tit.textContent=r.titulo||'OficioCerca';box.innerHTML=r.cuerpo||'';if(r.script){var s=document.createElement('script');s.text=r.script;document.body.appendChild(s);}ayudaWA();}
@@ -857,7 +857,7 @@ def page_enlace(ruta, titulo, recargar):
 </script>""" % ("true" if recargar else "false")
     body = """<main id="main"><div class="wrap"><section id="gestion" class="g-box" aria-live="polite">
 <p id="msg" role="status"></p><h1 id="g-titulo">Cargando…</h1><div id="g-zona"><p class="nota g-cargando">Cargando seguimiento…</p></div>
-<p class="nota">¿Dudas? <a href="../ayuda/">Centro de ayuda</a> · <a href="mailto:oficiocerca@gmail.com">oficiocerca@gmail.com</a></p>
+<p class="nota">¿Dudas? Escríbenos a <a href="mailto:oficiocerca@gmail.com">oficiocerca@gmail.com</a></p>
 %s</section></div></main>
 """
     ayuda = ('<div class="ayuda-seg" id="ayuda-seg" hidden><p class="ayuda-q">¿Necesitas ayuda con esta solicitud?</p>'
