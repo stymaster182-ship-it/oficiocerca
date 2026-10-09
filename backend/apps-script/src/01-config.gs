@@ -62,6 +62,10 @@ var SERVICIOS = {
 var SERVICIOS_ACTIVOS = ['electricidad', 'fontaneria', 'marmoleria', 'carpinteria', 'pintura'];
 var TIPOS_SOLICITANTE = ['Particular', 'Empresa', 'Contratista'];
 var TIPOS_PROVEEDOR = ['Profesional independiente / autónomo', 'Contratista', 'Empresa'];
+/** «¿Cómo ejerces tu actividad?» (registro desde V1.7 pre-piloto). Los profesionales antiguos quedan en blanco. */
+var FORMAS_EJERCICIO = ['Profesional independiente', 'Autónomo', 'Empresa / sociedad'];
+/** Confianza (SOLO uso interno, no se muestra al público ni afecta al reparto): se marca a mano cuando se haga la comprobación real. */
+var REVISIONES_CONFIANZA = ['Pendiente', 'Revisada', 'No aplica'];
 
 /** Plazo pedido por el cliente → días máximos (null = flexible). */
 var PLAZOS_CLIENTE = {
@@ -119,7 +123,8 @@ var ESQUEMA = {
     'Consent. privacidad (legacy)', 'Condiciones (versión)', 'Condiciones aceptadas (fecha)', 'Origen', 'Prioridad',
     'Ofertas recibidas', 'Respuestas', 'Aceptadas', 'Asignaciones', 'Completados', 'Tiempo medio respuesta (h)',
     'Valoración media', 'Nº valoraciones', 'Incidencias verificadas', 'Comisiones pendientes', 'Última oferta', 'Notas internas', 'Tipo de proveedor',
-    'Tasa respuesta (%)', 'Cumplimiento seguimiento (%)'],
+    'Tasa respuesta (%)', 'Cumplimiento seguimiento (%)', 'Forma de ejercicio', 'Identidad revisada', 'Documentación revisada',
+    'Revisión confianza (fecha)', 'Revisión confianza (por)'],
   'Ofertas': ['ID', 'Fecha envío', 'Código OC', 'Código PRO', 'Profesional', 'Servicio', 'Puntuación', 'Motivo ranking',
     'Estado', 'Respuesta', 'Disponibilidad (código)', 'Disponibilidad', 'Días hasta disponibilidad', 'Fecha respuesta',
     'Expira', 'Notas', 'Ronda'],
@@ -150,7 +155,8 @@ var ORDEN_PESTANAS = ['PANEL', 'Solicitudes', 'Profesionales', 'Ofertas', 'Presu
 
 var DESPLEGABLES = {
   'Solicitudes': { 'Estado': ESTADOS_SOLICITUD },
-  'Profesionales': { 'Estado': ESTADOS_PROFESIONAL, 'Prioridad': ['Normal', 'Baja'], 'Tipo de proveedor': TIPOS_PROVEEDOR },
+  'Profesionales': { 'Estado': ESTADOS_PROFESIONAL, 'Prioridad': ['Normal', 'Baja'], 'Tipo de proveedor': TIPOS_PROVEEDOR, 'Forma de ejercicio': FORMAS_EJERCICIO,
+    'Identidad revisada': REVISIONES_CONFIANZA, 'Documentación revisada': REVISIONES_CONFIANZA },
   'Ofertas': { 'Estado': ESTADOS_OFERTA },
   'Presupuestos': { 'Estado': ESTADOS_PRESUPUESTO },
   'Comisiones': { 'Estado': ESTADOS_COMISION },
