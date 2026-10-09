@@ -181,10 +181,10 @@ def trades_grid(p, ciudad=None):
     return '<div class="trades">' + "".join(out) + "</div>"
 
 STEPS = [
-    ("Cuéntanos qué necesitas", "Describe el trabajo, tu zona y cuándo lo necesitas. Recibes un correo con tu código."),
-    ("Buscamos un profesional compatible", "Según oficio, zona, plazo y tipo de cliente. Le enviamos el trabajo sin tus datos de contacto."),
-    ("Te ponemos en contacto", "Cuando uno confirma que puede atenderlo en tu plazo, le facilitamos tu contacto y te avisamos."),
-    ("Acuerdo directo y seguimiento", "Acordáis precio y plazo directamente entre vosotros. Tú sigues el trabajo en tu página de seguimiento, confirmas el cierre y valoras."),
+    ("Envías tu solicitud", "Gratis y sin cuenta: qué necesitas, tu zona y para cuándo."),
+    ("Buscamos un profesional compatible", "Según oficio, zona y plazo, y de uno en uno: no repartimos tu solicitud a muchos a la vez."),
+    ("Cuando acepta, habláis directamente", "Os damos el contacto y acordáis precio y plazo entre vosotros."),
+    ("Seguimiento hasta el cierre", "OficioCerca mantiene el seguimiento: confirmas el cierre, valoras o reportas un problema."),
 ]
 
 def steps_html():
@@ -263,7 +263,7 @@ def page_home():
   <div class="wrap">
     <div class="sec-head" data-reveal>
       <span class="eyebrow">Cómo funciona</span>
-      <h2 id="h-como">Cuatro pasos, con seguimiento por correo</h2>
+      <h2 id="h-como">Menos ruido. Un proceso organizado.</h2>
     </div>
     {steps_html()}
     <div class="notice" data-reveal>{ico('check')}<p><strong>La solicitud es gratuita y no necesitas cuenta.</strong> El precio y el pago del trabajo se acuerdan directamente con el profesional; OficioCerca no cobra ni procesa pagos de los trabajos.</p></div>
@@ -277,7 +277,7 @@ def page_home():
       <h2 id="h-why">Un proceso ordenado, no una lista de teléfonos</h2>
     </div>
     <div class="why why-3">
-      <div class="why-item" data-reveal>{ico('gear')}<h3>Profesionales revisados</h3><p>Revisamos cada alta antes de que un profesional reciba trabajos.</p></div>
+      <div class="why-item" data-reveal>{ico('gear')}<h3>Altas revisadas</h3><p>Revisamos cada alta antes de que un profesional reciba trabajos. No es una verificación de identidad ni de documentación.</p></div>
       <div class="why-item" data-reveal>{ico('home')}<h3>Según oficio, zona y plazo</h3><p>Solo ofrecemos tu trabajo a profesionales que hacen ese servicio en tu zona, de uno en uno.</p></div>
       <div class="why-item" data-reveal>{ico('check')}<h3>Seguimiento por correo</h3><p>Cada servicio tiene su código y su página privada: ves en qué paso está, qué toca ahora y qué viene después.</p></div>
     </div>
@@ -485,6 +485,16 @@ def page_profesionales():
   <p class="req-legend"><span class="req">*</span> Obligatorio. El resto es opcional.</p>
   {ayuda_box(p, "tut-registro", "¿Quieres ver cómo funciona el registro?", "¿Necesitas ayuda con tu registro?", WA_MSG_PRO)}
 </div></section>
+<section class="wrap pro-ventajas" aria-labelledby="h-ventajas">
+  <h2 id="h-ventajas">Cómo trabajamos contigo</h2>
+  <ul>
+    <li>{ico('check')}<span><b>No pagas por recibir una oportunidad.</b></span></li>
+    <li>{ico('check')}<span><b>La comisión se genera cuando el trabajo llega al cierre correspondiente dentro del proceso de OficioCerca:</b> 10 % de los primeros 2.000 € de mano de obra + 5 % del excedente, sin tope. Los materiales no generan comisión.</span></li>
+    <li>{ico('check')}<span><b>No enviamos la misma solicitud a la vez a muchos profesionales:</b> buscamos compatibilidad y ofrecemos la oportunidad de forma ordenada.</span></li>
+    <li>{ico('check')}<span><b>El contacto con el cliente es directo.</b></span></li>
+    <li>{ico('check')}<span><b>El seguimiento continúa hasta el cierre del servicio.</b></span></li>
+  </ul>
+</section>
 <div class="wrap form-layout">
   <div class="form-card">
     <form id="form-profesional" data-oc-form="profesional" novalidate>
@@ -492,14 +502,14 @@ def page_profesionales():
       <input type="hidden" name="condVersion" value="{PRO_COND_VERSION}">
       <fieldset>
         <legend><span class="n">1</span>Tus datos</legend>
-        <fieldset class="choice-group" data-required-group="tipoProveedor">
-          <legend class="label">¿Qué tipo de proveedor eres? <span class="req">*</span></legend>
+        <fieldset class="choice-group" data-required-group="formaEjercicio">
+          <legend class="label">¿Cómo ejerces tu actividad? <span class="req">*</span></legend>
           <div class="choices c3">
-            <label class="choice"><input type="radio" name="tipoProveedor" value="Profesional independiente / autónomo" required><span>Profesional independiente / autónomo</span></label>
-            <label class="choice"><input type="radio" name="tipoProveedor" value="Contratista"><span>Contratista</span></label>
-            <label class="choice"><input type="radio" name="tipoProveedor" value="Empresa"><span>Empresa</span></label>
+            <label class="choice"><input type="radio" name="formaEjercicio" value="Profesional independiente" required><span>Profesional independiente</span></label>
+            <label class="choice"><input type="radio" name="formaEjercicio" value="Autónomo"><span>Autónomo</span></label>
+            <label class="choice"><input type="radio" name="formaEjercicio" value="Empresa / sociedad"><span>Empresa / sociedad</span></label>
           </div>
-          <span class="hint">Todos reciben oportunidades de la misma forma, según sus servicios y zona.</span>
+          <span class="hint">Todos reciben oportunidades de la misma forma, según sus servicios y zona. No pedimos documentos en el registro.</span>
           <span class="err-msg">Elige una opción.</span>
         </fieldset>
         <div class="grid2">
@@ -758,47 +768,55 @@ def page_ayuda():
     def card(ancla, titulo, html):
         return f'<section class="ay-card" id="{ancla}"><h2>{e(titulo)}</h2>{html}</section>'
     cards = [
-        card("como-funciona", "1. Cómo funciona OficioCerca", """<ol class="ay-ol">
+        card("papel", "1. ¿Cuál es el papel de OficioCerca?", """<ul>
+<li>Facilita la conexión entre clientes y profesionales compatibles con el trabajo, la zona y el plazo.</li>
+<li>Organiza el seguimiento del servicio hasta su cierre.</li>
+<li>Permite registrar incidencias, que revisa una persona del equipo.</li>
+<li>Permite confirmar el cierre y, cuando corresponde, dejar una valoración.</li>
+<li>La visita, el presupuesto, el acuerdo económico y la ejecución técnica se realizan directamente entre cliente y profesional.</li>
+<li>OficioCerca no ejecuta las obras ni sustituye a autoridades, aseguradoras o profesionales técnicos.</li></ul>"""),
+        card("como-funciona", "2. Cómo funciona OficioCerca", """<ol class="ay-ol">
 <li>Solicitas el servicio (gratis, sin cuenta).</li><li>Buscamos un profesional compatible y le ofrecemos el trabajo sin tus datos.</li>
 <li>Si acepta, os ponemos en contacto.</li><li>Habláis, visitáis y acordáis precio y plazo <b>directamente, fuera de OficioCerca</b>.</li>
 <li>El profesional registra el acuerdo alcanzado (mano de obra y duración estimada).</li><li>Seguimiento hasta la fecha estimada.</li>
 <li>Cierre: el profesional registra el valor final y el cliente lo confirma.</li><li>Valoración del trabajo verificado.</li></ol>""" + video_slot("general", "Cómo funciona OficioCerca") + """
 <p>OficioCerca no cotiza, no negocia precios, no ejecuta obras y no cobra los trabajos.</p>"""),
-        card("cliente", "2. Soy cliente", """<p><b>Aunque el contacto y el acuerdo se realicen directamente con el profesional, utiliza OficioCerca para el seguimiento, cierre o reporte de cualquier problema.</b></p>
+        card("cliente", "3. Soy cliente", """<p><b>Aunque el contacto y el acuerdo se realicen directamente con el profesional, utiliza OficioCerca para el seguimiento, cierre o reporte de cualquier problema.</b></p>
 <ul><li>No tienes que confirmar ni negociar nada en OficioCerca: el acuerdo lo registra el profesional y lo ves en tu seguimiento.</li>
 <li>Si lo registrado no coincide con lo hablado, pulsa «Reportar un problema».</li>
 <li>Al llegar la fecha estimada te preguntaremos el estado: terminado, sigue en proceso o hay un problema.</li>
 <li>Para cerrar, confirma cuando el profesional registre el valor final. Después puedes valorar el trabajo.</li>
 <li>Si no hay profesional disponible, usa «Volver a buscar»: no tienes que rellenar nada otra vez.</li>
 <li>Tu enlace de seguimiento es personal: no lo reenvíes.</li></ul>""" + video_slot("cliente", "Vídeo para clientes")),
-        card("profesional", "3. Soy profesional / empresa", """<p><b>Recibir el contacto inicia el trabajo en OficioCerca; mantener actualizado el seguimiento hasta el cierre forma parte del proceso.</b></p>
+        card("profesional", "4. Soy profesional / empresa", """<p><b>Recibir el contacto inicia el trabajo en OficioCerca; mantener actualizado el seguimiento hasta el cierre forma parte del proceso.</b></p>
 <ul><li>Después de hablar con el cliente y llegar a un acuerdo, vuelve a la plataforma y pulsa «Registrar acuerdo alcanzado»: mano de obra inicial y duración estimada (horas, días o semanas). Los materiales son opcionales e informativos.</li>
 <li>Si el trabajo se alarga, actualiza el plazo con la nueva duración (se conserva el historial).</li>
 <li>Al terminar, registra el valor FINAL de la mano de obra, si hubo trabajos adicionales y, si cambió, el motivo. El cliente confirma el cierre.</li>
 <li>No actualizar el seguimiento de forma reiterada puede afectar a tu prioridad para nuevas oportunidades.</li></ul>""" + video_slot("profesional", "Vídeo para profesionales")),
-        card("problema", "4. Tengo un problema", """<ul><li>Desde tu página de seguimiento o de gestión pulsa «Reportar un problema» y elige la categoría: no se pudo contactar, retraso, trabajo abandonado, trabajo parcial, desacuerdo económico, problema de calidad, daños, materiales / bienes, falta de comunicación, situación grave u otro.</li>
+        card("problema", "5. Tengo un problema", """<ul><li>Desde tu página de seguimiento o de gestión pulsa «Reportar un problema» y elige la categoría: no se pudo contactar, retraso, trabajo abandonado, trabajo parcial, desacuerdo económico, problema de calidad, daños, materiales / bienes, falta de comunicación, situación grave u otro.</li>
 <li>El servicio queda <b>En revisión</b>: se detienen el cierre automático, la comisión y las reseñas, y no se inventan importes.</li>
 <li>Una persona del equipo revisa el caso. Resultados posibles: trabajo completo, trabajo parcial, cancelado sin trabajo o sin acuerdo / revisión manual.</li>
 <li>Tras registrar la incidencia puedes escribir a soporte por WhatsApp desde la misma página.</li>
 <li>Si nadie responde a los avisos, el seguimiento queda archivado por inactividad (sin cierre, sin comisión y sin reseña) y se puede reabrir.</li></ul>
 <p class="ay-nota">OficioCerca no sustituye a autoridades, juzgados, aseguradoras ni garantías legales, y no ofrece atención 24 horas. Ante una emergencia o un riesgo para personas, contacta con los servicios de emergencia.</p>"""),
-        card("comisiones", "5. Comisiones y pagos", """<ul><li>Para el cliente, OficioCerca es gratuito. El trabajo se paga directamente al profesional.</li>
+        card("comisiones", "6. Comisiones y pagos", """<ul><li>Para el cliente, OficioCerca es gratuito. El trabajo se paga directamente al profesional.</li>
 <li>El profesional solo paga comisión cuando el cliente confirma el cierre: <b>10 % de los primeros 2.000 € de mano de obra FINAL y 5 % del exceso</b>, sin tope.</li>
 <li><b>Los materiales no generan comisión.</b></li>
 <li>Ejemplos: 1.000 € → 100 € · 2.000 € → 200 € · 3.000 € → 250 € · 5.000 € → 350 € · 10.000 € → 600 €.</li>
 <li>Durante el piloto la comisión se calcula y se registra, pero <b>no se cobra</b>.</li></ul>"""),
-        card("resenas", "6. Reseñas y reputación", """<ul><li>Solo se puede valorar un servicio con cierre confirmado: 1 a 5 estrellas y comentario opcional, marcado como «trabajo verificado».</li>
+        card("resenas", "7. Reseñas y reputación", """<p><b>Las valoraciones de OficioCerca solo pueden realizarse después de un servicio cerrado y confirmado en la plataforma.</b></p>
+<ul><li>Solo se puede valorar un servicio con cierre confirmado: 1 a 5 estrellas y comentario opcional, marcado como «trabajo verificado».</li>
 <li>No hay reseñas de simples contactos, de servicios archivados ni de servicios en revisión.</li>
 <li>Las buenas valoraciones, el cumplimiento del seguimiento y una buena respuesta pueden ayudarte a ser tenido en cuenta con mayor prioridad para futuras oportunidades.</li>
 <li>Es una señal secundaria: primero cuentan el servicio, la zona y el tipo de cliente; los profesionales nuevos también reciben oportunidades y nadie tiene garantizado ser siempre el primero.</li></ul>"""),
-        card("politicas", "7. Políticas de uso", """<ul><li>Solicitudes y datos reales; nada de datos de terceros sin autorización ni contenido ofensivo.</li>
+        card("politicas", "8. Políticas de uso", """<ul><li>Solicitudes y datos reales; nada de datos de terceros sin autorización ni contenido ofensivo.</li>
 <li>Los datos de contacto recibidos solo se usan para ese servicio.</li>
 <li>Importes declarados de forma realista.</li>
 <li>Una queja no bloquea automáticamente a nadie. Ante hechos verificados puede aplicarse una pausa temporal de nuevas oportunidades, sin borrar la cuenta, el historial ni los trabajos en curso.</li></ul>"""),
-        card("legales", "8. Documentos legales", f"""<ul><li><a href="../condiciones/">Condiciones de uso</a></li><li><a href="../condiciones-profesionales/">Condiciones para profesionales ({PRO_COND_VERSION})</a></li>
+        card("legales", "9. Documentos legales", f"""<ul><li><a href="../condiciones/">Condiciones de uso</a></li><li><a href="../condiciones-profesionales/">Condiciones para profesionales ({PRO_COND_VERSION})</a></li>
 <li><a href="../privacidad/">Política de privacidad</a></li></ul><p class="ay-nota">Documentos en BORRADOR PROVISIONAL, pendientes de revisión jurídica.</p>"""),
     ]
-    idx = "".join(f'<a href="#{a}">{e(t)}</a>' for a, t in [("como-funciona", "Cómo funciona"), ("cliente", "Soy cliente"), ("profesional", "Soy profesional"), ("problema", "Tengo un problema"), ("comisiones", "Comisiones y pagos"), ("resenas", "Reseñas"), ("politicas", "Políticas"), ("legales", "Legales")])
+    idx = "".join(f'<a href="#{a}">{e(t)}</a>' for a, t in [("papel", "Papel de OficioCerca"), ("como-funciona", "Cómo funciona"), ("cliente", "Soy cliente"), ("profesional", "Soy profesional"), ("problema", "Tengo un problema"), ("comisiones", "Comisiones y pagos"), ("resenas", "Reseñas"), ("politicas", "Políticas"), ("legales", "Legales")])
     body = f"""<main id="main"><div class="wrap"><section class="page-hero"><div class="crumbs"><a href="../">Inicio</a> / Ayuda</div><h1>Centro de ayuda y políticas</h1><p>Cómo funciona el servicio, qué hacer en cada paso y qué pasa si algo sale mal.</p></section>
 <nav class="ay-idx" aria-label="Secciones de ayuda">{idx}</nav>
 <div class="ay-grid">{"".join(cards)}</div>
@@ -842,7 +860,9 @@ def page_enlace(ruta, titulo, recargar):
       det.appendChild(k);});
     box.insertBefore(top,box.firstChild); if(pn)box.insertBefore(pn,top.nextSibling); box.insertBefore(det,pn?pn.nextSibling:top.nextSibling);
     document.getElementById('cancel-otro').onclick=function(){if(pn&&window.ver){ver('pn');}else{location.href='../solicitar/';}};}
-  function pintar(r){tit.textContent=r.titulo||'OficioCerca';box.innerHTML=r.cuerpo||'';if(r.script){var s=document.createElement('script');s.text=r.script;document.body.appendChild(s);}simplificarCancelado();ayudaWA();}
+  function notaValoracion(){var st=box.querySelector('.stars'); if(!st||box.querySelector('.nota-val'))return; var n=document.createElement('p'); n.className='nota nota-val';
+    n.textContent='Las valoraciones de OficioCerca solo pueden realizarse después de un servicio cerrado y confirmado en la plataforma.'; st.parentNode.insertBefore(n,st);}
+  function pintar(r){tit.textContent=r.titulo||'OficioCerca';box.innerHTML=r.cuerpo||'';if(r.script){var s=document.createElement('script');s.text=r.script;document.body.appendChild(s);}simplificarCancelado();notaValoracion();ayudaWA();}
   function errorCarga(){tit.textContent='No se pudo cargar';
     box.innerHTML='<p>La conexión con OficioCerca está tardando más de lo normal o ha fallado. Tus datos no se han perdido.</p><button type="button" class="btn" id="g-reintentar">Reintentar</button>';
     document.getElementById('g-reintentar').onclick=function(){cargar(true);};}

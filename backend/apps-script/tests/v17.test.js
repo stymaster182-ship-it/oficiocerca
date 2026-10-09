@@ -473,6 +473,25 @@ caso('Activadores: uno de cada, sin duplicados', () => {
   assert.strictEqual(ord(n), ord({ procesarPendientes: 1, cicloAutomatico: 1, alEditar: 1, alAbrir: 1, resumenDiario: 1 }));
 });
 
+caso('Pre-piloto: «¿Cómo ejerces tu actividad?» se guarda; formularios antiguos y valores raros no rompen; confianza solo interna', () => {
+  const E2 = crearEntorno();
+  const base = { tipo: 'profesional', nombre: 'PRUEBA Forma', whatsapp: '600555111', servicios: 'electricidad', experiencia: 'Más de 5 años', ciudad: 'Córdoba', codigoPostal: '14001',
+    zonas: 'Centro', distancia: 'Toda la ciudad', disponibilidad: 'Esta semana', conParticulares: 'Sí', conEmpresas: 'Sí', consentCondiciones: 'si', condVersion: 'PRO-COND-2026-10-V4' };
+  const a = postWeb(E2, Object.assign({}, base, { email: 'fa@example.com', formaEjercicio: 'Empresa / sociedad', tipoProveedor: 'Empresa' }));
+  const b = postWeb(E2, Object.assign({}, base, { email: 'fb@example.com' })); // web antigua: sin el campo
+  const c = postWeb(E2, Object.assign({}, base, { email: 'fc@example.com', formaEjercicio: '<script>' }));
+  const d = postWeb(E2, Object.assign({}, base, { email: 'fd@example.com', formaEjercicio: 'Autónomo' }));
+  assert.ok(a.ok && b.ok && c.ok && d.ok, JSON.stringify([a,b,c,d]));
+  const P = code => E2.ctx.profesional_(code);
+  assert.strictEqual(P(a.code)['Forma de ejercicio'], 'Empresa / sociedad'); assert.strictEqual(P(a.code)['Tipo de proveedor'], 'Empresa');
+  assert.strictEqual(P(b.code)['Forma de ejercicio'], ''); assert.strictEqual(P(b.code)['Tipo de proveedor'], 'Profesional independiente / autónomo');
+  assert.strictEqual(P(c.code)['Forma de ejercicio'], '');
+  assert.strictEqual(P(d.code)['Forma de ejercicio'], 'Autónomo');
+  ['Identidad revisada', 'Documentación revisada', 'Revisión confianza (fecha)', 'Revisión confianza (por)'].forEach(k => assert.ok(E2.ctx.ESQUEMA['Profesionales'].indexOf(k) >= 0));
+  // la confianza no se publica: ni la página del cliente ni la de gestión la muestran
+  const G = hastaAsignado(E2);
+  assert.ok(!/Identidad revisada|Documentación revisada|verificad[oa]/i.test(pagina(E2, G.tS).cuerpo.replace(/trabajo verificado/ig, '')));
+});
 /* ===================================================== 45. WOMPI (SANDBOX) SIGUE PASANDO CON EL NUEVO CIERRE */
 let ES, FS, pagoS, txOk;
 caso('45a. Comisión exigible (PRUEBA + sandbox) tras el cierre confirmado; bloqueo de nuevas oportunidades', () => {

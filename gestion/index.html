@@ -106,7 +106,9 @@
       det.appendChild(k);});
     box.insertBefore(top,box.firstChild); if(pn)box.insertBefore(pn,top.nextSibling); box.insertBefore(det,pn?pn.nextSibling:top.nextSibling);
     document.getElementById('cancel-otro').onclick=function(){if(pn&&window.ver){ver('pn');}else{location.href='../solicitar/';}};}
-  function pintar(r){tit.textContent=r.titulo||'OficioCerca';box.innerHTML=r.cuerpo||'';if(r.script){var s=document.createElement('script');s.text=r.script;document.body.appendChild(s);}simplificarCancelado();ayudaWA();}
+  function notaValoracion(){var st=box.querySelector('.stars'); if(!st||box.querySelector('.nota-val'))return; var n=document.createElement('p'); n.className='nota nota-val';
+    n.textContent='Las valoraciones de OficioCerca solo pueden realizarse después de un servicio cerrado y confirmado en la plataforma.'; st.parentNode.insertBefore(n,st);}
+  function pintar(r){tit.textContent=r.titulo||'OficioCerca';box.innerHTML=r.cuerpo||'';if(r.script){var s=document.createElement('script');s.text=r.script;document.body.appendChild(s);}simplificarCancelado();notaValoracion();ayudaWA();}
   function errorCarga(){tit.textContent='No se pudo cargar';
     box.innerHTML='<p>La conexión con OficioCerca está tardando más de lo normal o ha fallado. Tus datos no se han perdido.</p><button type="button" class="btn" id="g-reintentar">Reintentar</button>';
     document.getElementById('g-reintentar').onclick=function(){cargar(true);};}

@@ -161,3 +161,17 @@ Cada servicio es una OC independiente (profesional, estado, acuerdo, comisión, 
 «Añadir otro servicio» o «Solicitar este servicio al mismo profesional» (el profesional debe aceptarlo; si está bloqueado o no ofrece ese
 servicio, se le indica que añada el servicio normalmente). Se agrupan por «Grupo cliente», que solo crea el servidor.
 
+
+## Pre-piloto (rama `oficiocerca-prepiloto`)
+
+- **«¿Cómo ejerces tu actividad?»** (Profesional independiente · Autónomo · Empresa / sociedad): obligatorio en el formulario web,
+  se guarda en la columna nueva `Forma de ejercicio`. La web también rellena `Tipo de proveedor` (Empresa / sociedad → Empresa;
+  el resto → Profesional independiente / autónomo). En el servidor el campo es opcional: altas antiguas y formularios viejos siguen funcionando.
+- **Confianza (solo interno, preparado y sin usar):** columnas `Identidad revisada`, `Documentación revisada` (Pendiente / Revisada / No aplica),
+  `Revisión confianza (fecha)` y `Revisión confianza (por)`. No se muestran al público, no afectan al reparto ni a la reputación.
+  Trabajos cerrados (`Completados`) y reputación (`Valoración media`, `Nº valoraciones`) ya existían.
+  Para usarlas en el futuro: (1) definir qué se comprueba y cómo (documento, seguro, etc.); (2) marcarlas a mano en la hoja;
+  (3) solo entonces mostrar una insignia pública que diga exactamente lo comprobado, nunca antes.
+- **Orden de despliegue al fusionar:** primero el backend (pegar `Code.gs`, guardar, ejecutar `instalarV15` para crear las columnas,
+  nueva versión de la implementación) y después fusionar la web. Si la web nueva llegara antes, nada se rompe: el dato
+  `Forma de ejercicio` simplemente no se guardaría hasta actualizar el backend.
