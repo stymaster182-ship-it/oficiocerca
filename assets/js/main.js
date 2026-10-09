@@ -54,6 +54,26 @@
     var item = a.closest("[data-wa-item]"); if (item) item.hidden = false;
   });
 
+  // Huecos para vídeos futuros (data-video-slot): solo aparecen cuando OC_VIDEOS tiene un archivo o URL.
+  var VID = window.OC_VIDEOS || {};
+  document.querySelectorAll("[data-video-slot]").forEach(function (slot) {
+    var src = String(VID[slot.getAttribute("data-video-slot")] || "").trim();
+    if (!src) return;
+    var titulo = (slot.querySelector("figcaption") || {}).textContent || "Vídeo de OficioCerca";
+    var media = slot.querySelector(".video-slot-media"), yt = src.match(/(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([\w-]{11})/);
+    var el;
+    if (yt) {
+      el = document.createElement("iframe");
+      el.src = "https://www.youtube-nocookie.com/embed/" + yt[1];
+      el.setAttribute("allow", "encrypted-media; picture-in-picture; fullscreen"); el.setAttribute("allowfullscreen", "");
+      el.setAttribute("loading", "lazy"); el.title = titulo;
+    } else if (/^(\/|https:\/\/)[^\s"'<>]+\.(mp4|webm)(\?.*)?$/i.test(src)) {
+      el = document.createElement("video");
+      el.controls = true; el.preload = "none"; el.setAttribute("playsinline", ""); el.src = src; el.setAttribute("aria-label", titulo);
+    } else return;
+    media.appendChild(el); slot.hidden = false;
+  });
+
   // Vídeos (tutoriales e institucional): modal dentro de la misma página (no se toca ningún formulario).
   // El MP4 y su portada no se descargan hasta que la persona pulsa el botón. Al cerrar, el vídeo se pausa.
   var dialogos = {};
