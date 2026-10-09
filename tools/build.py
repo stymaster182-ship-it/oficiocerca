@@ -651,6 +651,51 @@ def page_profesionales_cordoba():
           .replace("</head>", f'<link rel="stylesheet" href="{p}assets/css/landing.css?v={VERSION}">\n</head>', 1)
           + header(p) + body + footer(p))
 
+def page_clientes_cordoba():
+    """Landing para clientes de Córdoba (WhatsApp, redes, contacto directo). Lleva al formulario de solicitud de siempre."""
+    p = "../../"
+    sol = "../../solicitar/"
+    pasos = ["Nos cuentas qué servicio necesitas.", "Revisamos la solicitud y buscamos profesionales compatibles.",
+             "Cuando uno acepta, podéis comunicaros directamente.", "OficioCerca mantiene el seguimiento hasta el cierre."]
+    pasos_html = "".join(f'<li><span class="lp-n">{i+1}</span><span><b>{e(t)}</b></span></li>' for i, t in enumerate(pasos))
+    conf = ["Organiza tu solicitud.", "Facilita la conexión con un profesional compatible.", "Mantiene el seguimiento del servicio.",
+            "Te permite reportar un problema si algo no va bien.", "Te permite valorar después de un servicio cerrado y confirmado."]
+    conf_html = "".join(f'<li>{ico("check")}<span>{e(c)}</span></li>' for c in conf)
+    body = f"""<main id="main" class="lp">
+<section class="lp-hero">
+  <div class="wrap">
+    <p class="lp-eyebrow">OFICIO<b>CERCA</b> · Clientes de Córdoba</p>
+    <h1>Menos ruido. Un proceso organizado.</h1>
+    <p class="lp-lead">Cuéntanos qué necesitas y OficioCerca organiza el proceso para conectarte con profesionales compatibles con tu solicitud.</p>
+    <a class="btn btn-primary lp-cta" href="{sol}">SOLICITAR UN SERVICIO</a>
+    <p class="lp-mini">Solicitud gratuita · sin cuenta</p>
+  </div>
+</section>
+<section class="wrap lp-sec" aria-labelledby="lp-como">
+  <h2 id="lp-como">Cómo funciona</h2>
+  <ol class="lp-pasos">{pasos_html}</ol>
+</section>
+<div class="wrap">{video_slot("clientes_cordoba", "Cómo funciona OficioCerca para clientes")}</div>
+<section class="wrap lp-sec" aria-labelledby="lp-conf">
+  <h2 id="lp-conf">Qué hace OficioCerca por ti</h2>
+  <ul class="lp-vent">{conf_html}</ul>
+  <p class="lp-small lp-nota">El precio, la visita y el trabajo los acordáis directamente con el profesional. OficioCerca no ejecuta las obras.</p>
+</section>
+<section class="lp-final">
+  <div class="wrap">
+    <h2>¿Necesitas un profesional en Córdoba?</h2>
+    <a class="btn btn-primary lp-cta" href="{sol}">SOLICITAR SERVICIO</a>
+    <p class="lp-mini"><a href="{p}ayuda/#cliente">Ayuda</a> · <a href="{p}condiciones/">Condiciones</a> · <a href="{p}privacidad/">Privacidad</a></p>
+  </div>
+</section>
+</main>
+"""
+    desc = "Cuéntanos qué necesitas y OficioCerca organiza el proceso para conectarte con profesionales compatibles en Córdoba, con seguimiento hasta el cierre."
+    write("clientes/cordoba/index.html", head("OficioCerca · Clientes de Córdoba", desc, "clientes/cordoba/", p,
+          og_image="assets/img/og-clientes-cordoba.jpg", og_alt="OficioCerca · Clientes de Córdoba · Menos ruido. Un proceso organizado.")
+          .replace("</head>", f'<link rel="stylesheet" href="{p}assets/css/landing.css?v={VERSION}">\n</head>', 1)
+          + header(p) + body + footer(p))
+
 def page_ciudad(c):
     p = "../"
     body = f"""<main id="main">
@@ -979,7 +1024,7 @@ def data_js():
     write("assets/js/data.js", js)
 
 def sitemap():
-    urls = ["", "solicitar/", "profesionales/", "profesionales/cordoba/", "ayuda/"] + [f"{c['slug']}/" for c in CIUDADES if c["activa"]]
+    urls = ["", "solicitar/", "profesionales/", "profesionales/cordoba/", "clientes/cordoba/", "ayuda/"] + [f"{c['slug']}/" for c in CIUDADES if c["activa"]]
     for pg in CAT.get("paginasOficioCiudad", []):
         o = next(x for x in OFICIOS if x["slug"] == pg["oficio"])
         urls.append(f"{pg['ciudad']}/{o['url']}/")
@@ -990,7 +1035,7 @@ def sitemap():
 if __name__ == "__main__":
     print("Generando OficioCerca…")
     data_js()
-    page_home(); page_solicitar(); page_profesionales(); page_profesionales_cordoba()
+    page_home(); page_solicitar(); page_profesionales(); page_profesionales_cordoba(); page_clientes_cordoba()
     for c in CIUDADES:
         if c["activa"]:
             page_ciudad(c)
