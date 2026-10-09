@@ -132,7 +132,7 @@ function limpiarDatosDePrueba() {
     ['Comisiones Sandbox', 'Pagos Sandbox'].forEach(function (n) { var sh = ss_().getSheetByName(n); if (sh) ss_().deleteSheet(sh); });
     var props = PropertiesService.getScriptProperties();
     props.setProperty('SEQ_OC', '0'); props.setProperty('SEQ_PRO', '0'); props.setProperty('SEQ_INC', '0');
-    props.deleteProperty('SBX_E2E_OC'); props.deleteProperty('PENDIENTE'); props.deleteProperty('PROX_SEGUIMIENTO');
+    props.deleteProperty('SBX_E2E_OC'); props.deleteProperty('PENDIENTE'); props.deleteProperty('PROX_SEGUIMIENTO'); props.deleteProperty('METRICAS_PENDIENTES');
     _tablas = {};
   });
   actualizarPanel();
@@ -329,6 +329,29 @@ function respaldoV16Final() {
     'Cobro real: COMMISSION_COLLECTION_ENABLED = FALSE. Wompi SANDBOX desactivado (se puede reactivar con sbxE2E_activar).',
     'Endpoint: ' + cfg_('URL_APP'),
     'Rollback: OFICIOCERCA-V1.6-PRE (Apps Script versión 10).'
+  ].join('\n'));
+  Logger.log('Respaldo: ' + c.getUrl());
+}
+
+function respaldoV17Evidencias() {
+  var c = crearRespaldo_('OFICIOCERCA-V1.7-EVIDENCIAS-PRUEBAS', null);
+  DriveApp.getFileById(ss_().getId()).makeCopy('OFICIOCERCA-V1.7-EVIDENCIAS-PRUEBAS — copia de la hoja CON los registros de PRUEBA (evidencia E2E)', c);
+  c.createFile('LEEME.txt', [
+    'OFICIOCERCA-V1.7-EVIDENCIAS-PRUEBAS — evidencia de las pruebas E2E reales de la V1.7, justo antes de la limpieza.',
+    'Solo registros PRUEBA / E2E (ningún cliente ni profesional real). No se cobró dinero real (cobro y sandbox desactivados).',
+    'Backend: Apps Script V1.7 · Endpoint: ' + cfg_('URL_APP')
+  ].join('\n'));
+  Logger.log('Respaldo: ' + c.getUrl());
+}
+
+function respaldoV17Final() {
+  var c = crearRespaldo_('OFICIOCERCA-V1.7-FINAL', 'OFICIOCERCA-V1.7-FINAL');
+  DriveApp.getFileById(ss_().getId()).makeCopy('OFICIOCERCA-V1.7-FINAL — copia de la hoja limpia (estructura y configuración, sin datos)', c);
+  c.createFile('LEEME.txt', [
+    'OFICIOCERCA-V1.7-FINAL — backend V1.7 en la rama oficiocerca-v1.6 (NO fusionada en main), hoja limpia y contadores a cero.',
+    'Cobro real: COMMISSION_COLLECTION_ENABLED = FALSE. Wompi SANDBOX desactivado. Condiciones vigentes ' + condVigente_() + '.',
+    'Endpoint: ' + cfg_('URL_APP'),
+    'Rollback: etiqueta OFICIOCERCA-V1.6-PRE-V17 + Apps Script versión 12.'
   ].join('\n'));
   Logger.log('Respaldo: ' + c.getUrl());
 }
