@@ -46,10 +46,14 @@ def ciudad_activa():
 # ---------------------------------------------------------------- layout
 MOTION_JS = """<script>(function(d){try{if(window.matchMedia&&!matchMedia('(prefers-reduced-motion: reduce)').matches&&'IntersectionObserver' in window){d.classList.add('js-motion');setTimeout(function(){if(!window.__ocReveal){d.classList.remove('js-motion')}},2500)}}catch(e){}})(document.documentElement)</script>"""
 
-def head(title, desc, path, p, noindex=False, jsonld=None):
+def head(title, desc, path, p, noindex=False, jsonld=None, og_image="assets/img/og-image.png", og_alt="OficioCerca"):
     url = SITE + path
     robots = '<meta name="robots" content="noindex,follow">' if noindex else ''
     ld = f'<script type="application/ld+json">{json.dumps(jsonld, ensure_ascii=False)}</script>' if jsonld else ''
+    og_extra = "" if og_image == "assets/img/og-image.png" else (
+        f'\n<meta property="og:image:secure_url" content="{SITE}{og_image}">\n<meta property="og:image:type" content="image/jpeg">'
+        f'\n<meta property="og:image:alt" content="{e(og_alt)}">\n<meta name="twitter:title" content="{e(title)}">'
+        f'\n<meta name="twitter:description" content="{e(desc)}">\n<meta name="twitter:image" content="{SITE}{og_image}">')
     return f"""<!doctype html>
 <html lang="es">
 <head>
@@ -67,10 +71,10 @@ def head(title, desc, path, p, noindex=False, jsonld=None):
 <meta property="og:title" content="{e(title)}">
 <meta property="og:description" content="{e(desc)}">
 <meta property="og:url" content="{url}">
-<meta property="og:image" content="{SITE}assets/img/og-image.png">
+<meta property="og:image" content="{SITE}{og_image}">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:card" content="summary_large_image">{og_extra}
 <link rel="icon" href="{p}favicon.svg" type="image/svg+xml">
 <link rel="icon" href="{p}assets/img/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="{p}assets/img/apple-touch-icon.png">
@@ -211,7 +215,7 @@ def page_home():
         {"@type": "WebSite", "@id": SITE + "#web", "name": "OficioCerca", "url": SITE, "inLanguage": "es-ES", "publisher": {"@id": SITE + "#org"}}]}
     opciones = [
         ("Necesito un profesional", "Soy particular, empresa o contratista y necesito encontrar un profesional para realizar un trabajo.", "Solicitar un servicio", "solicitar/", "home"),
-        ("Quiero recibir trabajos", "Soy profesional independiente, contratista o empresa y quiero registrarme para recibir oportunidades de trabajo.", "Registrarme para recibir trabajos", "profesionales/", "wrench"),
+        ("Quiero recibir trabajos", "Soy profesional independiente, autónomo o empresa y quiero registrarme para recibir oportunidades de trabajo.", "Registrarme para recibir trabajos", "profesionales/", "wrench"),
     ]
     opts = "".join(
         f'<a class="hopt" href="{h}"><span class="hopt-ico">{ico(i)}</span><span class="hopt-t">{e(t)}</span>'
@@ -481,7 +485,7 @@ def page_profesionales():
 <section class="page-hero"><div class="wrap">
   <div class="crumbs"><a href="../">Inicio</a> / Profesionales</div>
   <h1>Regístrate para recibir trabajos</h1>
-  <p>Para profesionales independientes, contratistas y empresas. Recibe por correo oportunidades compatibles con tus servicios y tu zona; tú decides cuáles atiendes. OficioCerca no es un empleador: te pone en contacto con clientes. Registro gratuito.</p>
+  <p>Para profesionales independientes, autónomos y empresas. Recibe por correo oportunidades compatibles con tus servicios y tu zona; tú decides cuáles atiendes. OficioCerca no es un empleador: te pone en contacto con clientes. Registro gratuito.</p>
   <p class="req-legend"><span class="req">*</span> Obligatorio. El resto es opcional.</p>
   {ayuda_box(p, "tut-registro", "¿Quieres ver cómo funciona el registro?", "¿Necesitas ayuda con tu registro?", WA_MSG_PRO)}
 </div></section>
@@ -589,6 +593,63 @@ def page_profesionales():
     write("profesionales/index.html", head("Profesionales: recibe trabajos de tu oficio · OficioCerca",
           "Regístrate en OficioCerca y recibe por correo oportunidades compatibles con tus servicios y tu zona. Registro gratuito. Piloto en Córdoba.",
           "profesionales/", p) + header(p) + body + footer(p, f'<script src="{p}assets/js/forms.js?v={VERSION}" defer></script>'))
+
+def page_profesionales_cordoba():
+    """Landing de captación para profesionales de Córdoba (enlace que se comparte por WhatsApp). Mismo registro de siempre.
+    ?src=whatsapp es opcional: la página es idéntica con o sin él; la procedencia solo queda como «ref» si la persona se registra."""
+    p = "../../"
+    reg = "../#form-profesional"
+    pasos = [("Te registras.", "Gratis. Revisamos tu alta antes de activarla."),
+             ("Recibes la oportunidad", "cuando existe una solicitud compatible con tu servicio, zona y disponibilidad."),
+             ("Si la aceptas, hablas directamente con el cliente.", ""),
+             ("OficioCerca mantiene el seguimiento hasta el cierre.", "")]
+    pasos_html = "".join(f'<li><span class="lp-n">{i+1}</span><span><b>{e(t)}</b>{(" " + e(d)) if d else ""}</span></li>' for i, (t, d) in enumerate(pasos))
+    vent = ["No pagas por recibir una oportunidad.", "Hablas directamente con el cliente.",
+            "Las oportunidades se ofrecen de forma ordenada según servicio, zona y disponibilidad.", "OficioCerca mantiene el seguimiento hasta el cierre."]
+    vent_html = "".join(f'<li>{ico("check")}<span>{e(v)}</span></li>' for v in vent)
+    body = f"""<main id="main" class="lp">
+<section class="lp-hero">
+  <div class="wrap">
+    <p class="lp-eyebrow">OFICIO<b>CERCA</b> · Profesionales de Córdoba</p>
+    <h1>Oportunidades directas. Menos ruido.</h1>
+    <p class="lp-lead">Conectamos solicitudes de clientes con profesionales de Córdoba mediante un proceso organizado, contacto directo y seguimiento hasta el cierre.</p>
+    <a class="btn btn-primary lp-cta" href="{reg}">QUIERO REGISTRARME</a>
+    <p class="lp-mini">Registro gratuito · unos minutos</p>
+  </div>
+</section>
+<section class="wrap lp-sec" aria-label="Ventajas">
+  <ul class="lp-vent">{vent_html}</ul>
+</section>
+<div class="wrap">{video_slot("profesionales_cordoba", "OficioCerca para profesionales")}</div>
+<section class="wrap lp-sec" aria-labelledby="lp-como">
+  <h2 id="lp-como">Cómo funciona</h2>
+  <ol class="lp-pasos">{pasos_html}</ol>
+</section>
+<section class="wrap lp-sec" aria-labelledby="lp-com">
+  <div class="lp-card">
+    <h2 id="lp-com">No pagas por recibir una oportunidad.</h2>
+    <p>La comisión actual sobre la mano de obra final es:</p>
+    <p class="lp-formula"><b>10 %</b> de los primeros 2.000 € <span>+</span> <b>5 %</b> del excedente</p>
+    <p class="lp-small">Materiales excluidos · Sin tope.</p>
+  </div>
+</section>
+<section class="wrap lp-sec" aria-label="Confianza">
+  <p class="lp-trust">{ico("check")}<span>Las valoraciones de OficioCerca están vinculadas a servicios cerrados y confirmados dentro de la plataforma.</span></p>
+</section>
+<section class="lp-final">
+  <div class="wrap">
+    <h2>¿Quieres recibir oportunidades en Córdoba?</h2>
+    <a class="btn btn-primary lp-cta" href="{reg}">QUIERO FORMAR PARTE DE OFICIOCERCA</a>
+    <p class="lp-mini"><a href="{p}condiciones-profesionales/">Condiciones para profesionales</a> · <a href="{p}ayuda/#profesional">Ayuda</a></p>
+  </div>
+</section>
+</main>
+"""
+    desc = "Oportunidades directas para profesionales de Córdoba: no pagas por recibir una oportunidad, contacto directo con el cliente y seguimiento hasta el cierre."
+    write("profesionales/cordoba/index.html", head("OficioCerca · Profesionales de Córdoba", desc, "profesionales/cordoba/", p,
+          og_image="assets/img/og-profesionales-cordoba.jpg", og_alt="OficioCerca · Profesionales de Córdoba · Oportunidades directas. Menos ruido.")
+          .replace("</head>", f'<link rel="stylesheet" href="{p}assets/css/landing.css?v={VERSION}">\n</head>', 1)
+          + header(p) + body + footer(p))
 
 def page_ciudad(c):
     p = "../"
@@ -918,7 +979,7 @@ def data_js():
     write("assets/js/data.js", js)
 
 def sitemap():
-    urls = ["", "solicitar/", "profesionales/", "ayuda/"] + [f"{c['slug']}/" for c in CIUDADES if c["activa"]]
+    urls = ["", "solicitar/", "profesionales/", "profesionales/cordoba/", "ayuda/"] + [f"{c['slug']}/" for c in CIUDADES if c["activa"]]
     for pg in CAT.get("paginasOficioCiudad", []):
         o = next(x for x in OFICIOS if x["slug"] == pg["oficio"])
         urls.append(f"{pg['ciudad']}/{o['url']}/")
@@ -929,7 +990,7 @@ def sitemap():
 if __name__ == "__main__":
     print("Generando OficioCerca…")
     data_js()
-    page_home(); page_solicitar(); page_profesionales()
+    page_home(); page_solicitar(); page_profesionales(); page_profesionales_cordoba()
     for c in CIUDADES:
         if c["activa"]:
             page_ciudad(c)
