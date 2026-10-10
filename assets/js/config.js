@@ -23,7 +23,7 @@ window.OC_CONFIG = {
   ENDPOINT: "https://script.google.com/macros/s/AKfycbyjOjHiDWHdLwXx23eMkHZi7z2PYbTRiuqYYQvfe7HGRdnPfWqNO9MlhB-pl0_BrCHZ/exec",
   WHATSAPP_SUPPORT: "573000179524",
   CONTACT_EMAIL: "oficiocerca@gmail.com",
-  SITE_URL: "https://oficiocerca.pages.dev/", // FUTURO: "https://oficiocerca.com/" (cambiar junto a SITE en tools/build.py)
+  SITE_URL: "https://oficiocercaya.com/", // dominio oficial (igual que SITE en tools/build.py)
   MAX_PHOTOS: 5,
   PHOTO_MAX_SIDE: 1600,
   PHOTO_QUALITY: 0.78

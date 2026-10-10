@@ -1,7 +1,8 @@
 # OficioCerca — web V1 (piloto Córdoba)
 
-- **URL pública del piloto:** https://oficiocerca.pages.dev (Cloudflare Pages, despliegue automático desde la rama `main`)
-- **GitHub Pages:** https://stymaster182-ship-it.github.io/oficiocerca/ redirige automáticamente a oficiocerca.pages.dev (script en el `<head>`)
+- **Dominio oficial:** https://oficiocercaya.com (Cloudflare Registrar + Cloudflare Pages, despliegue automático desde `main`). La marca es «OficioCerca»; el «ya» es solo del dominio.
+- **URL técnica:** https://oficiocerca.pages.dev redirige con 301 a oficiocercaya.com (`functions/_middleware.js`); `www.oficiocercaya.com` también.
+- **GitHub Pages:** https://stymaster182-ship-it.github.io/oficiocerca/ redirige automáticamente a oficiocercaya.com (script en el `<head>`)
 - **Backend:** Google Apps Script V1.5 en la cuenta oficiocerca@gmail.com (ver `backend/README.md`)
 - **Correo oficial:** oficiocerca@gmail.com
 
