@@ -729,7 +729,7 @@ def page_oficio_ciudad(c, o):
           f"Solicita {o['profesional'].lower()} en {c['nombre']} con OficioCerca: revisamos tu solicitud, buscamos profesional y hacemos seguimiento.",
           f"{c['slug']}/{o['url']}/", p) + header(p) + body + footer(p))
 
-LEGAL_NOTE = '<div class="draft-banner">BORRADOR PROVISIONAL. Este texto es orientativo y debe ser revisado por un profesional jurídico antes de la explotación comercial de OficioCerca. Los campos marcados en amarillo están pendientes de completar.</div>'
+LEGAL_NOTE = '<div class="draft-banner">Versión vigente durante la fase piloto de OficioCerca (octubre de 2026). Describe cómo funciona el servicio hoy y puede actualizarse; los cambios relevantes se comunicarán antes de aplicarse.</div>'
 PH = lambda t: f'<span class="placeholder">[{t}]</span>'
 MAIL = f'<a href="mailto:{CONTACT_EMAIL}">{CONTACT_EMAIL}</a>'
 
@@ -738,7 +738,7 @@ def page_privacidad():
     body = f"""<main id="main"><div class="wrap"><section class="page-hero"><div class="crumbs"><a href="../">Inicio</a> / Privacidad</div><h1>Política de privacidad</h1></section>
 <article class="legal">{LEGAL_NOTE}
 <h2>1. Responsable del tratamiento</h2>
-<p>Titular: {PH('nombre completo o razón social pendiente')}. Identificación fiscal: {PH('pendiente')}. Domicilio y país de establecimiento: {PH('pendiente')}. Correo de contacto: {MAIL}.</p>
+<p>Marca: OficioCerca. Responsable del tratamiento: Johan Stiven Tangarife Bedoya, persona física establecida en Colombia que opera OficioCerca (OficioCerca no es una sociedad mercantil). Contacto para cualquier asunto de privacidad: {MAIL}.</p>
 <h2>2. Qué datos tratamos</h2>
 <p><strong>Quien solicita un servicio</strong> (particular, empresa o contratista): quién solicita, nombre, correo electrónico, WhatsApp, zona o barrio, servicio, descripción del trabajo y plazo deseado (obligatorios); y, si los indica, nombre de la empresa, código postal, fecha aproximada, cómo prefiere que le contacte el profesional asignado y fotografías.</p>
 <p><strong>Quien se registra para recibir trabajos</strong> (profesional independiente o autónomo, contratista o empresa): tipo de proveedor, nombre, correo, WhatsApp, servicios que realiza, experiencia, ciudad, código postal, zonas, distancia, disponibilidad habitual y tipo de clientes que atiende (obligatorios); y, si los indica, empresa o nombre comercial, otro teléfono, especialidades y descripción.</p>
@@ -749,7 +749,7 @@ def page_privacidad():
 <h2>4. Cómo se elige al profesional (reglas, no IA)</h2>
 <p>La selección puede hacerse de forma automática mediante reglas de compatibilidad fijas: servicio declarado, ciudad, zona y distancia, tipo de cliente (particular, o empresa/contratista), disponibilidad y estado del profesional (solo profesionales activos y revisados). Entre los compatibles se ordena por coincidencia de zona, disponibilidad, historial y rotación para repartir las oportunidades. No se utiliza inteligencia artificial ni se toman decisiones con efectos jurídicos sobre el cliente: el cliente decide siempre si confirma el cierre; las incidencias y cualquier pausa de un profesional las decide una persona. La reputación (valoraciones, respuesta y cumplimiento del seguimiento) es solo una señal secundaria con pesos configurables. Las solicitudes de «Otro servicio» se revisan manualmente. Servicios activos del piloto: Electricidad, Fontanería, Marmolería, Carpintería y ebanistería y Pintura.</p>
 <h2>5. Base legal</h2>
-<p>Quien solicita un servicio marca una única casilla, no premarcada, por la que declara haber leído esta política y las condiciones de uso y autoriza la gestión de su solicitud y el reparto de información descrito abajo. Quien se registra para recibir trabajos acepta las condiciones para profesionales con una casilla, también no premarcada. Además, el tratamiento es necesario para gestionar lo que el propio interesado solicita. {PH('revisar con asesor jurídico')}</p>
+<p>Quien solicita un servicio marca una única casilla, no premarcada, por la que declara haber leído esta política y las condiciones de uso y autoriza la gestión de su solicitud y el reparto de información descrito abajo. Quien se registra para recibir trabajos acepta las condiciones para profesionales con una casilla, también no premarcada. Además, el tratamiento es necesario para gestionar lo que el propio interesado solicita.</p>
 <h2>6. Con quién se comparten</h2>
 <p>El reparto se hace en dos momentos y de uno en uno (nunca a muchos profesionales a la vez):</p>
 <ul>
@@ -758,26 +758,26 @@ def page_privacidad():
 </ul>
 <p>Las fotos se guardan en una carpeta privada y se envían únicamente como adjuntos de esos correos; no se comparten por enlace. Una vez enviado un correo, su copia queda en el buzón del destinatario y OficioCerca no puede retirarla.</p>
 <p><strong>Página de seguimiento:</strong> cada correo al cliente incluye un enlace personal y privado que muestra solo esa solicitud (y los demás servicios que ese mismo cliente haya añadido desde ella), sin necesidad de cuenta ni contraseña. El enlace contiene un código aleatorio que no incluye datos personales, caduca y puede revocarse. Quien tenga el enlace puede ver esa solicitud: no lo reenvíes.</p>
-<p><strong>Soporte por WhatsApp:</strong> si escribes al WhatsApp de OficioCerca, tratamos tu número y los mensajes que envíes para atenderte. Los botones de la web prellenan el mensaje solo con el código de la solicitud y datos operativos (rol, servicio, estado y motivo); nunca incluyen tu enlace privado, tu correo ni tu teléfono. WhatsApp es un servicio de un tercero (Meta) {PH('revisar encargados del tratamiento y transferencias internacionales')}.</p>
-<p>Los datos se almacenan y los correos se envían mediante servicios de Google {PH('revisar transferencias internacionales y garantías aplicables')}. No vendemos datos a terceros. Las valoraciones no se publican.</p>
+<p><strong>Soporte por WhatsApp:</strong> si escribes al WhatsApp de OficioCerca, tratamos tu número y los mensajes que envíes para atenderte. Los botones de la web prellenan el mensaje solo con el código de la solicitud y datos operativos (rol, servicio, estado y motivo); nunca incluyen tu enlace privado, tu correo ni tu teléfono. WhatsApp es un servicio de un tercero (Meta), que también trata esos mensajes según sus propias condiciones y puede hacerlo fuera del Espacio Económico Europeo.</p>
+<p>Los datos se almacenan y los correos se envían mediante servicios de Google (Gmail, Hojas de cálculo, Apps Script y Drive), que pueden tratar los datos fuera del Espacio Económico Europeo con las garantías contractuales que ofrece Google. La web se sirve mediante Cloudflare Pages. No vendemos datos a terceros. Las valoraciones no se publican.</p>
 <h2>7. Cuánto tiempo los conservamos</h2>
-<p>{PH('plazo pendiente; propuesta: solicitudes no gestionadas, 6 meses; solicitudes gestionadas y acuerdos, el tiempo necesario para el seguimiento, la tarifa y las obligaciones legales')}.</p>
+<p>Conservamos los datos mientras sean necesarios para la finalidad para la que se recogieron (gestionar la solicitud o el alta, su seguimiento, el cierre y las incidencias) y, después, solo el tiempo necesario para atender posibles reclamaciones o cumplir obligaciones legales. Puedes pedir antes su supresión escribiendo a {MAIL}.</p>
 <h2>8. Tus derechos</h2>
 <p>Puedes solicitar acceso, rectificación, supresión, oposición, limitación y portabilidad escribiendo a {MAIL}, y presentar una reclamación ante la Agencia Española de Protección de Datos (aepd.es).</p>
 <h2>9. Cookies</h2>
 <p>Este sitio no utiliza cookies de analítica ni publicidad en esta versión. Si se añadieran, se informará y se pedirá consentimiento cuando corresponda.</p>
 </article></div></main>
 """
-    write("privacidad/index.html", head("Política de privacidad (borrador) · OficioCerca", "Borrador provisional de la política de privacidad de OficioCerca.", "privacidad/", p, noindex=True) + header(p) + body + footer(p))
+    write("privacidad/index.html", head("Política de privacidad · OficioCerca", "Política de privacidad de OficioCerca: quién es el responsable, qué datos se tratan y cómo ejercer tus derechos.", "privacidad/", p, noindex=True) + header(p) + body + footer(p))
 
 def page_condiciones():
     p = "../"
     body = f"""<main id="main"><div class="wrap"><section class="page-hero"><div class="crumbs"><a href="../">Inicio</a> / Condiciones</div><h1>Condiciones de uso</h1></section>
 <article class="legal">{LEGAL_NOTE}
 <h2>1. Qué es OficioCerca</h2>
-<p>OficioCerca es un servicio, actualmente en fase piloto en Córdoba capital, que pone en contacto a particulares, empresas y contratistas que necesitan un trabajo con profesionales independientes, contratistas y empresas que pueden realizarlo. Titular: {PH('pendiente')}. Contacto: {MAIL}.</p>
+<p>OficioCerca es un servicio, actualmente en fase piloto en Córdoba capital, que pone en contacto a particulares, empresas y contratistas que necesitan un trabajo con profesionales independientes, contratistas y empresas que pueden realizarlo. Marca: OficioCerca. Responsable: Johan Stiven Tangarife Bedoya, establecido en Colombia, que opera OficioCerca como persona física (OficioCerca no es una sociedad mercantil). Contacto: {MAIL}.</p>
 <h2>2. Papel de OficioCerca</h2>
-<p>OficioCerca actúa como intermediario. No ejecuta obras, no fija los precios de los trabajos, no emite los presupuestos ni las facturas de los trabajos y no cobra, recibe ni custodia el dinero de los trabajos. El contrato del trabajo se establece directamente entre el cliente y el profesional, que es responsable de su ejecución, permisos, garantías legales y seguros. OficioCerca no presta garantías propias sobre los trabajos.</p>
+<p>OficioCerca actúa como intermediario. No ejecuta obras, no fija los precios de los trabajos, no emite los presupuestos ni las facturas de los trabajos y no cobra, recibe ni custodia el dinero de los trabajos. El cliente paga el trabajo directamente al profesional. El contrato del trabajo se establece directamente entre el cliente y el profesional, que es responsable de su ejecución, permisos, garantías legales y seguros. OficioCerca no presta garantías propias sobre los trabajos.</p>
 <h2>3. Para quien solicita un servicio</h2>
 <p>Pueden solicitar servicios particulares, empresas y contratistas desde la misma entrada («Necesito un profesional»). La solicitud es gratuita, no necesita cuenta y no obliga a cerrar ningún acuerdo. Servicios activos del piloto: Electricidad, Fontanería, Marmolería, Carpintería y ebanistería y Pintura; las solicitudes de «Otro servicio» se revisan manualmente, sin garantía de disponibilidad.</p>
 <p>OficioCerca ofrece la solicitud a profesionales compatibles, de uno en uno, según reglas de servicio, zona, plazo y tipo de cliente. Si solo hay disponibilidad posterior al plazo pedido, el cliente decide si continúa con ese profesional, si seguimos buscando o si cancela. Los datos de contacto del cliente solo se facilitan al profesional asignado, y el cliente recibe a su vez los datos de contacto de ese profesional.</p>
@@ -792,18 +792,18 @@ def page_condiciones():
 <p>No está permitido enviar solicitudes falsas, datos de terceros sin autorización o contenido ofensivo, ni usar los datos de contacto recibidos para fines distintos de la solicitud.</p>
 <h2>7. Profesionales</h2>
 <p>Quienes se registran para recibir trabajos se rigen además por las <a href="../condiciones-profesionales/">condiciones para profesionales</a>. Una misma persona o empresa puede solicitar servicios y también registrarse para recibir trabajos.</p>
-<h2>8. Ley aplicable</h2>
-<p>{PH('pendiente de revisión jurídica')}</p>
+<h2>8. Normativa aplicable y reclamaciones</h2>
+<p>Estas condiciones se interpretan conforme a la normativa aplicable. Si eres consumidor, conservas los derechos que te reconozca la normativa de tu país de residencia. Ante cualquier problema o reclamación, escríbenos primero a {MAIL} para buscar una solución.</p>
 </article></div></main>
 """
-    write("condiciones/index.html", head("Condiciones de uso (borrador) · OficioCerca", "Borrador provisional de las condiciones de uso de OficioCerca.", "condiciones/", p, noindex=True) + header(p) + body + footer(p))
+    write("condiciones/index.html", head("Condiciones de uso · OficioCerca", "Condiciones de uso de OficioCerca durante su fase piloto en Córdoba.", "condiciones/", p, noindex=True) + header(p) + body + footer(p))
 
 def page_condiciones_profesionales():
     p = "../"
     body = f"""<main id="main"><div class="wrap"><section class="page-hero"><div class="crumbs"><a href="../">Inicio</a> / <a href="../profesionales/">Recibir trabajos</a> / Condiciones</div><h1>Condiciones para profesionales</h1><p>Versión {PRO_COND_VERSION} · <a href="v3/">ver versión anterior (V3, archivada)</a></p></section>
 <article class="legal">{LEGAL_NOTE}
 <h2>1. Papel de OficioCerca</h2>
-<p>OficioCerca actúa como intermediario entre clientes y proveedores independientes (profesionales independientes o autónomos, contratistas y empresas). OficioCerca no es un empleador: no existe relación laboral entre OficioCerca y el proveedor, que recibe oportunidades de trabajo, no un empleo. OficioCerca no es parte del contrato del trabajo, no cotiza, no negocia precios y no garantiza los trabajos. Titular: {PH('pendiente')}. Contacto: {MAIL}.</p>
+<p>OficioCerca actúa como intermediario entre clientes y proveedores independientes (profesionales independientes o autónomos, contratistas y empresas). OficioCerca no es un empleador: no existe relación laboral entre OficioCerca y el proveedor, que recibe oportunidades de trabajo, no un empleo. OficioCerca no es parte del contrato del trabajo, no cotiza, no negocia precios y no garantiza los trabajos. Marca: OficioCerca. Responsable: Johan Stiven Tangarife Bedoya, establecido en Colombia, que opera OficioCerca como persona física (OficioCerca no es una sociedad mercantil). Contacto: {MAIL}.</p>
 <h2>2. Alta y revisión</h2>
 <p>El registro es gratuito. El proveedor indica su tipo (profesional independiente/autónomo, contratista o empresa) y los servicios que realiza; todos reciben oportunidades de la misma forma. Servicios activos del piloto: Electricidad, Fontanería, Marmolería, Carpintería y ebanistería y Pintura; «Otro servicio» se gestiona manualmente. Cada alta queda «Pendiente de revisar» y solo recibe oportunidades cuando OficioCerca la marca como «Activo». Para recibir oportunidades es necesario haber aceptado expresamente la versión vigente de estas condiciones (se registra la versión, la fecha y la hora). El registro no da derecho a un número mínimo de trabajos.</p>
 <h2>3. Oportunidades</h2>
@@ -822,7 +822,7 @@ def page_condiciones_profesionales():
 <p><strong>Cuándo nace:</strong> solo cuando el <strong>cliente confirma el cierre</strong>, sobre la <strong>mano de obra FINAL confirmada</strong>.</p>
 <p><strong>Cuánto:</strong> <strong>10 % de los primeros 2.000 € de mano de obra y 5 % de la parte que supere 2.000 €</strong>, sin importe máximo. <strong>Los materiales no generan comisión.</strong> Ejemplos: 1.000 € → 100 € · 2.000 € → 200 € · 3.000 € → 250 € · 5.000 € → 350 € · 10.000 € → 600 €. Se conservan el valor inicial, el final, la diferencia, el motivo y las fechas.</p>
 <p><strong>Comisión pendiente:</strong> mientras una comisión exigible esté pendiente de pago, el proveedor no recibe NUEVAS oportunidades. No se elimina su cuenta, su historial ni sus trabajos en curso. Al confirmarse el pago vuelve a recibir oportunidades automáticamente.</p>
-<p><strong>Durante el piloto la comisión solo se calcula y se registra: no se cobra.</strong> Su cobro real queda condicionado a la aprobación de la pasarela de pago, la definición del titular, la fiscalidad aplicable y la revisión legal, y se comunicará por escrito antes de aplicarse. {PH('condiciones de facturación y pago pendientes')}</p>
+<p><strong>Durante el piloto la comisión solo se calcula y se registra: no se cobra.</strong> Su cobro real queda condicionado a la aprobación de la pasarela de pago, la fiscalidad aplicable y la revisión legal, y se comunicará por escrito antes de aplicarse, junto con sus condiciones de facturación y pago.</p>
 <p>El proveedor debe declarar los importes de forma realista. Falsear deliberadamente los importes para evitar la comisión puede provocar la revisión o la pausa de su alta.</p>
 <h2>8. Incidencias</h2>
 <p>Cualquiera de las partes puede reportar una incidencia (no se pudo contactar, retraso, trabajo abandonado, trabajo parcial, desacuerdo económico, calidad, daños, materiales o bienes, falta de comunicación, situación grave u otro). Mientras se revisa, el servicio queda «En revisión»: se detienen el cierre automático, la comisión y las reseñas, y no se inventan importes. Una persona revisa cada caso y lo resuelve como trabajo completo, trabajo parcial (comisión sobre la mano de obra reconocida), cancelado sin trabajo (sin comisión) o sin acuerdo / revisión manual (sin comisión). Una queja no bloquea automáticamente al proveedor; ante hechos verificados OficioCerca puede aplicar una <strong>pausa temporal de nuevas oportunidades</strong>, sin borrar la cuenta, el historial ni los trabajos en curso. OficioCerca no sustituye a autoridades, juzgados, aseguradoras ni garantías legales.</p>
@@ -830,11 +830,11 @@ def page_condiciones_profesionales():
 <p>Solo el cliente de un servicio con cierre confirmado puede valorarlo (1 a 5 estrellas y comentario opcional, marcado como «trabajo verificado»). El proveedor ve su reputación (media, trabajos cerrados y valoraciones). Las buenas valoraciones, el cumplimiento del seguimiento y una buena respuesta pueden ayudarte a ser tenido en cuenta con mayor prioridad para futuras oportunidades. Es una señal secundaria: se aplica después de los filtros de servicio, zona, tipo de cliente y condiciones, los proveedores nuevos siguen recibiendo oportunidades y nadie tiene garantizado ser siempre el primero. No actualizar el seguimiento de forma reiterada puede reducir la prioridad.</p>
 <h2>10. Estados del proveedor y versiones</h2>
 <p>Pendiente de revisar · Activo · En revisión · Pausa temporal de nuevas oportunidades · Baja. El proveedor puede pedir la baja en cualquier momento escribiendo a {MAIL}. OficioCerca registra qué versión de estas condiciones aceptó cada proveedor, con fecha y hora; la aceptación de versiones anteriores no se sobrescribe y no existe aceptación tácita: para seguir recibiendo oportunidades se pide aceptar expresamente la versión nueva.</p>
-<h2>11. Ley aplicable</h2>
-<p>{PH('pendiente de revisión jurídica')}</p>
+<h2>11. Normativa aplicable y discrepancias</h2>
+<p>Estas condiciones se interpretan conforme a la normativa aplicable. Ante cualquier discrepancia, escríbenos primero a {MAIL} para buscar una solución.</p>
 </article></div></main>
 """
-    write("condiciones-profesionales/index.html", head("Condiciones para profesionales (borrador) · OficioCerca", "Borrador provisional de las condiciones para profesionales de OficioCerca.", "condiciones-profesionales/", p, noindex=True) + header(p) + body + footer(p))
+    write("condiciones-profesionales/index.html", head("Condiciones para profesionales · OficioCerca", "Condiciones para profesionales de OficioCerca durante su fase piloto en Córdoba.", "condiciones-profesionales/", p, noindex=True) + header(p) + body + footer(p))
 
 def page_condiciones_profesionales_v3():
     """Versión V3 ARCHIVADA (no se sobrescribe): referencia de lo que aceptaron los profesionales antes de V4."""
@@ -842,7 +842,7 @@ def page_condiciones_profesionales_v3():
     body = f"""<main id="main"><div class="wrap"><section class="page-hero"><div class="crumbs"><a href="../../">Inicio</a> / <a href="../">Condiciones para profesionales</a> / Versión V3 (archivada)</div><h1>Condiciones para profesionales — versión anterior</h1><p>Versión PRO-COND-2026-10-V3 · ARCHIVADA</p></section>
 <article class="legal"><div class="draft-banner">VERSIÓN ARCHIVADA. Ya no es la vigente: se conserva como referencia de lo aceptado por quienes la aceptaron. La versión vigente es <a href="../">{PRO_COND_VERSION}</a>.</div>{LEGAL_NOTE}
 <h2>1. Papel de OficioCerca</h2>
-<p>OficioCerca actúa como intermediario entre clientes y proveedores independientes (profesionales independientes o autónomos, contratistas y empresas). OficioCerca no es un empleador: no existe relación laboral entre OficioCerca y el proveedor, que recibe oportunidades de trabajo, no un empleo. OficioCerca no es parte del contrato del trabajo. Titular: {PH('pendiente')}. Contacto: {MAIL}.</p>
+<p>OficioCerca actúa como intermediario entre clientes y proveedores independientes (profesionales independientes o autónomos, contratistas y empresas). OficioCerca no es un empleador: no existe relación laboral entre OficioCerca y el proveedor, que recibe oportunidades de trabajo, no un empleo. OficioCerca no es parte del contrato del trabajo. Marca: OficioCerca. Responsable: Johan Stiven Tangarife Bedoya, establecido en Colombia, que opera OficioCerca como persona física (OficioCerca no es una sociedad mercantil). Contacto: {MAIL}.</p>
 <h2>2. Alta y revisión</h2>
 <p>El registro es gratuito. El proveedor indica su tipo (profesional independiente/autónomo, contratista o empresa) y los servicios que realiza; todos reciben oportunidades de la misma forma. Servicios activos del piloto: Electricidad, Fontanería, Marmolería, Carpintería y ebanistería y Pintura; «Otro servicio» se gestiona manualmente. Cada alta queda «Pendiente de revisar» y solo recibe oportunidades cuando OficioCerca la marca como «Activo». Para activarse es necesario haber aceptado esta versión de las condiciones con la casilla del registro (se registra la versión, la fecha y la hora). El registro no da derecho a un número mínimo de trabajos.</p>
 <h2>3. Oportunidades</h2>
@@ -857,15 +857,15 @@ def page_condiciones_profesionales_v3():
 <p><strong>Cuándo nace:</strong> la comisión solo nace cuando el <strong>cliente confirma que el trabajo ha terminado</strong> (doble cierre: el proveedor indica «Trabajo terminado» y el cliente lo confirma), sobre la mano de obra del último acuerdo confirmado por el cliente.</p>
 <p><strong>Cuánto:</strong> <strong>10 % de los primeros 2.000 € de mano de obra y 5 % de la parte que supere 2.000 €</strong>, sin importe máximo. <strong>Los materiales no forman parte de la base.</strong> Ejemplos: 1.000 € → 100 € · 2.000 € → 200 € · 3.000 € → 250 € · 5.000 € → 350 € · 10.000 € → 600 €.</p>
 <p><strong>Comisión pendiente:</strong> mientras una comisión exigible esté pendiente de pago, el proveedor no recibe NUEVAS oportunidades. Esto no elimina su cuenta, no cambia su historial ni sus trabajos anteriores y no afecta a los trabajos que ya tiene en curso. Al confirmarse el pago vuelve a recibir oportunidades automáticamente.</p>
-<p><strong>Durante el piloto la comisión solo se calcula y se registra: no se cobra.</strong> Su cobro real (mediante una pasarela de pago) queda condicionado a la aprobación de la pasarela, la definición del titular, la fiscalidad aplicable y la revisión legal, y se comunicará por escrito antes de aplicarse. {PH('condiciones de facturación y pago pendientes')}</p>
+<p><strong>Durante el piloto la comisión solo se calcula y se registra: no se cobra.</strong> Su cobro real (mediante una pasarela de pago) queda condicionado a la aprobación de la pasarela, la fiscalidad aplicable y la revisión legal, y se comunicará por escrito antes de aplicarse, junto con sus condiciones de facturación y pago.</p>
 <p>El proveedor debe declarar los importes de forma realista. Falsear deliberadamente los importes para evitar la comisión puede provocar la revisión o suspensión de su alta.</p>
 <p><strong>Versiones:</strong> OficioCerca registra qué versión de estas condiciones aceptó cada proveedor, con fecha y hora. Cuando se publica una versión nueva se pide aceptarla expresamente antes de recibir nuevas oportunidades; la aceptación anterior no se sobrescribe.</p>
 <h2>7. Finalización, calidad e incidencias</h2>
 <p>Cuando el proveedor indica que el trabajo ha terminado, el cliente debe confirmarlo; no se da por finalizado solo con la declaración del proveedor. Los clientes pueden valorar el servicio y comunicar incidencias. Una valoración negativa aislada no provoca una baja automática. Cada incidencia se registra y la revisa una persona. Ante una incidencia potencialmente grave (fraude, comportamiento peligroso, acoso, documentación falsa, uso indebido de datos o incumplimiento grave) OficioCerca puede aplicar una pausa preventiva mientras la revisa. Varias incidencias verificadas pueden suponer menor prioridad, pausa o baja. Se registra siempre el motivo, la fecha, la acción y la solicitud relacionada. No existen multas automáticas ni expulsiones automáticas.</p>
 <h2>8. Estados del proveedor</h2>
 <p>Pendiente de revisar · Activo · En revisión · Pausado · Baja. El proveedor puede pedir la baja en cualquier momento escribiendo a {MAIL}. Una misma persona o empresa puede también solicitar servicios como cliente.</p>
-<h2>9. Ley aplicable</h2>
-<p>{PH('pendiente de revisión jurídica')}</p>
+<h2>9. Normativa aplicable y discrepancias</h2>
+<p>Estas condiciones se interpretan conforme a la normativa aplicable. Ante cualquier discrepancia, escríbenos primero a {MAIL} para buscar una solución.</p>
 </article></div></main>
 """
     write("condiciones-profesionales/v3/index.html", head("Condiciones para profesionales V3 (archivada) · OficioCerca", "Versión archivada V3 de las condiciones para profesionales de OficioCerca.", "condiciones-profesionales/v3/", p, noindex=True) + header(p) + body + footer(p))
@@ -924,7 +924,7 @@ def page_ayuda():
 <li>Importes declarados de forma realista.</li>
 <li>Una queja no bloquea automáticamente a nadie. Ante hechos verificados puede aplicarse una pausa temporal de nuevas oportunidades, sin borrar la cuenta, el historial ni los trabajos en curso.</li></ul>"""),
         card("legales", "9. Documentos legales", f"""<ul><li><a href="../condiciones/">Condiciones de uso</a></li><li><a href="../condiciones-profesionales/">Condiciones para profesionales ({PRO_COND_VERSION})</a></li>
-<li><a href="../privacidad/">Política de privacidad</a></li></ul><p class="ay-nota">Documentos en BORRADOR PROVISIONAL, pendientes de revisión jurídica.</p>"""),
+<li><a href="../privacidad/">Política de privacidad</a></li></ul><p class="ay-nota">Versiones vigentes durante la fase piloto. Responsable: Johan Stiven Tangarife Bedoya (Colombia) · {MAIL}.</p>"""),
     ]
     idx = "".join(f'<a href="#{a}">{e(t)}</a>' for a, t in [("papel", "Papel de OficioCerca"), ("como-funciona", "Cómo funciona"), ("cliente", "Soy cliente"), ("profesional", "Soy profesional"), ("problema", "Tengo un problema"), ("comisiones", "Comisiones y pagos"), ("resenas", "Reseñas"), ("politicas", "Políticas"), ("legales", "Legales")])
     body = f"""<main id="main"><div class="wrap"><section class="page-hero"><div class="crumbs"><a href="../">Inicio</a> / Ayuda</div><h1>Centro de ayuda y políticas</h1><p>Cómo funciona el servicio, qué hacer en cada paso y qué pasa si algo sale mal.</p></section>
