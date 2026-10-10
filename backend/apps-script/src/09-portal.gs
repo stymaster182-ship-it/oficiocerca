@@ -122,6 +122,30 @@ function urlAyuda_(ancla) { return String(cfg_('URL_WEB') || 'https://oficiocerc
 function botonSoporteWA_(oc) {
   return '<a class="btn sec wa-soporte" data-wa-soporte="' + esc_(oc) + '" target="_blank" rel="noopener" hidden>HABLAR CON SOPORTE POR WHATSAPP</a>';
 }
+/** AYUDA ANTES DE CANCELAR / RECHAZAR (solo presentación: la lógica de cancelación no cambia).
+ * Dos caminos en el mismo bloque: «HABLAR CON UN ASESOR» (no cancela nada) y «… DE TODAS FORMAS» (abre una confirmación;
+ * solo la confirmación expresa ejecuta la acción). La web completa el enlace de WhatsApp con el número oficial (config.js) y un
+ * mensaje con código OC, rol, servicio, estado y motivo: sin token, sin URL privada, sin correo ni teléfono. */
+var MOTIVOS_AYUDA = ['Tengo una duda', 'No logro contactar', 'El servicio cambió', 'Tengo un problema', 'Otro'];
+function bloqueAntesDeCancelar_(o) {
+  var id = o.id, wa = function (cls) { return '<a class="btn ' + cls + ' wa-cancel" data-wa-cancel="' + id + '" target="_blank" rel="noopener" hidden>HABLAR CON UN ASESOR</a>'; };
+  var motivos = MOTIVOS_AYUDA.map(function (m) { return '<option>' + esc_(m) + '</option>'; }).join('');
+  return '<div class="antes-cancelar" id="' + id + '" data-oc="' + esc_(o.oc) + '" data-rol="' + esc_(o.rol) + '" data-servicio="' + esc_(o.servicio) +
+    '" data-estado="' + esc_(o.estado) + '" data-contexto="' + esc_(o.contexto) + '">' +
+    '<p class="ac-q"><b>' + esc_(o.pregunta) + '</b></p><p class="nota">' + esc_(o.sub) + '</p>' +
+    '<div class="wa-motivo" hidden><label for="' + id + 'm">Motivo (opcional)</label><select id="' + id + 'm" data-wa-motivo="' + id + '"><option value="">Elegir (opcional)</option>' + motivos + '</select></div>' +
+    wa('') + '<p class="nota wa-alt">Escríbenos a <a href="mailto:oficiocerca@gmail.com">oficiocerca@gmail.com</a> y te ayudamos.</p>' +
+    '<button class="btn rojo" onclick="ver(\'' + id + 'c\')">' + esc_(o.boton) + '</button>' +
+    '<div id="' + id + 'c" class="panel opc hide"><p class="ac-q"><b>' + esc_(o.confirma) + '</b></p>' + (o.nota ? '<p class="nota">' + esc_(o.nota) + '</p>' : '') +
+    (o.extra || '') + wa('sec') + '<button class="btn rojo" onclick="' + o.accion + '">' + esc_(o.botonFinal) + '</button></div></div>';
+}
+function bloqueCancelarCliente_(sol, id, accion) {
+  return bloqueAntesDeCancelar_({ id: id, oc: sol['Código'], rol: 'Cliente', servicio: servicioTxt_(sol), estado: ESTADO_HUMANO[sol['Estado']] || sol['Estado'],
+    contexto: 'antes de cancelar', pregunta: '¿Tienes una duda o algún problema antes de cancelar?', sub: 'Podemos ayudarte antes de cerrar esta solicitud.',
+    boton: 'CANCELAR DE TODAS FORMAS', confirma: '¿Quieres cancelar de todas formas?', nota: 'Se detendrá la búsqueda y no compartiremos tus datos con ningún profesional.',
+    botonFinal: 'SÍ, CANCELAR DE TODAS FORMAS', accion: accion });
+}
+
 function formIncidencia_(id) {
   var cats = CATEGORIAS_INCIDENCIA.map(function (c) { return '<option>' + esc_(c) + '</option>'; }).join('');
   return '<button class="btn rojo" onclick="ver(\'' + id + '\')">HAY UN PROBLEMA / REPORTAR INCIDENCIA</button>' +
@@ -177,7 +201,7 @@ function paginaSeguimiento_(t, oc) {
     h += '<h2>¿Qué prefieres?</h2><p>El profesional más próximo puede atenderte aproximadamente: <b>' + esc_(sol['Respaldo disponibilidad'] || '') + '</b>.</p>' +
       '<button class="btn" onclick="enviar({a:\'respaldo\',d:\'continuar\'})">Sí, continuar con este profesional</button>' +
       '<button class="btn sec" onclick="enviar({a:\'respaldo\',d:\'seguir\'})">Seguir buscando</button>' +
-      '<button class="btn rojo" onclick="if(confirm(\'¿Seguro que quieres cancelar la solicitud?\'))enviar({a:\'respaldo\',d:\'cancelar\'})">Cancelar solicitud</button>';
+      bloqueCancelarCliente_(sol, 'cx', "enviar({a:'respaldo',d:'cancelar'})");
   }
   if (estado === 'Sin profesional disponible') h += '<button class="btn" onclick="enviar({a:\'volver_a_buscar\'})">VOLVER A BUSCAR</button><p class="nota">Usamos los mismos datos: no tienes que rellenar nada otra vez.</p>';
   if ((estado === 'Trabajo en proceso' || estado === 'Archivado por inactividad') || (estado === 'Profesional asignado' && sol['Fecha registro acuerdo'])) {
@@ -197,6 +221,8 @@ function paginaSeguimiento_(t, oc) {
   if (ESTADOS_ACTIVOS_SERVICIO.indexOf(estado) >= 0) h += formIncidencia_('pi');
   h += historialBasico_(oc);
 
+  // Cancelar (con ayuda antes) dentro del contexto del servicio, antes de «Otras opciones». En «Esperando decisión cliente» ya está en la decisión.
+  if (ESTADOS_CANCELABLES.indexOf(estado) >= 0 && estado !== 'Esperando decisión cliente') h += '<h2>¿Ya no necesitas este servicio?</h2>' + bloqueCancelarCliente_(sol, 'cx', "enviar({a:'cancelar'})");
   h += '<h2>Otras opciones</h2>';
   h += '<button class="btn sec" onclick="ver(\'pn\')">+ Añadir otro servicio</button>' +
     formServicio_('pn', 'nuevo_servicio', SERVICIOS_ACTIVOS.concat(['otro']), 'Añadir este servicio', 'Usaremos tus mismos datos de contacto. Cada servicio tiene su propio seguimiento.');
@@ -205,7 +231,6 @@ function paginaSeguimiento_(t, oc) {
     if (susServ.length) h += '<button class="btn sec" onclick="ver(\'pm\')">Solicitar este servicio al mismo profesional</button>' +
       formServicio_('pm', 'mismo_pro', susServ, 'Pedírselo a ' + p['Nombre'], 'Se lo pediremos a ' + p['Nombre'] + '; debe aceptarlo. Será un servicio nuevo e independiente. Si no puede, buscaremos otro profesional compatible.');
   }
-  if (ESTADOS_CANCELABLES.indexOf(estado) >= 0) h += '<button class="btn rojo" onclick="if(confirm(\'¿Seguro que quieres cancelar esta solicitud?\'))enviar({a:\'cancelar\'})">Cancelar esta solicitud</button>';
   h += '<p class="nota"><a href="' + esc_(urlAyuda_('cliente')) + '" target="_blank" rel="noopener">Centro de ayuda y políticas</a></p>';
   return html_('Seguimiento · ' + oc, h, t);
 }

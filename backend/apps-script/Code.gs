@@ -1743,9 +1743,9 @@ function componer_(tipo, oc, pro, d) {
     /* ---------------- SEGUIMIENTO (cliente o profesional según «Acción pendiente de») ---------------- */
     case 'seguimiento':
       if (!sol['Acción desde'] || new Date(sol['Acción desde']).getTime() !== Number(d.desde) || sol['Plantilla seguimiento'] !== d.plantilla) return null; // ya respondieron
-      var esCli = !pro || !gest, url = esCli ? seg : gest, ult = d.ultimo ? 'Último recordatorio: ' : (d.n > 0 ? 'Recordatorio: ' : '');
+      var esCli = !pro || !gest, url = esCli ? seg : gest, ult = (esCli ? '' : AP) + (d.ultimo ? 'Último recordatorio: ' : (d.n > 0 ? 'Recordatorio: ' : ''));
       var notaUlt = d.ultimo ? (sol['Acción pendiente de'] === 'ambos' ? 'Si no recibimos respuesta, el seguimiento quedará archivado por inactividad.' : 'Si no recibimos respuesta, el servicio pasará a revisión manual.') : '';
-      if (d.plantilla === 'vencimiento') return corto_((d.ultimo ? 'Último recordatorio: ' : '') + 'Indica el estado del servicio ' + oc, 'Llegó la fecha estimada',
+      if (d.plantilla === 'vencimiento') return corto_((esCli ? '' : AP) + (d.ultimo ? 'Último recordatorio: ' : '') + 'Indica el estado del servicio ' + oc, 'Llegó la fecha estimada',
         d.ultimo ? 'Último recordatorio: necesitamos conocer el estado del servicio ' + oc + '.' : 'Llegó la fecha estimada de finalización del servicio ' + oc + '.',
         esCli ? 'Indica su estado: terminado, sigue en proceso o hay un problema.' : 'Indica su estado: terminado o sigue en proceso (con el nuevo plazo).', url, 'INDICAR ESTADO', notaUlt);
       if (d.plantilla === 'actualizar_plazo') return corto_(ult + 'Actualiza el plazo de ' + oc, 'El cliente indica que sigue en proceso',
@@ -1926,9 +1926,12 @@ function pagina_(t) {
       '<button class="btn sec" onclick="ver(\'pb\')">🕒 PUEDO HACERLO, PERO MÁS ADELANTE</button>' +
       '<div id="pb" class="panel opc hide"><label for="fecha">¿A partir de qué fecha aproximada?</label><input type="date" id="fecha" min="' + hoy + '">' +
       '<button class="btn sec" onclick="if(!val(\'fecha\')){alert(\'Elige una fecha\');return}enviar({a:\'mas_adelante\',fecha:val(\'fecha\')})">Confirmar fecha</button></div>' +
-      '<button class="btn rojo" onclick="ver(\'pc\')">✖ NO PUEDO / NO ME INTERESA</button>' +
-      '<div id="pc" class="panel opc hide"><label for="nota">Motivo (opcional)</label><input id="nota" maxlength="200">' +
-      '<button class="btn rojo" onclick="enviar({a:\'no\',nota:val(\'nota\')})">Confirmar: no puedo</button></div>', t);
+      bloqueAntesDeCancelar_({ id: 'px', oc: oc, rol: 'Profesional', servicio: servicioTxt_(sol), estado: 'Oportunidad pendiente de tu respuesta',
+        contexto: 'antes de rechazar la oportunidad', pregunta: '¿Tienes una duda o algún problema antes de rechazarla?',
+        sub: 'Podemos ayudarte antes de que la ofrezcamos a otro profesional. Rechazar no tiene coste.', boton: '✖ NO PUEDO / NO ME INTERESA',
+        confirma: '¿Quieres rechazar esta oportunidad de todas formas?', nota: 'La ofreceremos a otro profesional compatible.',
+        extra: '<label for="nota">Motivo para OficioCerca (opcional)</label><input id="nota" maxlength="200">',
+        botonFinal: 'SÍ, RECHAZAR DE TODAS FORMAS', accion: "enviar({a:'no',nota:val('nota')})" }), t);
   }
   if (tipo === 'respaldo') {
     var ofr = tabla_('Ofertas').buscar('ID', tok['Referencia']);
@@ -1936,7 +1939,7 @@ function pagina_(t) {
     return html_('Disponibilidad para tu solicitud ' + oc, '<p>Pediste: <b>' + esc_(plazoTxt_(sol)) + '</b>. La opción más próxima que encontramos puede atenderte aproximadamente: <b>' + esc_(ofr ? ofr['Disponibilidad'] : '') + '</b>.</p>' +
       '<button class="btn" onclick="enviar({a:\'continuar\'})">Sí, continuar con este profesional</button>' +
       '<button class="btn sec" onclick="enviar({a:\'seguir\'})">Seguir buscando</button>' +
-      '<button class="btn rojo" onclick="if(confirm(\'¿Seguro que quieres cancelar la solicitud?\'))enviar({a:\'cancelar\'})">Cancelar solicitud</button>' +
+      bloqueCancelarCliente_(sol, 'cx', "enviar({a:'cancelar'})") +
       '<p class="nota">Hasta que elijas, no compartimos tus datos de contacto con ningún profesional.</p>', t);
   }
   if (tipo === 'presupuesto' || tipo === 'fin' || tipo === 'cliente') {
@@ -2462,6 +2465,30 @@ function urlAyuda_(ancla) { return String(cfg_('URL_WEB') || 'https://oficiocerc
 function botonSoporteWA_(oc) {
   return '<a class="btn sec wa-soporte" data-wa-soporte="' + esc_(oc) + '" target="_blank" rel="noopener" hidden>HABLAR CON SOPORTE POR WHATSAPP</a>';
 }
+/** AYUDA ANTES DE CANCELAR / RECHAZAR (solo presentación: la lógica de cancelación no cambia).
+ * Dos caminos en el mismo bloque: «HABLAR CON UN ASESOR» (no cancela nada) y «… DE TODAS FORMAS» (abre una confirmación;
+ * solo la confirmación expresa ejecuta la acción). La web completa el enlace de WhatsApp con el número oficial (config.js) y un
+ * mensaje con código OC, rol, servicio, estado y motivo: sin token, sin URL privada, sin correo ni teléfono. */
+var MOTIVOS_AYUDA = ['Tengo una duda', 'No logro contactar', 'El servicio cambió', 'Tengo un problema', 'Otro'];
+function bloqueAntesDeCancelar_(o) {
+  var id = o.id, wa = function (cls) { return '<a class="btn ' + cls + ' wa-cancel" data-wa-cancel="' + id + '" target="_blank" rel="noopener" hidden>HABLAR CON UN ASESOR</a>'; };
+  var motivos = MOTIVOS_AYUDA.map(function (m) { return '<option>' + esc_(m) + '</option>'; }).join('');
+  return '<div class="antes-cancelar" id="' + id + '" data-oc="' + esc_(o.oc) + '" data-rol="' + esc_(o.rol) + '" data-servicio="' + esc_(o.servicio) +
+    '" data-estado="' + esc_(o.estado) + '" data-contexto="' + esc_(o.contexto) + '">' +
+    '<p class="ac-q"><b>' + esc_(o.pregunta) + '</b></p><p class="nota">' + esc_(o.sub) + '</p>' +
+    '<div class="wa-motivo" hidden><label for="' + id + 'm">Motivo (opcional)</label><select id="' + id + 'm" data-wa-motivo="' + id + '"><option value="">Elegir (opcional)</option>' + motivos + '</select></div>' +
+    wa('') + '<p class="nota wa-alt">Escríbenos a <a href="mailto:oficiocerca@gmail.com">oficiocerca@gmail.com</a> y te ayudamos.</p>' +
+    '<button class="btn rojo" onclick="ver(\'' + id + 'c\')">' + esc_(o.boton) + '</button>' +
+    '<div id="' + id + 'c" class="panel opc hide"><p class="ac-q"><b>' + esc_(o.confirma) + '</b></p>' + (o.nota ? '<p class="nota">' + esc_(o.nota) + '</p>' : '') +
+    (o.extra || '') + wa('sec') + '<button class="btn rojo" onclick="' + o.accion + '">' + esc_(o.botonFinal) + '</button></div></div>';
+}
+function bloqueCancelarCliente_(sol, id, accion) {
+  return bloqueAntesDeCancelar_({ id: id, oc: sol['Código'], rol: 'Cliente', servicio: servicioTxt_(sol), estado: ESTADO_HUMANO[sol['Estado']] || sol['Estado'],
+    contexto: 'antes de cancelar', pregunta: '¿Tienes una duda o algún problema antes de cancelar?', sub: 'Podemos ayudarte antes de cerrar esta solicitud.',
+    boton: 'CANCELAR DE TODAS FORMAS', confirma: '¿Quieres cancelar de todas formas?', nota: 'Se detendrá la búsqueda y no compartiremos tus datos con ningún profesional.',
+    botonFinal: 'SÍ, CANCELAR DE TODAS FORMAS', accion: accion });
+}
+
 function formIncidencia_(id) {
   var cats = CATEGORIAS_INCIDENCIA.map(function (c) { return '<option>' + esc_(c) + '</option>'; }).join('');
   return '<button class="btn rojo" onclick="ver(\'' + id + '\')">HAY UN PROBLEMA / REPORTAR INCIDENCIA</button>' +
@@ -2517,7 +2544,7 @@ function paginaSeguimiento_(t, oc) {
     h += '<h2>¿Qué prefieres?</h2><p>El profesional más próximo puede atenderte aproximadamente: <b>' + esc_(sol['Respaldo disponibilidad'] || '') + '</b>.</p>' +
       '<button class="btn" onclick="enviar({a:\'respaldo\',d:\'continuar\'})">Sí, continuar con este profesional</button>' +
       '<button class="btn sec" onclick="enviar({a:\'respaldo\',d:\'seguir\'})">Seguir buscando</button>' +
-      '<button class="btn rojo" onclick="if(confirm(\'¿Seguro que quieres cancelar la solicitud?\'))enviar({a:\'respaldo\',d:\'cancelar\'})">Cancelar solicitud</button>';
+      bloqueCancelarCliente_(sol, 'cx', "enviar({a:'respaldo',d:'cancelar'})");
   }
   if (estado === 'Sin profesional disponible') h += '<button class="btn" onclick="enviar({a:\'volver_a_buscar\'})">VOLVER A BUSCAR</button><p class="nota">Usamos los mismos datos: no tienes que rellenar nada otra vez.</p>';
   if ((estado === 'Trabajo en proceso' || estado === 'Archivado por inactividad') || (estado === 'Profesional asignado' && sol['Fecha registro acuerdo'])) {
@@ -2537,6 +2564,8 @@ function paginaSeguimiento_(t, oc) {
   if (ESTADOS_ACTIVOS_SERVICIO.indexOf(estado) >= 0) h += formIncidencia_('pi');
   h += historialBasico_(oc);
 
+  // Cancelar (con ayuda antes) dentro del contexto del servicio, antes de «Otras opciones». En «Esperando decisión cliente» ya está en la decisión.
+  if (ESTADOS_CANCELABLES.indexOf(estado) >= 0 && estado !== 'Esperando decisión cliente') h += '<h2>¿Ya no necesitas este servicio?</h2>' + bloqueCancelarCliente_(sol, 'cx', "enviar({a:'cancelar'})");
   h += '<h2>Otras opciones</h2>';
   h += '<button class="btn sec" onclick="ver(\'pn\')">+ Añadir otro servicio</button>' +
     formServicio_('pn', 'nuevo_servicio', SERVICIOS_ACTIVOS.concat(['otro']), 'Añadir este servicio', 'Usaremos tus mismos datos de contacto. Cada servicio tiene su propio seguimiento.');
@@ -2545,7 +2574,6 @@ function paginaSeguimiento_(t, oc) {
     if (susServ.length) h += '<button class="btn sec" onclick="ver(\'pm\')">Solicitar este servicio al mismo profesional</button>' +
       formServicio_('pm', 'mismo_pro', susServ, 'Pedírselo a ' + p['Nombre'], 'Se lo pediremos a ' + p['Nombre'] + '; debe aceptarlo. Será un servicio nuevo e independiente. Si no puede, buscaremos otro profesional compatible.');
   }
-  if (ESTADOS_CANCELABLES.indexOf(estado) >= 0) h += '<button class="btn rojo" onclick="if(confirm(\'¿Seguro que quieres cancelar esta solicitud?\'))enviar({a:\'cancelar\'})">Cancelar esta solicitud</button>';
   h += '<p class="nota"><a href="' + esc_(urlAyuda_('cliente')) + '" target="_blank" rel="noopener">Centro de ayuda y políticas</a></p>';
   return html_('Seguimiento · ' + oc, h, t);
 }
@@ -3365,3 +3393,51 @@ function instalarV17() {
   });
   Logger.log('V1.7 instalada. Condiciones vigentes: ' + condVigente_() + ' · seguimiento: ' + JSON.stringify(horasSeg_()) + ' h');
 }
+/* ============================================================ LIMPIEZA DE DATOS DE PRUEBA (cierre pre-piloto)
+ * Se ejecuta A MANO desde el editor: limpiarPruebaOC0001().
+ * - Borra SOLO las filas ligadas a los códigos indicados (pruebas confirmadas por el propietario) en todas las pestañas
+ *   operativas, y envía a la papelera de Drive su carpeta de fotos (si existe). No toca profesionales ni configuración.
+ * - Reinicia SOLO el contador de solicitudes (SEQ_OC) y SOLO si después no queda ninguna solicitud ni ninguna fila que
+ *   mencione un código OC: así el siguiente código (OC-0001) no puede colisionar con nada. Los demás contadores no cambian.
+ * - Idempotente: si ya no hay nada que borrar, no hace nada (y vuelve a comprobar el contador).
+ */
+var PESTANAS_CON_OC = ['Solicitudes', 'Ofertas', 'Presupuestos', 'Comisiones', 'Pagos comisión', 'Eventos Wompi', 'Incidencias', 'Valoraciones',
+  'Historial envíos', 'Registro', 'Tokens'];
+
+function limpiarSolicitudesDePrueba_(codigos, clavesExtra) {
+  var informe = [], fotos = [];
+  conLock_(function () {
+    PESTANAS_CON_OC.forEach(function (n) {
+      var t = tabla_(n), colOC = n === 'Solicitudes' ? 'Código' : (t.cols.indexOf('Código OC') >= 0 ? 'Código OC' : null);
+      if (!colOC && n !== 'Historial envíos') return;
+      var filas = t.todas().filter(function (r) {
+        return (colOC && codigos.indexOf(String(r[colOC]).trim()) >= 0) || (n === 'Historial envíos' && (clavesExtra || []).indexOf(String(r['Clave'])) >= 0);
+      });
+      if (n === 'Solicitudes') filas.forEach(function (r) { if (r['Carpeta fotos (ID)']) fotos.push(r['Carpeta fotos (ID)']); });
+      filas.map(function (r) { return r._fila; }).sort(function (a, b) { return b - a; }).forEach(function (f) { t.sh.deleteRow(f); });
+      t._cache = null;
+      informe.push(n + ': ' + filas.length + ' fila(s) borradas');
+    });
+    fotos.forEach(function (id) { try { DriveApp.getFolderById(id).setTrashed(true); informe.push('Carpeta de fotos a la papelera: ' + id); } catch (e) { informe.push('Carpeta de fotos no encontrada: ' + id); } });
+    _tablas = {};
+    // Reinicio seguro del contador de solicitudes
+    var quedan = tabla_('Solicitudes').todas().length, conOC = 0;
+    PESTANAS_CON_OC.forEach(function (n) {
+      var t = tabla_(n), c = n === 'Solicitudes' ? 'Código' : (t.cols.indexOf('Código OC') >= 0 ? 'Código OC' : null);
+      if (c) conOC += t.todas().filter(function (r) { return /^OC-\d+/.test(String(r[c]).trim()); }).length;
+    });
+    var props = PropertiesService.getScriptProperties(), antes = props.getProperty('SEQ_OC');
+    if (quedan === 0 && conOC === 0) {
+      props.setProperty('SEQ_OC', '0');
+      informe.push('SEQ_OC: ' + antes + ' → 0 (la próxima solicitud real será OC-0001)');
+    } else informe.push('SEQ_OC NO reiniciado (' + antes + '): quedan ' + quedan + ' solicitud(es) y ' + conOC + ' fila(s) con código OC');
+    informe.push('Otros contadores sin cambios: SEQ_PRO=' + props.getProperty('SEQ_PRO') + ' · SEQ_INC=' + props.getProperty('SEQ_INC'));
+  });
+  registrar_('Admin', 'Limpieza de datos de prueba', '', '', codigos.length + ' solicitud(es) de prueba del propietario eliminada(s)');
+  try { actualizarPanel(); } catch (e) { }
+  informe.forEach(function (l) { Logger.log(l); });
+  return informe;
+}
+
+/** OC-0001 fue una prueba del propietario (autorizada su eliminación). También su resumen diario de ese día. */
+function limpiarPruebaOC0001() { return limpiarSolicitudesDePrueba_(['OC-0001'], ['admin-resumen-09/10/2026']); }

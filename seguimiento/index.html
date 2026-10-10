@@ -93,6 +93,15 @@
     if(!wa)return; if(box.querySelector('[data-wa-soporte]')){document.getElementById('ayuda-seg').hidden=true;return;} var oc=ocActual();
     var m=oc?'Hola, necesito ayuda con mi solicitud '+oc+' de OficioCerca.':wa.getAttribute('data-wa-msg');
     wa.href='https://wa.me/'+WA+'?text='+encodeURIComponent(m); document.getElementById('ayuda-seg').hidden=false; }
+  // Ayuda ANTES de cancelar/rechazar: WhatsApp oficial con código OC, rol, servicio, estado y motivo. Sin token, URL privada, correo ni teléfono.
+  function waCancelar(){ if(!/^\d{8,15}$/.test(WA))return;
+    box.querySelectorAll('.antes-cancelar').forEach(function(b){var sel=b.querySelector('[data-wa-motivo]');
+      function msg(){var d=b.dataset, oc=d.oc||ocActual()||'', m=sel&&sel.value?' Motivo: '+sel.value+'.':'';
+        var ini=d.rol==='Cliente'?'Hola, necesito ayuda antes de cancelar la solicitud '+oc+'. Soy cliente.':'Hola, necesito ayuda con la solicitud '+oc+' '+(d.contexto||'')+'. Soy profesional.';
+        return ini+' Servicio: '+(d.servicio||'')+'. Estado actual: '+(d.estado||'')+'.'+m;}
+      function pon(){var u='https://wa.me/'+WA+'?text='+encodeURIComponent(msg());b.querySelectorAll('a.wa-cancel').forEach(function(a){a.href=u;a.hidden=false;});}
+      pon(); if(sel){sel.addEventListener('change',pon);sel.parentNode.hidden=false;}
+      b.querySelectorAll('.wa-alt').forEach(function(x){x.hidden=true;});});}
   // Servicio cancelado: vista simple (solo presentación; el estado y los datos del servicio no cambian).
   function simplificarCancelado(){var p4=box.querySelector('.panel4'); if(!p4||!/est[áa] cancelad/i.test(p4.textContent))return;
     var pn=box.querySelector('#pn'), notas=box.querySelectorAll('p.nota'), ayudaP=null;
@@ -109,7 +118,7 @@
     document.getElementById('cancel-otro').onclick=function(){if(pn&&window.ver){ver('pn');}else{location.href='../solicitar/';}};}
   function notaValoracion(){var st=box.querySelector('.stars'); if(!st||box.querySelector('.nota-val'))return; var n=document.createElement('p'); n.className='nota nota-val';
     n.textContent='Las valoraciones de OficioCerca solo pueden realizarse después de un servicio cerrado y confirmado en la plataforma.'; st.parentNode.insertBefore(n,st);}
-  function pintar(r){tit.textContent=r.titulo||'OficioCerca';box.innerHTML=r.cuerpo||'';if(r.script){var s=document.createElement('script');s.text=r.script;document.body.appendChild(s);}simplificarCancelado();notaValoracion();ayudaWA();}
+  function pintar(r){tit.textContent=r.titulo||'OficioCerca';box.innerHTML=r.cuerpo||'';if(r.script){var s=document.createElement('script');s.text=r.script;document.body.appendChild(s);}simplificarCancelado();notaValoracion();ayudaWA();waCancelar();}
   function errorCarga(){tit.textContent='No se pudo cargar';
     box.innerHTML='<p>La conexión con OficioCerca está tardando más de lo normal o ha fallado. Tus datos no se han perdido.</p><button type="button" class="btn" id="g-reintentar">Reintentar</button>';
     document.getElementById('g-reintentar').onclick=function(){cargar(true);};}

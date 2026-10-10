@@ -237,18 +237,18 @@ def page_home():
 <section class="sec-inst" id="conoce" aria-labelledby="h-inst">
   <div class="wrap">
     <div class="inst-card">
-      <button type="button" class="inst-poster" data-video-open="video-institucional" aria-haspopup="dialog" aria-label="Ver el vídeo: Conoce OficioCerca en menos de un minuto">
-        <img src="assets/video/oficiocerca-institucional-poster.webp" width="1080" height="1920" loading="lazy" decoding="async" alt="">
+      <button type="button" class="inst-poster" data-video-open="video-institucional" aria-haspopup="dialog" aria-label="Ver el vídeo: Conoce OficioCerca">
+        <img src="assets/video/conoce-oficiocerca-poster.webp" width="1080" height="1920" loading="lazy" decoding="async" alt="">
         <span class="inst-play" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg></span>
       </button>
       <div class="inst-txt">
-        <h2 id="h-inst">Conoce OficioCerca en menos de un minuto</h2>
-        <p>Descubre cómo conectamos personas, empresas y contratistas con profesionales de oficios en Córdoba.</p>
+        <h2 id="h-inst">Conoce OficioCerca</h2>
+        <p>Conectamos clientes con profesionales y acompañamos el proceso hasta el cierre.</p>
         <button type="button" class="btn inst-btn" data-video-open="video-institucional" aria-haspopup="dialog">{SVG_PLAY}<span>Ver vídeo</span></button>
       </div>
     </div>
   </div>
-  {video_modal(p, "video-institucional", "Conoce OficioCerca en menos de un minuto", "oficiocerca-institucional", poster="oficiocerca-institucional-poster.webp", vtt=False, aria="vídeo con narración y subtítulos integrados", nota="Vídeo con narración y subtítulos integrados. Puedes ajustar el volumen y verlo en pantalla completa.", clase="vmodal-inst")}
+  {video_modal(p, "video-institucional", "Conoce OficioCerca", "conoce-oficiocerca", poster="conoce-oficiocerca-poster.webp", vtt=False, aria="vídeo con música y subtítulos integrados", nota="Vídeo con música y subtítulos integrados. Puedes ajustar el volumen y verlo en pantalla completa.", clase="vmodal-inst")}
 </section>
 
 <section class="sec" id="servicios" aria-labelledby="h-serv">
@@ -327,6 +327,7 @@ SVG_CHAT = ('<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentCol
 WA_MSG_CLIENTE = "Hola, necesito ayuda para completar una solicitud en OficioCerca."
 WA_MSG_PRO = "Hola, quiero registrarme para recibir oportunidades de trabajo en OficioCerca y necesito ayuda con el proceso."
 WA_MSG_SEG_GENERICO = "Hola, necesito ayuda con una solicitud de OficioCerca."
+WA_MSG_AYUDA = "Hola, necesito ayuda con una solicitud de OficioCerca. Código: OC-"
 
 def ayuda_box(p, video_id, pregunta_video, pregunta_wa, wa_msg):
     """Ayuda contextual: tutorial en modal + asesor por WhatsApp. El número NO se escribe aquí:
@@ -757,6 +758,7 @@ def page_privacidad():
 </ul>
 <p>Las fotos se guardan en una carpeta privada y se envían únicamente como adjuntos de esos correos; no se comparten por enlace. Una vez enviado un correo, su copia queda en el buzón del destinatario y OficioCerca no puede retirarla.</p>
 <p><strong>Página de seguimiento:</strong> cada correo al cliente incluye un enlace personal y privado que muestra solo esa solicitud (y los demás servicios que ese mismo cliente haya añadido desde ella), sin necesidad de cuenta ni contraseña. El enlace contiene un código aleatorio que no incluye datos personales, caduca y puede revocarse. Quien tenga el enlace puede ver esa solicitud: no lo reenvíes.</p>
+<p><strong>Soporte por WhatsApp:</strong> si escribes al WhatsApp de OficioCerca, tratamos tu número y los mensajes que envíes para atenderte. Los botones de la web prellenan el mensaje solo con el código de la solicitud y datos operativos (rol, servicio, estado y motivo); nunca incluyen tu enlace privado, tu correo ni tu teléfono. WhatsApp es un servicio de un tercero (Meta) {PH('revisar encargados del tratamiento y transferencias internacionales')}.</p>
 <p>Los datos se almacenan y los correos se envían mediante servicios de Google {PH('revisar transferencias internacionales y garantías aplicables')}. No vendemos datos a terceros. Las valoraciones no se publican.</p>
 <h2>7. Cuánto tiempo los conservamos</h2>
 <p>{PH('plazo pendiente; propuesta: solicitudes no gestionadas, 6 meses; solicitudes gestionadas y acuerdos, el tiempo necesario para el seguimiento, la tarifa y las obligaciones legales')}.</p>
@@ -893,11 +895,13 @@ def page_ayuda():
 <li>Al llegar la fecha estimada te preguntaremos el estado: terminado, sigue en proceso o hay un problema.</li>
 <li>Para cerrar, confirma cuando el profesional registre el valor final. Después puedes valorar el trabajo.</li>
 <li>Si no hay profesional disponible, usa «Volver a buscar»: no tienes que rellenar nada otra vez.</li>
+<li>Antes de cancelar una solicitud puedes hablar con un asesor desde tu seguimiento: el mensaje de WhatsApp ya incluye el código y el estado de tu solicitud.</li>
 <li>Tu enlace de seguimiento es personal: no lo reenvíes.</li></ul>""" + video_slot("cliente", "Vídeo para clientes")),
         card("profesional", "4. Soy profesional / empresa", """<p><b>Recibir el contacto inicia el trabajo en OficioCerca; mantener actualizado el seguimiento hasta el cierre forma parte del proceso.</b></p>
 <ul><li>Después de hablar con el cliente y llegar a un acuerdo, vuelve a la plataforma y pulsa «Registrar acuerdo alcanzado»: mano de obra inicial y duración estimada (horas, días o semanas). Los materiales son opcionales e informativos.</li>
 <li>Si el trabajo se alarga, actualiza el plazo con la nueva duración (se conserva el historial).</li>
 <li>Al terminar, registra el valor FINAL de la mano de obra, si hubo trabajos adicionales y, si cambió, el motivo. El cliente confirma el cierre.</li>
+<li>Si tienes una duda antes de rechazar una oportunidad, pulsa «Hablar con un asesor» en la misma oportunidad.</li>
 <li>No actualizar el seguimiento de forma reiterada puede afectar a tu prioridad para nuevas oportunidades.</li></ul>""" + video_slot("profesional", "Vídeo para profesionales")),
         card("problema", "5. Tengo un problema", """<ul><li>Desde tu página de seguimiento o de gestión pulsa «Reportar un problema» y elige la categoría: no se pudo contactar, retraso, trabajo abandonado, trabajo parcial, desacuerdo económico, problema de calidad, daños, materiales / bienes, falta de comunicación, situación grave u otro.</li>
 <li>El servicio queda <b>En revisión</b>: se detienen el cierre automático, la comisión y las reseñas, y no se inventan importes.</li>
@@ -926,6 +930,7 @@ def page_ayuda():
     body = f"""<main id="main"><div class="wrap"><section class="page-hero"><div class="crumbs"><a href="../">Inicio</a> / Ayuda</div><h1>Centro de ayuda y políticas</h1><p>Cómo funciona el servicio, qué hacer en cada paso y qué pasa si algo sale mal.</p></section>
 <nav class="ay-idx" aria-label="Secciones de ayuda">{idx}</nav>
 <div class="ay-grid">{"".join(cards)}</div>
+<div class="ayuda-seg ay-soporte" data-wa-item hidden><p class="ayuda-q">¿Necesitas ayuda con una solicitud?</p><a class="btn-ayuda btn-ayuda-wa" data-wa-msg="{e(WA_MSG_AYUDA)}" target="_blank" rel="noopener" aria-label="Hablar con un asesor de OficioCerca por WhatsApp (se abre en una ventana nueva)">{SVG_CHAT}<span>Hablar con un asesor</span></a><p class="ay-nota">Si ya tienes una solicitud, indica su código (OC-…). Desde tu seguimiento el mensaje ya lo incluye.</p></div>
 <p class="ay-nota" style="margin:24px 0 40px">¿No encuentras tu respuesta? Escríbenos a {MAIL}.</p></div></main>
 """
     write("ayuda/index.html", head("Centro de ayuda y políticas · OficioCerca", "Cómo funciona OficioCerca, ayuda para clientes y profesionales, incidencias, comisiones, reseñas y políticas.", "ayuda/", p) + header(p) + body + footer(p))
@@ -952,6 +957,15 @@ def page_enlace(ruta, titulo, recargar):
     if(!wa)return; if(box.querySelector('[data-wa-soporte]')){document.getElementById('ayuda-seg').hidden=true;return;} var oc=ocActual();
     var m=oc?'Hola, necesito ayuda con mi solicitud '+oc+' de OficioCerca.':wa.getAttribute('data-wa-msg');
     wa.href='https://wa.me/'+WA+'?text='+encodeURIComponent(m); document.getElementById('ayuda-seg').hidden=false; }
+  // Ayuda ANTES de cancelar/rechazar: WhatsApp oficial con código OC, rol, servicio, estado y motivo. Sin token, URL privada, correo ni teléfono.
+  function waCancelar(){ if(!/^\\d{8,15}$/.test(WA))return;
+    box.querySelectorAll('.antes-cancelar').forEach(function(b){var sel=b.querySelector('[data-wa-motivo]');
+      function msg(){var d=b.dataset, oc=d.oc||ocActual()||'', m=sel&&sel.value?' Motivo: '+sel.value+'.':'';
+        var ini=d.rol==='Cliente'?'Hola, necesito ayuda antes de cancelar la solicitud '+oc+'. Soy cliente.':'Hola, necesito ayuda con la solicitud '+oc+' '+(d.contexto||'')+'. Soy profesional.';
+        return ini+' Servicio: '+(d.servicio||'')+'. Estado actual: '+(d.estado||'')+'.'+m;}
+      function pon(){var u='https://wa.me/'+WA+'?text='+encodeURIComponent(msg());b.querySelectorAll('a.wa-cancel').forEach(function(a){a.href=u;a.hidden=false;});}
+      pon(); if(sel){sel.addEventListener('change',pon);sel.parentNode.hidden=false;}
+      b.querySelectorAll('.wa-alt').forEach(function(x){x.hidden=true;});});}
   // Servicio cancelado: vista simple (solo presentación; el estado y los datos del servicio no cambian).
   function simplificarCancelado(){var p4=box.querySelector('.panel4'); if(!p4||!/est[áa] cancelad/i.test(p4.textContent))return;
     var pn=box.querySelector('#pn'), notas=box.querySelectorAll('p.nota'), ayudaP=null;
@@ -968,7 +982,7 @@ def page_enlace(ruta, titulo, recargar):
     document.getElementById('cancel-otro').onclick=function(){if(pn&&window.ver){ver('pn');}else{location.href='../solicitar/';}};}
   function notaValoracion(){var st=box.querySelector('.stars'); if(!st||box.querySelector('.nota-val'))return; var n=document.createElement('p'); n.className='nota nota-val';
     n.textContent='Las valoraciones de OficioCerca solo pueden realizarse después de un servicio cerrado y confirmado en la plataforma.'; st.parentNode.insertBefore(n,st);}
-  function pintar(r){tit.textContent=r.titulo||'OficioCerca';box.innerHTML=r.cuerpo||'';if(r.script){var s=document.createElement('script');s.text=r.script;document.body.appendChild(s);}simplificarCancelado();notaValoracion();ayudaWA();}
+  function pintar(r){tit.textContent=r.titulo||'OficioCerca';box.innerHTML=r.cuerpo||'';if(r.script){var s=document.createElement('script');s.text=r.script;document.body.appendChild(s);}simplificarCancelado();notaValoracion();ayudaWA();waCancelar();}
   function errorCarga(){tit.textContent='No se pudo cargar';
     box.innerHTML='<p>La conexión con OficioCerca está tardando más de lo normal o ha fallado. Tus datos no se han perdido.</p><button type="button" class="btn" id="g-reintentar">Reintentar</button>';
     document.getElementById('g-reintentar').onclick=function(){cargar(true);};}

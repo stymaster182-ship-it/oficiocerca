@@ -77,9 +77,12 @@ function pagina_(t) {
       '<button class="btn sec" onclick="ver(\'pb\')">🕒 PUEDO HACERLO, PERO MÁS ADELANTE</button>' +
       '<div id="pb" class="panel opc hide"><label for="fecha">¿A partir de qué fecha aproximada?</label><input type="date" id="fecha" min="' + hoy + '">' +
       '<button class="btn sec" onclick="if(!val(\'fecha\')){alert(\'Elige una fecha\');return}enviar({a:\'mas_adelante\',fecha:val(\'fecha\')})">Confirmar fecha</button></div>' +
-      '<button class="btn rojo" onclick="ver(\'pc\')">✖ NO PUEDO / NO ME INTERESA</button>' +
-      '<div id="pc" class="panel opc hide"><label for="nota">Motivo (opcional)</label><input id="nota" maxlength="200">' +
-      '<button class="btn rojo" onclick="enviar({a:\'no\',nota:val(\'nota\')})">Confirmar: no puedo</button></div>', t);
+      bloqueAntesDeCancelar_({ id: 'px', oc: oc, rol: 'Profesional', servicio: servicioTxt_(sol), estado: 'Oportunidad pendiente de tu respuesta',
+        contexto: 'antes de rechazar la oportunidad', pregunta: '¿Tienes una duda o algún problema antes de rechazarla?',
+        sub: 'Podemos ayudarte antes de que la ofrezcamos a otro profesional. Rechazar no tiene coste.', boton: '✖ NO PUEDO / NO ME INTERESA',
+        confirma: '¿Quieres rechazar esta oportunidad de todas formas?', nota: 'La ofreceremos a otro profesional compatible.',
+        extra: '<label for="nota">Motivo para OficioCerca (opcional)</label><input id="nota" maxlength="200">',
+        botonFinal: 'SÍ, RECHAZAR DE TODAS FORMAS', accion: "enviar({a:'no',nota:val('nota')})" }), t);
   }
   if (tipo === 'respaldo') {
     var ofr = tabla_('Ofertas').buscar('ID', tok['Referencia']);
@@ -87,7 +90,7 @@ function pagina_(t) {
     return html_('Disponibilidad para tu solicitud ' + oc, '<p>Pediste: <b>' + esc_(plazoTxt_(sol)) + '</b>. La opción más próxima que encontramos puede atenderte aproximadamente: <b>' + esc_(ofr ? ofr['Disponibilidad'] : '') + '</b>.</p>' +
       '<button class="btn" onclick="enviar({a:\'continuar\'})">Sí, continuar con este profesional</button>' +
       '<button class="btn sec" onclick="enviar({a:\'seguir\'})">Seguir buscando</button>' +
-      '<button class="btn rojo" onclick="if(confirm(\'¿Seguro que quieres cancelar la solicitud?\'))enviar({a:\'cancelar\'})">Cancelar solicitud</button>' +
+      bloqueCancelarCliente_(sol, 'cx', "enviar({a:'cancelar'})") +
       '<p class="nota">Hasta que elijas, no compartimos tus datos de contacto con ningún profesional.</p>', t);
   }
   if (tipo === 'presupuesto' || tipo === 'fin' || tipo === 'cliente') {
