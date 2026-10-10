@@ -16,7 +16,10 @@ ROOT = Path(__file__).resolve().parent.parent
 CAT = json.loads((ROOT / "assets/data/catalogo.json").read_text(encoding="utf-8"))
 OFICIOS = [o for o in CAT["oficios"] if o.get("activo", True)]  # solo servicios activos del piloto
 CIUDADES, TIPOS = CAT["ciudades"], CAT["tiposTrabajo"]
-SITE = "https://oficiocerca.pages.dev/"
+# DOMINIO: único punto a cambiar el día que se conecte oficiocerca.com (canonical, Open Graph, sitemap, robots,
+# datos estructurados y redirección de GitHub Pages salen de aquí). Cambiar también SITE_URL en assets/js/config.js
+# y el valor URL_WEB de la pestaña Configuración (backend). Hasta entonces: oficiocerca.pages.dev.
+SITE = "https://oficiocerca.pages.dev/"  # FUTURO: "https://oficiocerca.com/"
 VERSION = "10"
 CONSENT_VERSION = "C4-2026-10"  # cambia este código si cambias el texto del consentimiento
 PRO_COND_VERSION = "PRO-COND-2026-10-V4"  # versión de las condiciones para profesionales (V3 archivada en /condiciones-profesionales/v3/)
@@ -58,7 +61,7 @@ def head(title, desc, path, p, noindex=False, jsonld=None, og_image="assets/img/
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<script>if(/\\.github\\.io$/.test(location.hostname)){{location.replace("https://oficiocerca.pages.dev"+location.pathname.replace(/^\\/oficiocerca/,"")+location.search+location.hash)}}</script>
+<script>if(/\\.github\\.io$/.test(location.hostname)){{location.replace("{SITE.rstrip("/")}"+location.pathname.replace(/^\\/oficiocerca/,"")+location.search+location.hash)}}</script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{e(title)}</title>
 <meta name="description" content="{e(desc)}">
@@ -211,6 +214,7 @@ def page_home():
         {"@type": "Organization", "@id": SITE + "#org", "name": "OficioCerca", "url": SITE, "email": CONTACT_EMAIL,
          "logo": SITE + "assets/img/apple-touch-icon.png",
          "description": "Servicio de intermediación que conecta a clientes y empresas con profesionales de obras, reformas y reparaciones.",
+         "slogan": "El trabajo que necesitas, más cerca.", "sameAs": [INSTAGRAM_URL, FACEBOOK_URL],
          "areaServed": {"@type": "City", "name": "Córdoba", "containedInPlace": {"@type": "Country", "name": "España"}}},
         {"@type": "WebSite", "@id": SITE + "#web", "name": "OficioCerca", "url": SITE, "inLanguage": "es-ES", "publisher": {"@id": SITE + "#org"}}]}
     opciones = [
