@@ -2383,6 +2383,9 @@ function lineaProgresoV16_(sol, com, vista) {
     var cls = na ? 'pend' : i < actual ? 'hecho' : i === actual ? 'ahora' : 'pend';
     var ico = na ? '–' : i < actual ? '✓' : i === actual ? '◉' : '○';
     if (na) txt += ' (no aplica: cobro no habilitado en el piloto)';
+    // Mientras se busca, el paso actual no puede decir «Profesional encontrado» (confundía al cliente)
+    if (i === 1 && actual === 1) txt = { 'Sin profesional disponible': 'Buscando profesional · sin profesional disponible por ahora',
+      'Esperando decisión cliente': 'Buscando profesional · necesitamos tu decisión', 'Revisión manual': 'Revisando tu solicitud' }[sol['Estado']] || 'Buscando profesional';
     if (i === 4 && sol['Fecha estimada fin'] && actual <= 4) txt += ' · fin estimado ' + fecha_(sol['Fecha estimada fin']);
     if (i === actual) txt += pausa;
     return '<li class="' + cls + '"><span aria-hidden="true">' + ico + '</span> ' + esc_(txt) + '</li>';
