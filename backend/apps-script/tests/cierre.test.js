@@ -33,6 +33,7 @@ caso('Cliente (buscando): ayuda antes de cancelar visible, sin confirm() nativo,
   assert.ok(/HABLAR CON UN ASESOR/.test(pg) && /CANCELAR DE TODAS FORMAS/.test(pg) && /¿Quieres cancelar de todas formas\?/.test(pg));
   assert.ok(!/confirm\(/.test(pg), 'sin confirm() del navegador');
   assert.ok(pg.indexOf('antes-cancelar') < pg.indexOf('Otras opciones'), 'en el contexto del servicio, antes de «Otras opciones»');
+  assert.ok(/◉<\/span> Buscando profesional</.test(pg) && !/◉<\/span> Profesional encontrado/.test(pg), 'mientras busca no dice «Profesional encontrado»');
   assert.ok(/data-oc="OC-\d{4}" data-rol="Cliente" data-servicio="Electricidad" data-estado="Buscando un profesional compatible"/.test(pg));
   sinPrivado(pg, { oc: r.code }, E);
   assert.ok(!/wa\.me/.test(pg), 'el número lo pone la web');
