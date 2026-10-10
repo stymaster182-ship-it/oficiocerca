@@ -17,7 +17,7 @@
  *   profesionales_cordoba → landing /profesionales/cordoba/ («OficioCerca para profesionales», 15–30 s; institucional profesional)
  *   general → flujo completo (Inicio «Cómo funciona» y Ayuda) · cliente → tutorial cliente · profesional → tutorial profesional
  *   Las piezas institucionales para redes (cliente, profesional, general) no necesitan hueco: el institucional general
- *   sustituye a assets/video/oficiocerca-institucional.mp4 (vídeo actual de Inicio).
+ *   ya está integrado en Inicio: assets/video/conoce-oficiocerca.mp4 («Conoce OficioCerca»).
  */
 window.OC_CONFIG = {
   ENDPOINT: "https://script.google.com/macros/s/AKfycbyjOjHiDWHdLwXx23eMkHZi7z2PYbTRiuqYYQvfe7HGRdnPfWqNO9MlhB-pl0_BrCHZ/exec",
