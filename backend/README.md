@@ -57,6 +57,14 @@ El código está en `backend/apps-script/src/*.gs` y se une en `backend/apps-scr
 14. **Reputación** (`04-motor.gs → puntosReputacion_`): señal secundaria tras los filtros duros; pesos `REP_PESO_VALORACION`,
    `REP_PESO_RESPUESTA`, `REP_PESO_SEGUIMIENTO`; nuevo (< 3 oportunidades) +1; tope total ±1 (la zona suma 3); a igualdad manda la rotación.
 
+## Ayuda antes de cancelar (cierre pre-piloto)
+
+- Cliente (cancelar antes de la asignación) y profesional (rechazar una oportunidad): el mismo bloque muestra «HABLAR CON UN ASESOR»
+  (WhatsApp oficial con código OC, rol, servicio, estado y motivo opcional; sin token, URL privada, correo ni teléfono) y
+  «… DE TODAS FORMAS», que abre una confirmación. Solo la confirmación expresa ejecuta la acción (`09-portal.gs → bloqueAntesDeCancelar_`).
+- Limpieza de pruebas: `limpiarPruebaOC0001()` (`13-limpieza.gs`) borra solo las filas de los códigos indicados y reinicia `SEQ_OC`
+  únicamente si no queda ninguna OC. Pruebas: `node tests/v17.test.js` y `node tests/cierre.test.js`.
+
 ## Activadores
 
 - `alEditar` (al editar la hoja): activar/pausar profesionales, pausa preventiva, oferta manual, cancelaciones.
