@@ -151,6 +151,8 @@
           document.body.classList.add("oc-enviado"); // ya rellenó el formulario: se ocultan el tutorial y la ayuda para rellenarlo
           borrarBorrador();
           success.querySelector("[data-code]").textContent = res.code;
+          var lm = success.querySelector("[data-lead-manual]"), ln = success.querySelector("[data-lead-normal]");
+          if (res.manual && lm && ln) { lm.hidden = false; ln.hidden = true; } // F9.1 (C-03)
           success.classList.add("show");
           window.scrollTo(0, Math.max(0, card.getBoundingClientRect().top + window.scrollY - 90));
           success.focus({ preventScroll: true });
@@ -158,7 +160,7 @@
         .catch(function () {
           clearTimeout(timer);
           setSending(false);
-          showStatus("error", "No hemos podido enviar la solicitud. Comprueba tu conexión e inténtalo de nuevo en unos minutos. Tus datos siguen en el formulario.");
+          showStatus("error", "No hemos podido enviar " + (kind === "profesional" ? "el registro" : "la solicitud") + ". Comprueba tu conexión e inténtalo de nuevo en unos minutos. Tus datos siguen en el formulario.");
         });
     });
 
