@@ -191,7 +191,7 @@ def trades_grid(p, ciudad=None):
     q = "?oficio=otro" + (f"&ciudad={ciudad}" if ciudad else "")
     out.append(f'<a class="trade trade-other" data-reveal href="{p}solicitar/{q}"><span class="trade-ico">{ico("plus")}</span>'
                f'<span class="trade-txt"><strong>¿Necesitas otro servicio?</strong>'
-               f'<span>Cuéntanos qué trabajo necesitas y revisaremos si hay profesionales disponibles en Córdoba. Te contactaremos para informarte.</span></span>'
+               f'<span>Cuéntanos qué trabajo necesitas y una persona del equipo revisará si podemos atenderlo en Córdoba. Verás el resultado en tu seguimiento y te escribiremos por correo.</span></span>'
                f'<span class="trade-go" aria-hidden="true">{ico("arrow")}</span></a>')
     return '<div class="trades">' + "".join(out) + "</div>"
 
@@ -467,7 +467,8 @@ def page_solicitar():
     <div class="success" data-success tabindex="-1">
       <div class="badge">{ico('check')}</div>
       <h2>Solicitud recibida</h2>
-      <p class="success-lead">Ahora buscaremos un profesional compatible. Te avisaremos por correo cuando tengamos novedades.</p>
+      <p class="success-lead" data-lead-normal>Vamos a ofrecer tu solicitud a profesionales compatibles. No podemos garantizar disponibilidad; te avisaremos por correo cuando tengamos novedades.</p>
+      <p class="success-lead" data-lead-manual hidden>Este servicio no está todavía entre los servicios activos del piloto: una persona del equipo revisará si podemos atenderlo. Verás el resultado en tu seguimiento.</p>
       <div class="ticket"><small>Tu código de solicitud</small><strong data-code>—</strong></div>
       <p class="success-seg">{MAIL_ICO}<span>Tu enlace de <b>seguimiento</b> está en el correo de confirmación. Si no lo ves, revisa Spam o Promociones.</span></p>
       {video_slot("despues_solicitud", "¿Qué pasa después de enviar tu solicitud?")}
@@ -506,7 +507,7 @@ def page_profesionales():
   <h2 id="h-ventajas">Cómo trabajamos contigo</h2>
   <ul>
     <li>{ico('check')}<span><b>No pagas por recibir una oportunidad.</b></span></li>
-    <li>{ico('check')}<span><b>La comisión se genera cuando el trabajo llega al cierre correspondiente dentro del proceso de OficioCerca:</b> 10 % de los primeros 2.000 € de mano de obra + 5 % del excedente, sin tope. Los materiales no generan comisión.</span></li>
+    <li>{ico('check')}<span><b>La comisión se genera cuando el trabajo llega al cierre correspondiente dentro del proceso de OficioCerca:</b> 10 % de los primeros 2.000 € de mano de obra + 5 % del excedente, sin tope. Los materiales no generan comisión. <b>Durante el piloto la comisión solo se calcula y se registra: no se cobra.</b></span></li>
     <li>{ico('check')}<span><b>No enviamos la misma solicitud a la vez a muchos profesionales:</b> buscamos compatibilidad y ofrecemos la oportunidad de forma ordenada.</span></li>
     <li>{ico('check')}<span><b>El contacto con el cliente es directo.</b></span></li>
     <li>{ico('check')}<span><b>El seguimiento continúa hasta el cierre del servicio.</b></span></li>
@@ -641,9 +642,10 @@ def page_profesionales_cordoba():
 <section class="wrap lp-sec" aria-labelledby="lp-com">
   <div class="lp-card">
     <h2 id="lp-com">No pagas por recibir una oportunidad.</h2>
-    <p>La comisión actual sobre la mano de obra final es:</p>
+    <p>La comisión prevista en las condiciones sobre la mano de obra final es:</p>
     <p class="lp-formula"><b>10 %</b> de los primeros 2.000 € <span>+</span> <b>5 %</b> del excedente</p>
     <p class="lp-small">Materiales excluidos · Sin tope.</p>
+    <p class="lp-small"><b>Durante el piloto no se cobra:</b> solo se calcula y se registra. Su cobro real se comunicará por escrito antes de aplicarse.</p>
   </div>
 </section>
 <section class="wrap lp-sec" aria-label="Confianza">
@@ -715,7 +717,7 @@ def page_ciudad(c):
 <section class="page-hero"><div class="wrap">
   <div class="crumbs"><a href="../">Inicio</a> / {e(c['nombre'])}</div>
   <h1>Profesionales para obras y reparaciones en {e(c['nombre'])}</h1>
-  <p>{e(c['nombre'])} es la zona piloto de OficioCerca. Elige el oficio que necesitas y te buscamos un profesional disponible.</p>
+  <p>{e(c['nombre'])} es la zona piloto de OficioCerca. Elige el oficio que necesitas y lo ofreceremos a profesionales compatibles, sin garantizar disponibilidad.</p>
 </div></section>
 <section class="sec" style="padding-top:20px"><div class="wrap">{trades_grid(p, c['slug'])}</div></section>
 </main>
